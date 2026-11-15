@@ -393,7 +393,7 @@ const INTROSPECTION_QUERY = `
  * @param {string} input - JSON string with url, query, variables, operationName, timeout, maxDepth, maxComplexity, allowlist
  * @returns {Promise<{ ok: boolean, data?: unknown, error?: string }>}
  */
-export async function graphql(input) {
+export async function graphqlRequest(input) {
 	let parsed;
 	try {
 		parsed = JSON.parse(input);
@@ -515,7 +515,7 @@ export async function introspectSchema(input) {
  * queries and mutations natively. Enforces query depth/complexity limits and
  * re-validates every redirect hop against the URL allowlist.
  */
-export const graphqlTool = tool(
+export const graphql = tool(
 	async (input) => {
 		const result = await graphqlImpl(input);
 		return JSON.stringify(result, null, 2);

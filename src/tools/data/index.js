@@ -245,7 +245,7 @@ export async function dataTransformationImpl(input) {
  * First-class data tool. Wraps the data transformation client so madz can
  * convert between JSON, YAML, and CSV formats natively.
  */
-export const dataTool = tool(
+export const data = tool(
 	async (input) => {
 		const result = await dataTransformationImpl(input);
 		return JSON.stringify(result, null, 2);

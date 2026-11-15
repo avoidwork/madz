@@ -1,10 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import {
-	dataTransformationImpl,
-	dataTransformation,
-	dataTool,
-} from "../../src/tools/data/index.js";
+import { dataTransformationImpl, dataTransformation, data } from "../../src/tools/data/index.js";
 
 describe("data tool", () => {
 	it("converts JSON to YAML", async () => {
@@ -245,13 +241,13 @@ describe("data tool", () => {
 		assert.ok(result.error.includes("Invalid JSON input"));
 	});
 
-	it("dataTool returns a LangChain tool with correct schema", () => {
-		assert.strictEqual(dataTool.name, "data");
-		assert.ok(typeof dataTool._call === "function" || typeof dataTool.invoke === "function");
+	it("data returns a LangChain tool with correct schema", () => {
+		assert.strictEqual(data.name, "data");
+		assert.ok(typeof data._call === "function" || typeof data.invoke === "function");
 	});
 
-	it("dataTool tool processes input correctly", async () => {
-		const result = await dataTool.invoke({
+	it("data tool processes input correctly", async () => {
+		const result = await data.invoke({
 			action: "json-to-yaml",
 			input: JSON.stringify({ hello: "world" }),
 			format: "json",

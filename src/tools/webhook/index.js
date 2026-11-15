@@ -220,7 +220,7 @@ export async function webhookManagementImpl(input) {
  * First-class webhook tool. Wraps the webhook management client so madz can
  * create, list, delete, and verify webhook registrations natively.
  */
-export const webhookTool = tool(
+export const webhook = tool(
 	async (input) => {
 		const result = await webhookManagementImpl(input);
 		return JSON.stringify(result, null, 2);

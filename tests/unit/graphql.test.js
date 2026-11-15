@@ -2,9 +2,9 @@ import { describe, it, afterEach } from "node:test";
 import assert from "node:assert";
 import {
 	graphqlImpl,
-	graphql,
+	graphqlRequest,
 	introspectSchema,
-	graphqlTool,
+	graphql,
 	executeGraphQL,
 	rateLimit,
 } from "../../src/tools/graphql/index.js";
@@ -59,13 +59,13 @@ describe("graphql tool", () => {
 
 describe("graphql — graphql() JSON wrapper", () => {
 	it("returns error for invalid JSON", async () => {
-		const result = await graphql("not-json");
+		const result = await graphqlRequest("not-json");
 		assert.strictEqual(result.ok, false);
 		assert.ok(result.error.includes("Invalid JSON input"));
 	});
 
 	it("parses valid JSON and delegates to graphqlImpl", async () => {
-		const result = await graphql(
+		const result = await graphqlRequest(
 			JSON.stringify({ url: "https://example.com/graphql", query: "{ test }" }),
 		);
 		// Should not be a JSON parse error
@@ -303,14 +303,14 @@ describe("graphql — introspectSchema()", () => {
 	});
 });
 
-describe("graphql — graphqlTool", () => {
+describe("graphql — graphql tool", () => {
 	it("returns a LangChain tool with correct name", () => {
-		assert.ok(graphqlTool);
-		assert.strictEqual(graphqlTool.name, "graphql");
+		assert.ok(graphql);
+		assert.strictEqual(graphql.name, "graphql");
 	});
 
 	it("invokes the tool and returns JSON result", async () => {
-		const result = await graphqlTool.invoke({
+		const result = await graphql.invoke({
 			url: "https://example.com/graphql",
 			query: "{ test }",
 		});

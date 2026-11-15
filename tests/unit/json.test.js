@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { jsonManipulationImpl, jsonManipulation, jsonTool } from "../../src/tools/json/index.js";
+import { jsonManipulationImpl, jsonManipulation, json } from "../../src/tools/json/index.js";
 
 describe("json tool", () => {
 	it("parses JSON string to object", async () => {
@@ -323,13 +323,13 @@ describe("json tool", () => {
 		assert.ok(result.error.includes("Invalid JSON input"));
 	});
 
-	it("jsonTool returns a LangChain tool with correct schema", () => {
-		assert.strictEqual(jsonTool.name, "json");
-		assert.ok(typeof jsonTool._call === "function" || typeof jsonTool.invoke === "function");
+	it("json returns a LangChain tool with correct schema", () => {
+		assert.strictEqual(json.name, "json");
+		assert.ok(typeof json._call === "function" || typeof json.invoke === "function");
 	});
 
-	it("jsonTool tool processes input correctly", async () => {
-		const result = await jsonTool.invoke({
+	it("json tool processes input correctly", async () => {
+		const result = await json.invoke({
 			action: "parse",
 			input: JSON.stringify({ hello: "world" }),
 		});

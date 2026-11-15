@@ -24,11 +24,11 @@ import { generatePptxTool } from "./pptx/index.js";
 import { createApiTool } from "./api/index.js";
 import { jira } from "./jira/index.js";
 import { confluence } from "./confluence/index.js";
-import { graphqlTool } from "./graphql/index.js";
-import { jsonTool } from "./json/index.js";
-import { yamlTool } from "./yaml/index.js";
-import { dataTool } from "./data/index.js";
-import { webhookTool } from "./webhook/index.js";
+import { graphql } from "./graphql/index.js";
+import { json } from "./json/index.js";
+import { yaml } from "./yaml/index.js";
+import { data } from "./data/index.js";
+import { webhook } from "./webhook/index.js";
 import { code } from "./code/index.js";
 import { todo } from "./todo/index.js";
 import { file } from "./file/index.js";
@@ -384,11 +384,11 @@ export const TOOLS = {
 	api: createApiTool,
 	jira,
 	confluence,
-	graphql: graphqlTool,
-	json: jsonTool,
-	yaml: yamlTool,
-	data: dataTool,
-	webhook: webhookTool,
+	graphql,
+	json,
+	yaml,
+	data,
+	webhook,
 	code,
 	getConfig,
 	decision,

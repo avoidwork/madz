@@ -243,7 +243,7 @@ export async function jsonManipulationImpl(input) {
  * First-class JSON tool. Wraps the JSON manipulation client so madz can parse,
  * serialize, transform, filter, and access JSON data natively.
  */
-export const jsonTool = tool(
+export const json = tool(
 	async (input) => {
 		const result = await jsonManipulationImpl(input);
 		return JSON.stringify(result, null, 2);

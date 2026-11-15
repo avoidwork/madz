@@ -246,7 +246,7 @@ export async function yamlManipulationImpl(input) {
  * First-class YAML tool. Wraps the YAML manipulation client so madz can parse,
  * serialize, transform, filter, and access YAML data natively.
  */
-export const yamlTool = tool(
+export const yaml = tool(
 	async (input) => {
 		const result = await yamlManipulationImpl(input);
 		return JSON.stringify(result, null, 2);
