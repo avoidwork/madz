@@ -122,6 +122,7 @@ sandbox:
     maxFileSize: 26214400
 api:
   maxBodySize: 10485760
+  downloadsDir: downloads/
 browser:
   allowlist: []
   timeoutMs: 30000
