@@ -23,6 +23,7 @@ import { LoopDetectionSchema } from "./schemas/loopDetection.js";
 import { VectorConfigSchema } from "./schemas/vector.js";
 import { ImageSchema } from "./schemas/image.js";
 import { SqlConfigSchema } from "./schemas/sql.js";
+import { NosqlConfigSchema } from "./schemas/nosql.js";
 import { McpSchema } from "./schemas/mcp.js";
 
 // Re-export individual schemas for backward compatibility
@@ -40,6 +41,7 @@ export {
 	SkillAgentMapSchema,
 	VectorConfigSchema,
 	SqlConfigSchema,
+	NosqlConfigSchema,
 	McpSchema,
 	AzureProviderConfigSchema,
 	BedrockProviderConfigSchema,
@@ -80,6 +82,7 @@ export const ConfigSchema = z.object({
 	vector: VectorConfigSchema.default({}),
 	image: ImageSchema.default({}),
 	sql: SqlConfigSchema.default({}),
+	nosql: NosqlConfigSchema.default({}),
 	mcp: McpSchema,
 });
 

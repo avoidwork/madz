@@ -35,6 +35,7 @@ import { git } from "./git/index.js";
 import { archive } from "./archive/index.js";
 import { diagram } from "./diagram/index.js";
 import { sql } from "./sql/index.js";
+import { nosql } from "./nosql/index.js";
 import { env } from "./env/index.js";
 import { getConfig } from "./config/index.js";
 import { decision, decisionImpl, DecisionToolSchema } from "./decision/index.js";
@@ -63,6 +64,7 @@ export const TOOL_PERMISSIONS = {
 	archive: ["filesystem:read", "filesystem:write"],
 	diagram: ["filesystem:write"],
 	sql: ["network:outbound", "filesystem:read", "filesystem:write"],
+	nosql: ["network:outbound", "filesystem:read", "filesystem:write"],
 	env: ["env:read"],
 	process: ["filesystem:exec", "process:spawn"],
 	sampling: ["filesystem:write"],
@@ -189,6 +191,7 @@ export const TOOL_CLASSIFICATIONS = {
 	archive: ["search", "research", "coding", "documentation", "debug"],
 	diagram: ["search", "research", "coding", "documentation", "debug"],
 	sql: ["search", "research", "coding", "documentation", "debug"],
+	nosql: ["search", "research", "coding", "documentation", "debug"],
 	env: [
 		"coding",
 		"debug",
@@ -330,6 +333,7 @@ export const ORCHESTRATOR_TOOLS = [
 	"searchWeb",
 	"skill",
 	"sql",
+	"nosql",
 	"todo",
 ];
 
@@ -350,6 +354,7 @@ export const TOOLS = {
 	archive,
 	diagram,
 	sql,
+	nosql,
 	env,
 	process: processTool,
 	sampling,
@@ -473,6 +478,7 @@ export async function buildToolConfig(options) {
 			case "archive":
 			case "diagram":
 			case "sql":
+			case "nosql":
 			case "file":
 			case "env": {
 				if (!hasAllPerms) continue;
