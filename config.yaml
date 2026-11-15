@@ -109,6 +109,7 @@ sandbox:
     - filesystem:exec
     - process:spawn
     - network:outbound
+    - env:read
   # Size limits, all in bytes
   maxReadSize: 1048576
   maxPaginatedReadSize: 52428800
