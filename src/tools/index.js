@@ -34,6 +34,7 @@ import { discovery } from "./discovery/index.js";
 import { git } from "./git/index.js";
 import { archive } from "./archive/index.js";
 import { diagram } from "./diagram/index.js";
+import { sql } from "./sql/index.js";
 import { env } from "./env/index.js";
 import { getConfig } from "./config/index.js";
 import { decision, decisionImpl, DecisionToolSchema } from "./decision/index.js";
@@ -61,6 +62,7 @@ export const TOOL_PERMISSIONS = {
 	git: ["process:spawn"],
 	archive: ["filesystem:read", "filesystem:write"],
 	diagram: ["filesystem:write"],
+	sql: ["network:outbound", "filesystem:read", "filesystem:write"],
 	env: ["env:read"],
 	process: ["filesystem:exec", "process:spawn"],
 	sampling: ["filesystem:write"],
@@ -186,6 +188,7 @@ export const TOOL_CLASSIFICATIONS = {
 	git: ["coding", "debug", "code-review", "performance"],
 	archive: ["search", "research", "coding", "documentation", "debug"],
 	diagram: ["search", "research", "coding", "documentation", "debug"],
+	sql: ["search", "research", "coding", "documentation", "debug"],
 	env: [
 		"coding",
 		"debug",
@@ -345,6 +348,7 @@ export const TOOLS = {
 	git,
 	archive,
 	diagram,
+	sql,
 	env,
 	process: processTool,
 	sampling,
@@ -467,6 +471,7 @@ export async function buildToolConfig(options) {
 			case "git":
 			case "archive":
 			case "diagram":
+			case "sql":
 			case "file":
 			case "env": {
 				if (!hasAllPerms) continue;
