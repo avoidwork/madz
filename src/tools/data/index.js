@@ -242,34 +242,32 @@ export async function dataTransformationImpl(input) {
 }
 
 /**
- * Create the LangChain tool wrapper for data transformation.
- * @returns {object} LangChain Tool instance
+ * First-class data tool. Wraps the data transformation client so madz can
+ * convert between JSON, YAML, and CSV formats natively.
  */
-export function createDataTool() {
-	return tool(
-		async (input) => {
-			const result = await dataTransformationImpl(input);
-			return JSON.stringify(result, null, 2);
-		},
-		{
-			name: "data",
-			description:
-				"Convert data between JSON, YAML, and CSV formats. Actions: json-to-yaml, yaml-to-json, json-to-csv, csv-to-json, yaml-to-csv, csv-to-yaml. CSV conversions support optional mapping rules (JSON string) to rename columns.",
-			schema: z.object({
-				action: z
-					.enum([
-						"json-to-yaml",
-						"yaml-to-json",
-						"json-to-csv",
-						"csv-to-json",
-						"yaml-to-csv",
-						"csv-to-yaml",
-					])
-					.describe("Conversion action"),
-				input: z.string().describe("Input data string"),
-				format: z.enum(["json", "yaml", "csv"]).describe("Input format"),
-				mapping: z.string().optional().describe("JSON string mapping rules for CSV conversions"),
-			}),
-		},
-	);
-}
+export const data = tool(
+	async (input) => {
+		const result = await dataTransformationImpl(input);
+		return JSON.stringify(result, null, 2);
+	},
+	{
+		name: "data",
+		description:
+			"Convert data between JSON, YAML, and CSV formats. Actions: json-to-yaml, yaml-to-json, json-to-csv, csv-to-json, yaml-to-csv, csv-to-yaml. CSV conversions support optional mapping rules (JSON string) to rename columns.",
+		schema: z.object({
+			action: z
+				.enum([
+					"json-to-yaml",
+					"yaml-to-json",
+					"json-to-csv",
+					"csv-to-json",
+					"yaml-to-csv",
+					"csv-to-yaml",
+				])
+				.describe("Conversion action"),
+			input: z.string().describe("Input data string"),
+			format: z.enum(["json", "yaml", "csv"]).describe("Input format"),
+			mapping: z.string().optional().describe("JSON string mapping rules for CSV conversions"),
+		}),
+	},
+);

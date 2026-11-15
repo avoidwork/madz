@@ -24,11 +24,11 @@ import { generatePptxTool } from "./pptx/index.js";
 import { createApiTool } from "./api/index.js";
 import { jira } from "./jira/index.js";
 import { confluence } from "./confluence/index.js";
-import { createGraphqlTool } from "./graphql/index.js";
-import { createJsonTool } from "./json/index.js";
-import { createYamlTool } from "./yaml/index.js";
-import { createDataTool } from "./data/index.js";
-import { createWebhookTool } from "./webhook/index.js";
+import { graphql } from "./graphql/index.js";
+import { json } from "./json/index.js";
+import { yaml } from "./yaml/index.js";
+import { data } from "./data/index.js";
+import { webhook } from "./webhook/index.js";
 import { code } from "./code/index.js";
 import { todo } from "./todo/index.js";
 import { file } from "./file/index.js";
@@ -384,11 +384,11 @@ export const TOOLS = {
 	api: createApiTool,
 	jira,
 	confluence,
-	graphql: createGraphqlTool,
-	json: createJsonTool,
-	yaml: createYamlTool,
-	data: createDataTool,
-	webhook: createWebhookTool,
+	graphql,
+	json,
+	yaml,
+	data,
+	webhook,
 	code,
 	getConfig,
 	decision,
@@ -544,7 +544,7 @@ export async function buildToolConfig(options) {
 			case "data":
 			case "webhook": {
 				if (!hasAllPerms) continue;
-				tools.push(TOOLS[toolName]());
+				tools.push(TOOLS[toolName]);
 				continue;
 			}
 

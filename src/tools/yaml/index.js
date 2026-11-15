@@ -243,27 +243,25 @@ export async function yamlManipulationImpl(input) {
 }
 
 /**
- * Create the LangChain tool wrapper for YAML manipulation.
- * @returns {object} LangChain Tool instance
+ * First-class YAML tool. Wraps the YAML manipulation client so madz can parse,
+ * serialize, transform, filter, and access YAML data natively.
  */
-export function createYamlTool() {
-	return tool(
-		async (input) => {
-			const result = await yamlManipulationImpl(input);
-			return JSON.stringify(result, null, 2);
-		},
-		{
-			name: "yaml",
-			description:
-				"Parse, serialize, transform, filter, and access YAML data. Actions: parse (string→object), serialize (object→string), transform (apply key mapping rules), filter (dot-notation path filter), access (dot-notation path access including array indices).",
-			schema: z.object({
-				action: z
-					.enum(["parse", "serialize", "transform", "filter", "access"])
-					.describe("Action to perform"),
-				input: z.string().describe("YAML string input"),
-				path: z.string().optional().describe("Dot-notation path expression"),
-				mapping: z.string().optional().describe("JSON string mapping rules for transform action"),
-			}),
-		},
-	);
-}
+export const yaml = tool(
+	async (input) => {
+		const result = await yamlManipulationImpl(input);
+		return JSON.stringify(result, null, 2);
+	},
+	{
+		name: "yaml",
+		description:
+			"Parse, serialize, transform, filter, and access YAML data. Actions: parse (string→object), serialize (object→string), transform (apply key mapping rules), filter (dot-notation path filter), access (dot-notation path access including array indices).",
+		schema: z.object({
+			action: z
+				.enum(["parse", "serialize", "transform", "filter", "access"])
+				.describe("Action to perform"),
+			input: z.string().describe("YAML string input"),
+			path: z.string().optional().describe("Dot-notation path expression"),
+			mapping: z.string().optional().describe("JSON string mapping rules for transform action"),
+		}),
+	},
+);

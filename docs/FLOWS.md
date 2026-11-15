@@ -210,19 +210,21 @@ buildToolConfig({ permissions, allowedPaths, maxReadSize, registry, sessionsDir,
 │   │   ├── searchWeb → if hasAllPerms && any search backend configured
 │   │   ├── generateImage → if hasAllPerms && falApiKey
 │   │   ├── textToSpeech → if openaiApiKey
-│   │   ├── api | graphql | json | yaml | data | webhook → if hasAllPerms, via factory call
+│   │   ├── api → if hasAllPerms, via createApiTool(config?.api, { allowedPaths })
+│   │   ├── graphql | json | yaml | data | webhook → if hasAllPerms, plain instance
 │   │   └── default: → if requiredPerms.length === 0 || hasAllPerms
-│   └── tools.push(TOOLS[toolName]) (or TOOL_FACTORIES[toolName]() for factory tools)
+│   └── tools.push(TOOLS[toolName])
 └── return tools[]
 ```
 
 ### Tool Factory Pattern
 
-Tools are exported as ready LangChain `tool()` instances from `src/tools/index.js`, or built by per-domain factories (e.g. `createEmailProvider()`). Each tool file exports:
+Tools are exported as ready LangChain `tool()` instances from `src/tools/index.js`. Each tool file exports:
 
 1. **Core impl function** (e.g., `agentsImpl(input, options)`)
-2. **Tool definition** (`tool(impl, { name, description, schema })`)
-3. **Factory function** where runtime options are needed (e.g., `createEmailProvider(config)`)
+2. **Tool definition** (`tool(impl, { name, description, schema })`), exported directly under the tool name (e.g. `export const git = tool(...)`)
+
+A factory (`create*Tool()`) is used only where runtime options must be injected at build time — e.g. `createApiTool(config?.api, { allowedPaths })` for the `api` tool, or `createEmailProvider(config)` for email providers. Tools that need no such injection are plain instances, not factories.
 
 ### Orchestrator vs Subagent Tool Sets
 
@@ -779,11 +781,11 @@ index.js
 │     ├── tools/calendar/ → calendar provider
 │     ├── tools/spreadsheet/ → spreadsheet computation
 │     ├── tools/api/ → api tool (factory)
-│     ├── tools/graphql/ → graphql tool (factory)
-│     ├── tools/json/ → json tool (factory)
-│     ├── tools/yaml/ → yaml tool (factory)
-│     ├── tools/data/ → data tool (factory)
-│     ├── tools/webhook/ → webhook tool (factory)
+│     ├── tools/graphql/ → graphql tool
+│     ├── tools/json/ → json tool
+│     ├── tools/yaml/ → yaml tool
+│     ├── tools/data/ → data tool
+│     ├── tools/webhook/ → webhook tool
 │     ├── tools/dns/ → namecom tool (name.com API; NAMECOM_USERNAME/NAMECOM_TOKEN)
 │     ├── tools/config/ → getConfig
 │     └── tools/image readImage → filesystem:read

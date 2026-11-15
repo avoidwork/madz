@@ -1,10 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import {
-	yamlManipulationImpl,
-	yamlManipulation,
-	createYamlTool,
-} from "../../src/tools/yaml/index.js";
+import { yamlManipulationImpl, yamlManipulation, yaml } from "../../src/tools/yaml/index.js";
 
 describe("yaml tool", () => {
 	it("parses YAML string to object", async () => {
@@ -359,15 +355,13 @@ describe("yaml tool", () => {
 		assert.ok(result.error.includes("Invalid JSON input"));
 	});
 
-	it("createYamlTool returns a LangChain tool with correct schema", () => {
-		const tool = createYamlTool();
-		assert.strictEqual(tool.name, "yaml");
-		assert.ok(typeof tool._call === "function" || typeof tool.invoke === "function");
+	it("yaml returns a LangChain tool with correct schema", () => {
+		assert.strictEqual(yaml.name, "yaml");
+		assert.ok(typeof yaml._call === "function" || typeof yaml.invoke === "function");
 	});
 
-	it("createYamlTool tool processes input correctly", async () => {
-		const tool = createYamlTool();
-		const result = await tool.invoke({
+	it("yaml tool processes input correctly", async () => {
+		const result = await yaml.invoke({
 			action: "parse",
 			input: "hello: world",
 		});
