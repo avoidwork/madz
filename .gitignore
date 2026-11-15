@@ -3,7 +3,8 @@ memory
 !tests/unit/memory/
 skills
 tmp
-/downloads
+downloads
+!src/downloads
 projects
 *-feature-goals.md
 *-feature-prompt.md
