@@ -131,3 +131,26 @@ describe("orchestrator - git access", () => {
 		ok(toolsForCoding.includes("git"), "getToolsForAgentTypes(['coding']) should include git");
 	});
 });
+
+describe("orchestrator - archive access", () => {
+	it("ORCHESTRATOR_TOOLS should include archive", () => {
+		ok(ORCHESTRATOR_TOOLS.includes("archive"), "ORCHESTRATOR_TOOLS should include archive");
+	});
+
+	it("archive should be classified for subagent types", () => {
+		ok(TOOL_CLASSIFICATIONS.archive, "archive should have a TOOL_CLASSIFICATIONS entry");
+		ok(
+			TOOL_CLASSIFICATIONS.archive.includes("coding"),
+			"archive should include coding in its classifications",
+		);
+	});
+
+	it("getToolsForAgentTypes should return archive for coding type", async () => {
+		const tools = await loadTools();
+		const toolsForCoding = getToolsForAgentTypes(["coding"], tools);
+		ok(
+			toolsForCoding.includes("archive"),
+			"getToolsForAgentTypes(['coding']) should include archive",
+		);
+	});
+});
