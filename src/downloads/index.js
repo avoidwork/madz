@@ -1,4 +1,4 @@
-import { ensureDir } from "./paths.js";
+import { ensureDir } from "../memory/paths.js";
 import { loadConfig } from "../config/loader.js";
 
 /**

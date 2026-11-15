@@ -11,4 +11,3 @@ export { gc, isAvailable, initGC, getGcCalls } from "./gc.js";
 export { ensureToolsDir } from "./tools.js";
 export { ensureScreenshotsDir } from "./screenshots.js";
 export { ensureContextDir } from "./contextDir.js";
-export { ensureDownloadsDir } from "./downloads.js";

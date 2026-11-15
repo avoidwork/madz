@@ -133,13 +133,9 @@ async function doBootstrap() {
 
 	const { createDeepAgentsOrchestrator, toConversationExchange } =
 		await import("./src/agent/deepAgents.js");
-	const {
-		ensureToolsDir,
-		ensureScreenshotsDir,
-		ensureContextDir,
-		ensureDownloadsDir,
-		expireEphemeralMemories,
-	} = await import("./src/memory/index.js");
+	const { ensureToolsDir, ensureScreenshotsDir, ensureContextDir, expireEphemeralMemories } =
+		await import("./src/memory/index.js");
+	const { ensureDownloadsDir } = await import("./src/downloads/index.js");
 
 	// Ensure storage directories exist before any subsystem initialization
 	await ensureSessionsDir(config.memory.sessionsDir);
