@@ -4,7 +4,6 @@ memory
 skills
 tmp
 downloads
-!src/downloads
 projects
 *-feature-goals.md
 *-feature-prompt.md
@@ -15,6 +14,7 @@ projects
 *-archive-error.md
 !src/memory
 !src/skills
+!src/downloads
 .env
 .env.cron
 memory/tools/webhooks.json
