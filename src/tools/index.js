@@ -312,6 +312,7 @@ export const ORCHESTRATOR_TOOLS = [
 	"cronJob",
 	"date",
 	"decision",
+	"diagram",
 	"discovery",
 	"env",
 	"file",

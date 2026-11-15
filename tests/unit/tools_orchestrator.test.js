@@ -154,3 +154,26 @@ describe("orchestrator - archive access", () => {
 		);
 	});
 });
+
+describe("orchestrator - diagram access", () => {
+	it("ORCHESTRATOR_TOOLS should include diagram", () => {
+		ok(ORCHESTRATOR_TOOLS.includes("diagram"), "ORCHESTRATOR_TOOLS should include diagram");
+	});
+
+	it("diagram should be classified for subagent types", () => {
+		ok(TOOL_CLASSIFICATIONS.diagram, "diagram should have a TOOL_CLASSIFICATIONS entry");
+		ok(
+			TOOL_CLASSIFICATIONS.diagram.includes("coding"),
+			"diagram should include coding in its classifications",
+		);
+	});
+
+	it("getToolsForAgentTypes should return diagram for coding type", async () => {
+		const tools = await loadTools();
+		const toolsForCoding = getToolsForAgentTypes(["coding"], tools);
+		ok(
+			toolsForCoding.includes("diagram"),
+			"getToolsForAgentTypes(['coding']) should include diagram",
+		);
+	});
+});
