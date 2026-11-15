@@ -189,6 +189,7 @@ agent:
     model: tev1:4b
   sampling: true           # false = tool not registered
   bundledSkills: true      # false = only 'reflection' loaded from .skills/
+  autoContinueLimit: 1000  # max silent "Continue" nudges when a turn ends on reasoning
 summarization:
   enabled: true
   trigger:

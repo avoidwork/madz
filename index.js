@@ -18,8 +18,7 @@ import {
 } from "./src/session/index.js";
 import { resumeSession } from "./src/session/resume.js";
 import { logger, flush as flushLogger } from "./src/shared/logger.js";
-import { surfaceInterrupt } from "./src/stream/interrupt.js";
-import { isSubagentNamespace } from "./src/stream/namespace.js";
+import { consumeStream } from "./src/stream/consume.js";
 
 // ---------------------------------------------------------------------------
 // CLI arguments
@@ -290,122 +289,6 @@ async function doBootstrap() {
 // ---------------------------------------------------------------------------
 
 /**
- * Consume an agent stream, forwarding events to `streamingCallback` and
- * collecting the orchestrator's own text and reasoning.
- * @param {AsyncIterable} stream - The agent stream (subgraphs mode)
- * @param {Function} [streamingCallback] - Callback for streamed chunks
- * @returns {Promise<{content: string, reasoning: string, interrupted: boolean}>}
- */
-async function consumeStream(stream, streamingCallback) {
-	let content = "";
-	let reasoning = "";
-	let interrupted = false;
-
-	for await (const [namespace, mode, payload] of stream) {
-		// Subagent runs are nested under a `tools:<id>` namespace segment. Their
-		// events get a `subagent_` prefix so the TUI routes them separately.
-		const isSubagent = isSubagentNamespace(namespace);
-
-		// A human-in-the-loop interrupt (e.g. `clarify`) pauses the agent; stop
-		// consuming so the caller can ask the question and resume.
-		if (surfaceInterrupt(mode, payload, streamingCallback)) {
-			interrupted = true;
-			break;
-		}
-
-		if (mode === "messages") {
-			const [msg] = payload;
-			const msgType = msg?._getType ? msg._getType() : msg?.type;
-			const text = msg?.text ?? "";
-
-			if (text) {
-				// ToolMessage text is emitted as a distinct `tool` event, never
-				// folded into the message segment.
-				if (msgType === "tool") {
-					if (showToolResults !== false && streamingCallback) {
-						streamingCallback({
-							type: isSubagent ? "subagent_tool" : "tool",
-							text,
-							name: msg?.name,
-							namespace,
-						});
-					}
-					continue;
-				}
-
-				if (!isSubagent) {
-					content += text;
-				}
-
-				if (streamingCallback) {
-					streamingCallback({
-						type: isSubagent ? "subagent_message" : "message",
-						text,
-						namespace,
-						// The content-block index is the stable identifier for a streamed
-						// text block; it is normalized to `id` downstream.
-						...(msg?.content?.[0]?.index != null ? { index: msg.content[0].index } : {}),
-					});
-				}
-			}
-
-			// Reasoning from additional_kwargs (Chat Completions API)
-			const reasoningContent =
-				msg?.additional_kwargs?.reasoning_content ?? msg?.additional_kwargs?.reasoning;
-			if (reasoningContent) {
-				if (!isSubagent) {
-					reasoning += reasoningContent;
-				}
-				if (streamingCallback) {
-					streamingCallback({
-						type: isSubagent ? "subagent_reasoning" : "reasoning",
-						text: reasoningContent,
-						namespace,
-					});
-				}
-			} else if (Array.isArray(msg?.content)) {
-				// Reasoning from content blocks (Responses API). Skipped when
-				// additional_kwargs already supplied it, to avoid double-counting.
-				for (const block of msg.content) {
-					if (block?.type === "reasoning" && block.reasoning) {
-						if (!isSubagent) {
-							reasoning += block.reasoning;
-						}
-						if (streamingCallback) {
-							streamingCallback({
-								type: isSubagent ? "subagent_reasoning" : "reasoning",
-								text: block.reasoning,
-								id: block.id,
-								namespace,
-							});
-						}
-					}
-				}
-			}
-		} else if (mode === "tools" && streamingCallback) {
-			if (payload?.event === "on_tool_start") {
-				streamingCallback({
-					type: isSubagent ? "subagent_tool_start" : "on_tool_start",
-					name: payload.name,
-					data: { input: payload.input },
-					namespace,
-				});
-			}
-			if (payload?.event === "on_tool_end") {
-				streamingCallback({
-					type: isSubagent ? "subagent_tool_end" : "on_tool_end",
-					name: payload.name,
-					data: { output: payload.output },
-					namespace,
-				});
-			}
-		}
-	}
-
-	return { content, reasoning, interrupted };
-}
-
-/**
  * Stream an agent input on the current session thread.
  * @param {Object|Command} input - Messages input or a resume Command
  * @param {Object} threadExtras - Extra `configurable` fields
@@ -421,13 +304,20 @@ async function runAgent(input, threadExtras, streamingCallback, signal) {
 		streamMode: ["messages", "tools", "values"],
 		subgraphs: true,
 	});
-	const { content, reasoning, interrupted } = await consumeStream(stream, streamingCallback);
+	const { content, reasoning, interrupted, lastEventType } = await consumeStream(
+		stream,
+		streamingCallback,
+		{
+			showToolResults,
+		},
+	);
 	return {
 		provider: providerName,
 		content,
 		reasoning: reasoning || undefined,
 		tokens: { input: 0, output: 0 },
 		interrupted,
+		lastEventType,
 	};
 }
 

@@ -163,6 +163,10 @@ function createImperativeApi() {
 			return idsRef.current.length;
 		},
 
+		getLastMessageId() {
+			return idsRef.current[idsRef.current.length - 1];
+		},
+
 		getMessages() {
 			const width = 80;
 			const result = [];
@@ -336,6 +340,26 @@ describe("MessageList — imperative API", () => {
 		it("does not clear streaming on the newly added assistant message", () => {
 			const assistantId = api.addMessage("assistant", "", { streaming: true });
 			assert.strictEqual(api.getMessageData(assistantId).streaming, true);
+		});
+	});
+
+	describe("getLastMessageId", () => {
+		it("returns undefined for an empty list", () => {
+			assert.strictEqual(api.getLastMessageId(), undefined);
+		});
+
+		it("returns the most recently added message id", () => {
+			const first = api.addMessage("user", "first");
+			const second = api.addMessage("assistant", "second");
+			assert.strictEqual(api.getLastMessageId(), second);
+			assert.notStrictEqual(api.getLastMessageId(), first);
+		});
+
+		it("updates as messages are added", () => {
+			const a = api.addMessage("user", "a");
+			assert.strictEqual(api.getLastMessageId(), a);
+			const b = api.addMessage("assistant", "b");
+			assert.strictEqual(api.getLastMessageId(), b);
 		});
 	});
 

@@ -373,6 +373,16 @@ export const MessageList = React.memo(
 			},
 
 			/**
+			 * Get the ID of the last message in the ordered list, or undefined
+			 * when the list is empty. Used by the streaming path to verify a
+			 * bubble is the last one before dispatching an auto-continue.
+			 * @returns {string | undefined}
+			 */
+			getLastMessageId() {
+				return idsRef.current[idsRef.current.length - 1];
+			},
+
+			/**
 			 * Get the rendered message layout for selection mapping.
 			 * Returns an array of `{ text, top }` where `text` is the message's
 			 * plain content (ANSI stripped) and `top` is the content row of its
