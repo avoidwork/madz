@@ -4,7 +4,6 @@ node_modules
 projects
 skills
 tmp
-!tests/unit/memory/
 *-feature-goals.md
 *-feature-prompt.md
 *-audit-results.md
@@ -18,4 +17,5 @@ tmp
 .env
 .env.cron
 memory/tools/webhooks.json
+!tests/unit/memory/
 !tests/unit/skills/
