@@ -3,7 +3,7 @@ import assert from "node:assert";
 import {
 	dataTransformationImpl,
 	dataTransformation,
-	createDataTool,
+	dataTool,
 } from "../../src/tools/data/index.js";
 
 describe("data tool", () => {
@@ -245,15 +245,13 @@ describe("data tool", () => {
 		assert.ok(result.error.includes("Invalid JSON input"));
 	});
 
-	it("createDataTool returns a LangChain tool with correct schema", () => {
-		const tool = createDataTool();
-		assert.strictEqual(tool.name, "data");
-		assert.ok(typeof tool._call === "function" || typeof tool.invoke === "function");
+	it("dataTool returns a LangChain tool with correct schema", () => {
+		assert.strictEqual(dataTool.name, "data");
+		assert.ok(typeof dataTool._call === "function" || typeof dataTool.invoke === "function");
 	});
 
-	it("createDataTool tool processes input correctly", async () => {
-		const tool = createDataTool();
-		const result = await tool.invoke({
+	it("dataTool tool processes input correctly", async () => {
+		const result = await dataTool.invoke({
 			action: "json-to-yaml",
 			input: JSON.stringify({ hello: "world" }),
 			format: "json",

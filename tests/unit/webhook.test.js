@@ -311,24 +311,22 @@ describe("webhookManagementImpl", () => {
 	});
 });
 
-describe("createWebhookTool", () => {
+describe("webhookTool", () => {
 	beforeEach(async () => {
 		const dir = join(__dirname, "../../memory/tools");
 		await mkdir(dir, { recursive: true });
 	});
 
 	it("creates a LangChain tool with correct name and schema", async () => {
-		const { createWebhookTool } = await import("../../src/tools/webhook/index.js");
-		const tool = createWebhookTool();
-		assert.strictEqual(tool.name, "webhook");
-		assert.ok(tool.description);
-		assert.ok(tool.schema);
+		const { webhookTool } = await import("../../src/tools/webhook/index.js");
+		assert.strictEqual(webhookTool.name, "webhook");
+		assert.ok(webhookTool.description);
+		assert.ok(webhookTool.schema);
 	});
 
 	it("invokes the tool and returns JSON result", async () => {
-		const { createWebhookTool } = await import("../../src/tools/webhook/index.js");
-		const tool = createWebhookTool();
-		const result = await tool.invoke({ action: "list" });
+		const { webhookTool } = await import("../../src/tools/webhook/index.js");
+		const result = await webhookTool.invoke({ action: "list" });
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, true);
 	});

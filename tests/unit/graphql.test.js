@@ -4,7 +4,7 @@ import {
 	graphqlImpl,
 	graphql,
 	introspectSchema,
-	createGraphqlTool,
+	graphqlTool,
 	executeGraphQL,
 	rateLimit,
 } from "../../src/tools/graphql/index.js";
@@ -303,16 +303,14 @@ describe("graphql — introspectSchema()", () => {
 	});
 });
 
-describe("graphql — createGraphqlTool()", () => {
+describe("graphql — graphqlTool", () => {
 	it("returns a LangChain tool with correct name", () => {
-		const tool = createGraphqlTool();
-		assert.ok(tool);
-		assert.strictEqual(tool.name, "graphql");
+		assert.ok(graphqlTool);
+		assert.strictEqual(graphqlTool.name, "graphql");
 	});
 
 	it("invokes the tool and returns JSON result", async () => {
-		const tool = createGraphqlTool();
-		const result = await tool.invoke({
+		const result = await graphqlTool.invoke({
 			url: "https://example.com/graphql",
 			query: "{ test }",
 		});

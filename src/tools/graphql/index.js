@@ -511,50 +511,49 @@ export async function introspectSchema(input) {
 }
 
 /**
- * Create the LangChain tool wrapper for the GraphQL client.
- * @returns {object} LangChain Tool instance
+ * First-class GraphQL tool. Wraps the GraphQL client so madz can execute
+ * queries and mutations natively. Enforces query depth/complexity limits and
+ * re-validates every redirect hop against the URL allowlist.
  */
-export function createGraphqlTool() {
-	return tool(
-		async (input) => {
-			const result = await graphqlImpl(input);
-			return JSON.stringify(result, null, 2);
-		},
-		{
-			name: "graphql",
-			description:
-				"Execute GraphQL queries and mutations against a GraphQL endpoint. Supports query variables, operation names, and schema introspection. Enforces query depth limits (default: 10) and complexity limits (default: 1000) to prevent DoS. Default timeout: 30s.",
-			schema: z.object({
-				url: z.string().url().describe("GraphQL endpoint URL"),
-				query: z.string().min(1).describe("GraphQL query or mutation string"),
-				variables: z.record(z.unknown()).optional().describe("Query variables as key-value pairs"),
-				operationName: z
-					.string()
-					.optional()
-					.describe("Operation name (for multi-operation documents)"),
-				timeout: z
-					.number()
-					.int()
-					.positive()
-					.optional()
-					.describe("Request timeout in milliseconds (default: 30000)"),
-				maxDepth: z
-					.number()
-					.int()
-					.positive()
-					.optional()
-					.describe("Maximum query depth (default: 10)"),
-				maxComplexity: z
-					.number()
-					.int()
-					.positive()
-					.optional()
-					.describe("Maximum query complexity (default: 1000)"),
-				allowlist: z
-					.array(z.string())
-					.optional()
-					.describe("URL allowlist — host must match one entry"),
-			}),
-		},
-	);
-}
+export const graphqlTool = tool(
+	async (input) => {
+		const result = await graphqlImpl(input);
+		return JSON.stringify(result, null, 2);
+	},
+	{
+		name: "graphql",
+		description:
+			"Execute GraphQL queries and mutations against a GraphQL endpoint. Supports query variables, operation names, and schema introspection. Enforces query depth limits (default: 10) and complexity limits (default: 1000) to prevent DoS. Default timeout: 30s.",
+		schema: z.object({
+			url: z.string().url().describe("GraphQL endpoint URL"),
+			query: z.string().min(1).describe("GraphQL query or mutation string"),
+			variables: z.record(z.unknown()).optional().describe("Query variables as key-value pairs"),
+			operationName: z
+				.string()
+				.optional()
+				.describe("Operation name (for multi-operation documents)"),
+			timeout: z
+				.number()
+				.int()
+				.positive()
+				.optional()
+				.describe("Request timeout in milliseconds (default: 30000)"),
+			maxDepth: z
+				.number()
+				.int()
+				.positive()
+				.optional()
+				.describe("Maximum query depth (default: 10)"),
+			maxComplexity: z
+				.number()
+				.int()
+				.positive()
+				.optional()
+				.describe("Maximum query complexity (default: 1000)"),
+			allowlist: z
+				.array(z.string())
+				.optional()
+				.describe("URL allowlist — host must match one entry"),
+		}),
+	},
+);
