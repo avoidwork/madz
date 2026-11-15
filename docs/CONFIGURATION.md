@@ -111,6 +111,16 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 |                 | `projects.<name>.chunkOverlap`      | `16`                             | Overlap between consecutive chunks                                                                                                                          |
 |                 | `projects.<name>.maxFileSize`       | `524288`                         | Max file size in bytes (500 KB)                                                                                                                             |
 |                 | `projects.<name>.include`           | `["src/**/*.js", ...]`           | Glob patterns for files to index                                                                                                                            |
+| `nosql`         | `mongodb.connectionString`          | _(empty)_                        | MongoDB connection string (preferred over host/port)                                                                                                        |
+|                 | `mongodb.host`                      | _(empty)_                        | MongoDB host                                                                                                                                                |
+|                 | `mongodb.port`                      | `27017`                          | MongoDB port                                                                                                                                                |
+|                 | `mongodb.credentials.username`      | _(empty)_                        | MongoDB username                                                                                                                                            |
+|                 | `mongodb.credentials.password`      | _(empty)_                        | MongoDB password                                                                                                                                            |
+|                 | `mongodb.credentials.database`      | _(empty)_                        | MongoDB database name                                                                                                                                       |
+|                 | `redis.host`                        | _(empty)_                        | Redis host                                                                                                                                                  |
+|                 | `redis.port`                        | `6379`                           | Redis port                                                                                                                                                  |
+|                 | `redis.credentials.username`        | _(empty)_                        | Redis username                                                                                                                                              |
+|                 | `redis.credentials.password`        | _(empty)_                        | Redis password                                                                                                                                              |
 |                 | `projects.<name>.exclude`           | `["node_modules/**", ...]`       | Glob patterns for files to exclude                                                                                                                          |
 
 ### Status Bar
@@ -234,3 +244,42 @@ On a `429` rate-limit response, the request is retried once after the `retry-aft
 | `SKILL_AGENT_MAP_1_AGENT`   | _(none)_ | Second skill-to-agent mapping                                   |
 | `AGENT_SAMPLING`            | `true`   | Enable the `sampling` tool; `false` disables registration       |
 | `AGENT_BUNDLED_SKILLS`      | `true`   | Load bundled `.skills/` skills; `false` loads only `reflection` |
+
+### NoSQL Tool
+
+The `nosql` tool queries MongoDB (document store) and Redis (key-value store) directly. Connection credentials are sourced from environment variables only — never hardcoded in config files. The `nosql` section is a dropped container key, so the engine name is the first segment of the env var name.
+
+```yaml
+nosql:
+  mongodb:
+    connectionString: ""
+    host: ""
+    port: 27017
+    credentials:
+      username: ""
+      password: ""
+      database: ""
+  redis:
+    host: ""
+    port: 6379
+    credentials:
+      username: ""
+      password: ""
+```
+
+**Environment variable overrides:**
+
+| Variable                  | Default  | Description                                   |
+| ------------------------- | -------- | --------------------------------------------- |
+| `MONGODB_CONNECTION_STRING` | _(empty)_ | MongoDB connection string (preferred)         |
+| `MONGODB_HOST`            | _(empty)_ | MongoDB host                                  |
+| `MONGODB_PORT`            | `27017`  | MongoDB port                                  |
+| `MONGODB_USERNAME`        | _(empty)_ | MongoDB username                              |
+| `MONGODB_PASSWORD`        | _(empty)_ | MongoDB password                              |
+| `MONGODB_DATABASE`        | _(empty)_ | MongoDB database name                         |
+| `REDIS_HOST`              | _(empty)_ | Redis host                                    |
+| `REDIS_PORT`              | `6379`   | Redis port                                    |
+| `REDIS_USERNAME`          | _(empty)_ | Redis username                                |
+| `REDIS_PASSWORD`          | _(empty)_ | Redis password                                |
+
+The `nosql` key is dropped from env var names, so `nosql.mongodb.credentials.password` maps to `MONGODB_PASSWORD` (not `NOSQL_MONGODB_CREDENTIALS_PASSWORD`). When a new engine is added, its env vars must be documented here following the same table format.

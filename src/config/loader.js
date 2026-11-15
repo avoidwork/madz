@@ -23,6 +23,7 @@ const DROPPED_KEYS = [
 	"process",
 	"calendar",
 	"sql",
+	"nosql",
 	"subAgentstemperature", // lowercase version of "subAgentsTemperature"
 ];
 
@@ -436,6 +437,7 @@ export function _resolveEnvRecursively(node, path) {
 		"process",
 		"calendar", // e.g. calendar.google.apiKey → GOOGLE_CALENDAR_API_KEY
 		"sql", // e.g. sql.postgres.host → POSTGRES_HOST
+		"nosql", // e.g. nosql.mongodb.host → MONGODB_HOST
 		"subAgentsTemperature", // e.g. subAgentsTemperature.coding → SUB_AGENTS_TEMPERATURE_CODING
 	];
 
