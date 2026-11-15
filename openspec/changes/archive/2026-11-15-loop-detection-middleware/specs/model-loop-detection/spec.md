@@ -27,12 +27,17 @@ The system SHALL hash the most recent model message text and reasoning content i
 
 ### Requirement: Rolling Hash Window
 
-The system SHALL maintain a rolling window of recent content hashes per thread, bounded to a configured window size, so that only recent model output is considered for loop detection.
+The system SHALL maintain a rolling window of recent content hashes per thread, bounded to a configured window size and a configured TTL, so that only recent model output is considered for loop detection.
 
 #### Scenario: Window is bounded
 
 - **WHEN** the number of recorded hashes exceeds the configured window size
 - **THEN** the oldest hashes are evicted so the window never exceeds the configured size
+
+#### Scenario: Hashes expire by TTL
+
+- **WHEN** a recorded hash is older than the configured TTL
+- **THEN** the hash is pruned from the window so past content cannot cause false positives
 
 #### Scenario: State is tracked per thread
 

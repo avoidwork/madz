@@ -84,19 +84,20 @@ export function createLoopDetectionMiddleware(options = {}) {
 	if (config.enabled === false) return null;
 
 	const windowSize = config.windowSize ?? 10;
+	const ttlMs = config.ttlMs ?? 60000;
 	const threshold = config.threshold ?? 2;
 	const escalationCount = config.escalationCount ?? 3;
 	const escalationWindowMs = config.escalationWindowMs ?? 60000;
 	const onCompact = options.onCompact;
 	const now = options.now ?? (() => Date.now());
 
-	/** Per-thread state: message hash window, reasoning hash window, and nudge timestamps. */
+	/** Per-thread state: hash windows (with timestamps) and nudge timestamps. */
 	const threadState = new Map();
 
 	/**
 	 * Get (or create) the state for a thread.
 	 * @param {string} threadKey - The thread_id
-	 * @returns {{ messageHashes: string[], reasoningHashes: string[], nudges: number[] }} State
+	 * @returns {{ messageHashes: {hash: string, ts: number}[], reasoningHashes: {hash: string, ts: number}[], nudges: number[] }} State
 	 */
 	function getThreadState(threadKey) {
 		let state = threadState.get(threadKey);
@@ -108,32 +109,45 @@ export function createLoopDetectionMiddleware(options = {}) {
 	}
 
 	/**
-	 * Record a hash in a bounded rolling window, evicting the oldest entry when
-	 * the window exceeds `windowSize`.
-	 * @param {string[]} window - The hash window array
-	 * @param {string} hash - The hash to record
+	 * Prune hashes older than the TTL from a window. The window is
+	 * insertion-ordered, so the oldest entries are at the front.
+	 * @param {{hash: string, ts: number}[]} window - The hash window array
+	 * @param {number} nowMs - Current time in ms
 	 * @returns {void}
 	 */
-	function recordHash(window, hash) {
-		window.push(hash);
+	function pruneHashes(window, nowMs) {
+		while (window.length > 0 && nowMs - window[0].ts > ttlMs) window.shift();
+	}
+
+	/**
+	 * Record a hash with a timestamp in a bounded rolling window, evicting the
+	 * oldest entry when the window exceeds `windowSize` or the TTL.
+	 * @param {{hash: string, ts: number}[]} window - The hash window array
+	 * @param {string} hash - The hash to record
+	 * @param {number} nowMs - Current time in ms
+	 * @returns {void}
+	 */
+	function recordHash(window, hash, nowMs) {
+		pruneHashes(window, nowMs);
+		window.push({ hash, ts: nowMs });
 		while (window.length > windowSize) window.shift();
 	}
 
 	/**
 	 * Count occurrences of a hash within a window.
-	 * @param {string[]} window - The hash window array
+	 * @param {{hash: string, ts: number}[]} window - The hash window array
 	 * @param {string} hash - The hash to count
 	 * @returns {number} Occurrence count
 	 */
 	function countOccurrences(window, hash) {
 		let count = 0;
-		for (const h of window) if (h === hash) count++;
+		for (const entry of window) if (entry.hash === hash) count++;
 		return count;
 	}
 
 	/**
 	 * Decide whether a hash exceeds the loop threshold within its window.
-	 * @param {string[]} window - The hash window array
+	 * @param {{hash: string, ts: number}[]} window - The hash window array
 	 * @param {string} hash - The hash to check
 	 * @returns {boolean} True when the hash appears more than `threshold` times
 	 */
@@ -164,22 +178,22 @@ export function createLoopDetectionMiddleware(options = {}) {
 				const lastMsg = messages[messages.length - 1];
 				const { text, reasoning } = extractMessageContent(lastMsg);
 
+				const nowMs = now();
 				const textHash = hashContent(text);
 				const reasoningHash = hashContent(reasoning);
 
 				let looped = false;
 				if (textHash) {
-					recordHash(thread.messageHashes, textHash);
+					recordHash(thread.messageHashes, textHash, nowMs);
 					if (isLooping(thread.messageHashes, textHash)) looped = true;
 				}
 				if (reasoningHash) {
-					recordHash(thread.reasoningHashes, reasoningHash);
+					recordHash(thread.reasoningHashes, reasoningHash, nowMs);
 					if (isLooping(thread.reasoningHashes, reasoningHash)) looped = true;
 				}
 
 				if (!looped) return undefined;
 
-				const nowMs = now();
 				pruneNudges(thread.nudges, nowMs);
 
 				// Escalate to compaction when the nudge count reaches the threshold.

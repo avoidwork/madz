@@ -198,6 +198,7 @@ summarization:
 loopDetection:
   enabled: true
   windowSize: 10
+  ttlMs: 60000
   threshold: 2
   escalationCount: 3
   escalationWindowMs: 60000

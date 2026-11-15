@@ -128,6 +128,22 @@ describe("createLoopDetectionMiddleware", () => {
 		assert.strictEqual(await run(mw, { messages: [ai("x")] }), undefined);
 	});
 
+	it("prunes hashes older than the TTL, preventing false positives", async () => {
+		let clock = 0;
+		const mw = createLoopDetectionMiddleware({
+			config: config({ ttlMs: 100 }),
+			now: () => clock,
+		});
+		// Build up 3 occurrences of "same" at t=0.
+		await run(mw, { messages: [ai("same")] });
+		await run(mw, { messages: [ai("same")] });
+		await run(mw, { messages: [ai("same")] });
+		// Advance past the TTL; the old hashes are pruned.
+		clock = 200;
+		// "same" again should NOT trigger, because the old occurrences expired.
+		assert.strictEqual(await run(mw, { messages: [ai("same")] }), undefined);
+	});
+
 	it("escalates to onCompact after the escalation count within the window", async () => {
 		let compacted = 0;
 		const mw = createLoopDetectionMiddleware({

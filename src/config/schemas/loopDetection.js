@@ -16,6 +16,9 @@ export const LoopDetectionSchema = z
 		enabled: z.boolean().default(true),
 		// Number of recent content hashes retained per thread for loop detection.
 		windowSize: z.number().int().positive().default(10),
+		// A hash older than this many ms is pruned from the window, so past
+		// content cannot cause false positives as new content streams in.
+		ttlMs: z.number().int().positive().default(60000),
 		// A hash must appear more than this many times within the window to flag a loop.
 		threshold: z.number().int().positive().default(2),
 		// Number of loop nudges within the escalation window before compacting.
