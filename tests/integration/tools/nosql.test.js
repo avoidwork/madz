@@ -6,8 +6,79 @@
 
 import { describe, it, after } from "node:test";
 import assert from "node:assert";
-import RedisMock from "ioredis-mock";
 import { nosqlImpl, closeAll } from "../../../src/tools/nosql/index.js";
+
+/**
+ * Minimal in-memory Redis mock that mirrors the ioredis methods the redis
+ * engine uses. Kept small and focused on the tested operations.
+ */
+function createRedisMock() {
+	const strings = new Map();
+	const hashes = new Map();
+	const lists = new Map();
+
+	return {
+		async get(key) {
+			return strings.has(key) ? strings.get(key) : null;
+		},
+		async set(key, value) {
+			strings.set(key, String(value));
+			return "OK";
+		},
+		async hset(key, field, value) {
+			if (!hashes.has(key)) hashes.set(key, new Map());
+			hashes.get(key).set(field, String(value));
+			return 1;
+		},
+		async hget(key, field) {
+			const hash = hashes.get(key);
+			return hash ? (hash.get(field) ?? null) : null;
+		},
+		async hgetall(key) {
+			const hash = hashes.get(key);
+			if (!hash) return {};
+			return Object.fromEntries(hash);
+		},
+		async lpush(key, ...values) {
+			if (!lists.has(key)) lists.set(key, []);
+			const list = lists.get(key);
+			for (const value of values) {
+				list.unshift(String(value));
+			}
+			return list.length;
+		},
+		async lrange(key, start, stop) {
+			const list = lists.get(key) || [];
+			const end = stop < 0 ? list.length + stop : stop;
+			return list.slice(start, end + 1);
+		},
+		async del(...keys) {
+			let deleted = 0;
+			for (const key of keys) {
+				if (strings.delete(key) || hashes.delete(key) || lists.delete(key)) {
+					deleted++;
+				}
+			}
+			return deleted;
+		},
+		async expire(key, _seconds) {
+			// No-op for the in-memory mock; returns 1 if the key exists.
+			return strings.has(key) || hashes.has(key) || lists.has(key) ? 1 : 0;
+		},
+		async exists(key) {
+			return strings.has(key) || hashes.has(key) || lists.has(key) ? 1 : 0;
+		},
+		async keys(pattern) {
+			const all = [...strings.keys(), ...hashes.keys(), ...lists.keys()];
+			if (pattern === "*") return all;
+			const regex = new RegExp(`^${pattern.replace(/\*/g, ".*")}$`);
+			return all.filter((key) => regex.test(key));
+		},
+		async quit() {
+			return "OK";
+		},
+	};
+}
 
 /**
  * Minimal in-memory MongoDB mock that mirrors the driver methods the
@@ -371,7 +442,7 @@ describe("tools - nosql integration", () => {
 
 	describe("Redis", () => {
 		it("sets and gets a value", async () => {
-			const client = new RedisMock();
+			const client = createRedisMock();
 			const set = await nosqlImpl(
 				{
 					engine: "redis",
@@ -395,7 +466,7 @@ describe("tools - nosql integration", () => {
 		});
 
 		it("handles hash operations", async () => {
-			const client = new RedisMock();
+			const client = createRedisMock();
 			await nosqlImpl(
 				{
 					engine: "redis",
@@ -428,7 +499,7 @@ describe("tools - nosql integration", () => {
 		});
 
 		it("handles list operations", async () => {
-			const client = new RedisMock();
+			const client = createRedisMock();
 			await nosqlImpl(
 				{
 					engine: "redis",
@@ -450,7 +521,7 @@ describe("tools - nosql integration", () => {
 		});
 
 		it("handles del, expire, exists, and keys", async () => {
-			const client = new RedisMock();
+			const client = createRedisMock();
 			await nosqlImpl(
 				{
 					engine: "redis",
@@ -502,7 +573,7 @@ describe("tools - nosql integration", () => {
 		});
 
 		it("rejects an unsupported operation", async () => {
-			const client = new RedisMock();
+			const client = createRedisMock();
 			const result = await nosqlImpl(
 				{
 					engine: "redis",

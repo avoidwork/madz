@@ -59,8 +59,6 @@
     "@modelcontextprotocol/sdk": "^1.32.2",
     "auto-changelog": "^2.7.0",
     "husky": "^9.1.7",
-    "ioredis-mock": "^8.13.1",
-    "mongodb-memory-server": "^11.3.0",
     "oxfmt": "^0.77.0",
     "oxlint": "^1.90.0"
   },
