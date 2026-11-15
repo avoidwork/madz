@@ -44,7 +44,7 @@ function buildRequest(input, baseUrl) {
 
 	switch (action) {
 		case "search": {
-			const body = { jql: input.jql ?? "project in (\"\")" };
+			const body = { jql: input.jql ?? 'project in ("")' };
 			if (input.maxResults !== undefined) body.maxResults = input.maxResults;
 			if (input.startAt !== undefined) body.startAt = input.startAt;
 			if (input.fields !== undefined) body.fields = input.fields;
@@ -169,11 +169,11 @@ export const JiraInputSchema = z
 			.optional()
 			.describe("Max results per page for search (1-100)"),
 		startAt: z.number().int().min(0).optional().describe("Pagination offset for search"),
-		fields: z
-			.array(z.string())
+		fields: z.array(z.string()).optional().describe("Field names to include in search results"),
+		key: z
+			.string()
 			.optional()
-			.describe("Field names to include in search results"),
-		key: z.string().optional().describe("Issue key (e.g. PROJ-123) for get/update/delete/transition/comment/assign"),
+			.describe("Issue key (e.g. PROJ-123) for get/update/delete/transition/comment/assign"),
 		project: z.string().optional().describe("Project key for create"),
 		issueType: z.string().optional().describe("Issue type name for create (e.g. Bug, Story)"),
 		summary: z.string().optional().describe("Issue summary for create"),
@@ -192,12 +192,7 @@ export const JiraInputSchema = z
 			.optional()
 			.describe("Account id for the assign action (or create-time assignee)"),
 		query: z.string().optional().describe("User search query for the users action"),
-		timeout: z
-			.number()
-			.int()
-			.positive()
-			.optional()
-			.describe("Per-attempt timeout in milliseconds"),
+		timeout: z.number().int().positive().optional().describe("Per-attempt timeout in milliseconds"),
 	})
 	.strict();
 
@@ -228,15 +223,14 @@ export async function jiraImpl(input = {}, options = {}) {
 
 	let auth;
 	if (rest.credential) {
-		const resolved = resolveJiraCredential(
-			rest.credential,
-			policy,
-			options.env ?? process.env,
-		);
+		const resolved = resolveJiraCredential(rest.credential, policy, options.env ?? process.env);
 		if (resolved.error) return { ok: false, error: resolved.error };
 		const host = new URL(baseUrl).hostname;
 		if (resolved.hosts.length > 0 && !resolved.hosts.some((h) => hostMatchesPattern(host, h))) {
-			return { ok: false, error: `Credential ${rest.credential} is not permitted for host ${host}` };
+			return {
+				ok: false,
+				error: `Credential ${rest.credential} is not permitted for host ${host}`,
+			};
 		}
 		auth = resolved.auth;
 	}

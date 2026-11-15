@@ -99,7 +99,14 @@ function createJiraMock() {
 		}
 
 		// metadata endpoints
-		if (["/rest/api/3/project", "/rest/api/3/issuetype", "/rest/api/3/status", "/rest/api/3/field"].includes(path)) {
+		if (
+			[
+				"/rest/api/3/project",
+				"/rest/api/3/issuetype",
+				"/rest/api/3/status",
+				"/rest/api/3/field",
+			].includes(path)
+		) {
 			return json(200, []);
 		}
 
@@ -200,7 +207,10 @@ describe("jira integration", () => {
 		for (let i = 0; i < 3; i++) {
 			await jiraImpl({ action: "create", project: "PROJ", summary: `s${i}` }, opts);
 		}
-		const r = await jiraImpl({ action: "search", jql: "project = PROJ", maxResults: 2, startAt: 0 }, opts);
+		const r = await jiraImpl(
+			{ action: "search", jql: "project = PROJ", maxResults: 2, startAt: 0 },
+			opts,
+		);
 		assert.strictEqual(r.ok, true);
 		assert.strictEqual(r.data.issues.length, 2);
 		assert.ok(r.data.total >= 3);
