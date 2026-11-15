@@ -17,18 +17,7 @@ import { validatePath } from "../common.js";
 import { loadConfig } from "../../config/loader.js";
 import { getProjectCwd } from "../../workspace/project.js";
 
-/** Lazily loaded config so importing this module never throws or does I/O. */
-let cachedConfig;
-function getConfig() {
-	if (cachedConfig === undefined) {
-		try {
-			cachedConfig = loadConfig() || {};
-		} catch {
-			cachedConfig = {};
-		}
-	}
-	return cachedConfig;
-}
+const config = loadConfig();
 
 /** Supported operations. */
 const VALID_OPERATIONS = ["create", "extract", "list"];
@@ -42,7 +31,7 @@ const VALID_FORMATS = ["zip", "tar", "gzip"];
  * @returns {string} The base directory for resolving relative paths
  */
 function resolveBaseDir() {
-	return getProjectCwd() || getConfig().cwd || process.cwd();
+	return getProjectCwd() || config.cwd || process.cwd();
 }
 
 /**
@@ -345,7 +334,7 @@ export async function archiveImpl(input = {}, options = {}) {
 		};
 	}
 
-	const allowedPaths = options.allowedPaths || getConfig().sandbox?.paths || [];
+	const allowedPaths = options.allowedPaths || config.sandbox?.paths || [];
 
 	switch (operation) {
 		case "create":
