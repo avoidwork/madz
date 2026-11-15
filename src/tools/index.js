@@ -39,7 +39,7 @@ import { sql } from "./sql/index.js";
 import { nosql } from "./nosql/index.js";
 import { env } from "./env/index.js";
 import { getConfig } from "./config/index.js";
-import { decision, decisionImpl, DecisionToolSchema } from "./decision/index.js";
+import { decision } from "./decision/index.js";
 import { tool } from "@langchain/core/tools";
 import { MCPAdapter } from "@langchain/mcp-adapters";
 import { logger } from "../shared/logger.js";
@@ -422,7 +422,6 @@ export const CONSUMED_RUNTIME_OPTION_KEYS = [
 	"contextDir",
 	"openaiApiKey",
 	"falApiKey",
-	"decisionConfig",
 	"samplingEnabled",
 ];
 
@@ -453,8 +452,6 @@ export async function buildToolConfig(options) {
 		// Resolved provider API keys from config (env var resolved values)
 		openaiApiKey: credentials?.apiKey,
 		falApiKey: falCredentials?.apiKey,
-		// Resolved decision config from config.agent.decision
-		decisionConfig: config?.agent?.decision,
 		// Resolved sampling enable flag from config.agent.sampling
 		samplingEnabled: config?.agent?.sampling !== false,
 	};
@@ -523,13 +520,8 @@ export async function buildToolConfig(options) {
 			}
 
 			case "decision": {
-				if (!hasAllPerms || !runtimeOptions.decisionConfig?.baseUrl) continue;
-				const decisionTool = tool(
-					(input, options = {}) =>
-						decisionImpl(input, { ...options, decisionConfig: runtimeOptions.decisionConfig }),
-					{ name: "decision", description: TOOLS.decision.description, schema: DecisionToolSchema },
-				);
-				tools.push(decisionTool);
+				if (!hasAllPerms || !config?.agent?.decision?.baseUrl) continue;
+				tools.push(TOOLS.decision);
 				continue;
 			}
 

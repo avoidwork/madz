@@ -1,6 +1,7 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { filterUrl } from "../../sandbox/urlFilter.js";
+import { loadConfig } from "../../config/loader.js";
 
 const DEFAULT_TIMEOUT = 30000;
 
@@ -124,7 +125,7 @@ async function callSystemOne(config, input, timeout) {
  * @returns {Promise<object>} Result object with structured answers
  */
 export async function decisionImpl(input, options = {}) {
-	const config = options.decisionConfig;
+	const config = options.decisionConfig ?? loadConfig().agent?.decision;
 	if (!config?.baseUrl) {
 		return {
 			ok: false,
