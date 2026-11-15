@@ -19,6 +19,7 @@ import { PersistenceSchema } from "./schemas/persistence.js";
 import { SkillAgentMapSchema } from "./schemas/skillAgentMap.js";
 import { SubAgentsTemperatureSchema } from "./schemas/subAgentsTemperature.js";
 import { SummarizationSchema } from "./schemas/summarization.js";
+import { LoopDetectionSchema } from "./schemas/loopDetection.js";
 import { VectorConfigSchema } from "./schemas/vector.js";
 import { ImageSchema } from "./schemas/image.js";
 import { SqlConfigSchema } from "./schemas/sql.js";
@@ -44,6 +45,7 @@ export {
 	McpSchema,
 	AzureProviderConfigSchema,
 	BedrockProviderConfigSchema,
+	LoopDetectionSchema,
 };
 
 // --- Root config ---
@@ -76,6 +78,7 @@ export const ConfigSchema = z.object({
 	cwd: z.string().default(""),
 	subAgentsTemperature: SubAgentsTemperatureSchema,
 	summarization: SummarizationSchema.default({}),
+	loopDetection: LoopDetectionSchema.default({}),
 	vector: VectorConfigSchema.default({}),
 	image: ImageSchema.default({}),
 	sql: SqlConfigSchema.default({}),

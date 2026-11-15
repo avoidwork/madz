@@ -17,6 +17,7 @@ export { AgentSchema } from "./agent.js";
 export { PersistenceSchema } from "./persistence.js";
 export { SubAgentsTemperatureSchema } from "./subAgentsTemperature.js";
 export { SummarizationSchema } from "./summarization.js";
+export { LoopDetectionSchema } from "./loopDetection.js";
 export { VectorConfigSchema } from "./vector.js";
 export { ImageSchema } from "./image.js";
 export { SqlConfigSchema } from "./sql.js";
