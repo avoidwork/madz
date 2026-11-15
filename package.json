@@ -87,6 +87,7 @@
     "adm-zip": "^0.6.1",
     "ansi-escapes": "^7.3.0",
     "ansi-regex": "^6.5.0",
+    "archiver": "^8.0.0",
     "chalk": "^6.0.1",
     "cli-highlight": "^2.1.11",
     "cli-table3": "^0.6.5",
@@ -118,7 +119,9 @@
     "puppeteer-core": "^25.16.0",
     "sharp": "^0.35.5",
     "supports-hyperlinks": "^5.0.0",
+    "tar": "^7.5.23",
     "tiny-lru": "^13.1.1",
+    "unzipper": "^0.12.5",
     "xml2js": "^0.6.2",
     "yargs": "^18.2.0",
     "zod": "^4.6.7"

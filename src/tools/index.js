@@ -32,6 +32,7 @@ import { todo } from "./todo/index.js";
 import { file } from "./file/index.js";
 import { discovery } from "./discovery/index.js";
 import { git } from "./git/index.js";
+import { archive } from "./archive/index.js";
 import { env } from "./env/index.js";
 import { getConfig } from "./config/index.js";
 import { decision, decisionImpl, DecisionToolSchema } from "./decision/index.js";
@@ -57,6 +58,7 @@ export const TOOL_PERMISSIONS = {
 	file: ["filesystem:read", "filesystem:write"],
 	discovery: ["filesystem:read"],
 	git: ["process:spawn"],
+	archive: ["filesystem:read", "filesystem:write"],
 	env: ["env:read"],
 	process: ["filesystem:exec", "process:spawn"],
 	sampling: ["filesystem:write"],
@@ -180,6 +182,7 @@ export const TOOL_CLASSIFICATIONS = {
 	],
 	process: ["debug", "performance", "coding"],
 	git: ["coding", "debug", "code-review", "performance"],
+	archive: ["search", "research", "coding", "documentation", "debug"],
 	env: [
 		"coding",
 		"debug",
@@ -335,6 +338,7 @@ export const TOOLS = {
 	file,
 	discovery,
 	git,
+	archive,
 	env,
 	process: processTool,
 	sampling,
@@ -455,6 +459,7 @@ export async function buildToolConfig(options) {
 			case "date":
 			case "cronJob":
 			case "git":
+			case "archive":
 			case "file":
 			case "env": {
 				if (!hasAllPerms) continue;
