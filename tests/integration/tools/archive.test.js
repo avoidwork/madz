@@ -7,10 +7,11 @@
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
 import { mkdirSync, rmSync, writeFileSync, readFileSync, existsSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { archiveImpl } from "../../../src/tools/archive/index.js";
 
-const TEST_DIR = join(process.cwd(), "memory", "__test_archive_integration__");
+const TEST_DIR = join(tmpdir(), `__test_archive_integration__${process.pid}`);
 const ALLOWED_PATHS = [TEST_DIR];
 
 function getOptions() {
