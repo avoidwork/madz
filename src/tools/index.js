@@ -329,6 +329,7 @@ export const ORCHESTRATOR_TOOLS = [
 	"searchSession",
 	"searchWeb",
 	"skill",
+	"sql",
 	"todo",
 ];
 

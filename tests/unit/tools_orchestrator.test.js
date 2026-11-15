@@ -177,3 +177,23 @@ describe("orchestrator - diagram access", () => {
 		);
 	});
 });
+
+describe("orchestrator - sql access", () => {
+	it("ORCHESTRATOR_TOOLS should include sql", () => {
+		ok(ORCHESTRATOR_TOOLS.includes("sql"), "ORCHESTRATOR_TOOLS should include sql");
+	});
+
+	it("sql should be classified for subagent types", () => {
+		ok(TOOL_CLASSIFICATIONS.sql, "sql should have a TOOL_CLASSIFICATIONS entry");
+		ok(
+			TOOL_CLASSIFICATIONS.sql.includes("coding"),
+			"sql should include coding in its classifications",
+		);
+	});
+
+	it("getToolsForAgentTypes should return sql for coding type", async () => {
+		const tools = await loadTools();
+		const toolsForCoding = getToolsForAgentTypes(["coding"], tools);
+		ok(toolsForCoding.includes("sql"), "getToolsForAgentTypes(['coding']) should include sql");
+	});
+});
