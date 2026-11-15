@@ -22,7 +22,7 @@ import { generatePdfTool } from "./pdf/index.js";
 import { namecom } from "./dns/index.js";
 import { generatePptxTool } from "./pptx/index.js";
 import { createApiTool } from "./api/index.js";
-import { jira, jiraImpl, JiraInputSchema } from "./jira/index.js";
+import { jira } from "./jira/index.js";
 import { createGraphqlTool } from "./graphql/index.js";
 import { createJsonTool } from "./json/index.js";
 import { createYamlTool } from "./yaml/index.js";
@@ -531,18 +531,6 @@ export async function buildToolConfig(options) {
 				// config; the model only references a credential by name. The sandbox
 				// path allowlist is threaded for download/file path validation.
 				tools.push(createApiTool(config?.api, { allowedPaths: runtimeOptions.allowedPaths }));
-				continue;
-			}
-
-			case "jira": {
-				if (!hasAllPerms) continue;
-				// Allowlist, rate limit and credential profiles come from server-side
-				// config; the model only references a credential by name.
-				const jiraTool = tool(
-					(input, opts = {}) => jiraImpl(input, { ...opts, policy: config?.jira }),
-					{ name: "jira", description: jira.description, schema: JiraInputSchema },
-				);
-				tools.push(jiraTool);
 				continue;
 			}
 
