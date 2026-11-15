@@ -33,6 +33,7 @@ import { file } from "./file/index.js";
 import { discovery } from "./discovery/index.js";
 import { git } from "./git/index.js";
 import { archive } from "./archive/index.js";
+import { diagram } from "./diagram/index.js";
 import { env } from "./env/index.js";
 import { getConfig } from "./config/index.js";
 import { decision, decisionImpl, DecisionToolSchema } from "./decision/index.js";
@@ -59,6 +60,7 @@ export const TOOL_PERMISSIONS = {
 	discovery: ["filesystem:read"],
 	git: ["process:spawn"],
 	archive: ["filesystem:read", "filesystem:write"],
+	diagram: ["filesystem:write"],
 	env: ["env:read"],
 	process: ["filesystem:exec", "process:spawn"],
 	sampling: ["filesystem:write"],
@@ -183,6 +185,7 @@ export const TOOL_CLASSIFICATIONS = {
 	process: ["debug", "performance", "coding"],
 	git: ["coding", "debug", "code-review", "performance"],
 	archive: ["search", "research", "coding", "documentation", "debug"],
+	diagram: ["search", "research", "coding", "documentation", "debug"],
 	env: [
 		"coding",
 		"debug",
@@ -309,6 +312,7 @@ export const ORCHESTRATOR_TOOLS = [
 	"cronJob",
 	"date",
 	"decision",
+	"diagram",
 	"discovery",
 	"env",
 	"file",
@@ -340,6 +344,7 @@ export const TOOLS = {
 	discovery,
 	git,
 	archive,
+	diagram,
 	env,
 	process: processTool,
 	sampling,
@@ -461,6 +466,7 @@ export async function buildToolConfig(options) {
 			case "cronJob":
 			case "git":
 			case "archive":
+			case "diagram":
 			case "file":
 			case "env": {
 				if (!hasAllPerms) continue;

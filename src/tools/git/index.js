@@ -6,18 +6,7 @@ import path from "node:path";
 import { loadConfig } from "../../config/loader.js";
 import { getProjectCwd } from "../../workspace/project.js";
 
-/** Lazily loaded config so importing this module never throws or does I/O. */
-let cachedConfig;
-function getConfig() {
-	if (cachedConfig === undefined) {
-		try {
-			cachedConfig = loadConfig() || {};
-		} catch {
-			cachedConfig = {};
-		}
-	}
-	return cachedConfig;
-}
+const config = loadConfig();
 
 const VALID_ACTIONS = [
 	"status",
@@ -140,7 +129,7 @@ function runGit(args, cwd, opts = {}) {
 				encoding: "utf-8",
 				env: buildEnv(),
 				timeout: opts.timeout ?? DEFAULT_TIMEOUT_MS,
-				maxBuffer: getConfig().sandbox?.git?.maxBuffer,
+				maxBuffer: config.sandbox?.git?.maxBuffer,
 			},
 			(err, stdout, stderr) => {
 				if (err) {
@@ -1494,7 +1483,7 @@ export async function gitImpl(input = {}, options = {}) {
 	const invalid = validateInput(input);
 	if (invalid) return { ok: false, error: invalid, kind: "invalid-input" };
 
-	const cwd = options.cwd || getProjectCwd() || getConfig().cwd || process.cwd();
+	const cwd = options.cwd || getProjectCwd() || config.cwd || process.cwd();
 	return handlers[action](input, cwd);
 }
 
