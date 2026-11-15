@@ -318,6 +318,7 @@ export const ORCHESTRATOR_TOOLS = [
 	"getConfig",
 	"readImage",
 	"decision",
+	"env",
 ];
 
 // Tool instances keyed by tool name
