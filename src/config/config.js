@@ -24,6 +24,7 @@ import { VectorConfigSchema } from "./schemas/vector.js";
 import { ImageSchema } from "./schemas/image.js";
 import { SqlConfigSchema } from "./schemas/sql.js";
 import { NosqlConfigSchema } from "./schemas/nosql.js";
+import { JiraSchema } from "./schemas/jira.js";
 import { McpSchema } from "./schemas/mcp.js";
 
 // Re-export individual schemas for backward compatibility
@@ -42,6 +43,7 @@ export {
 	VectorConfigSchema,
 	SqlConfigSchema,
 	NosqlConfigSchema,
+	JiraSchema,
 	McpSchema,
 	AzureProviderConfigSchema,
 	BedrockProviderConfigSchema,
@@ -58,6 +60,7 @@ export const ConfigSchema = z.object({
 	calendar: CalendarConfigSchema.default({}),
 	sandbox: SandboxScopeSchema.default({}),
 	api: ApiSchema.default({}),
+	jira: JiraSchema.default({}),
 	browser: BrowserSchema.default({}),
 	search: SearchConfigSchema.default({}),
 	memory: MemorySchema.default({}),

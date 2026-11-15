@@ -22,6 +22,7 @@ import { generatePdfTool } from "./pdf/index.js";
 import { namecom } from "./dns/index.js";
 import { generatePptxTool } from "./pptx/index.js";
 import { createApiTool } from "./api/index.js";
+import { jira, jiraImpl, JiraInputSchema } from "./jira/index.js";
 import { createGraphqlTool } from "./graphql/index.js";
 import { createJsonTool } from "./json/index.js";
 import { createYamlTool } from "./yaml/index.js";
@@ -86,6 +87,7 @@ export const TOOL_PERMISSIONS = {
 	namecom: ["network:outbound"],
 	generatePptx: ["filesystem:write"],
 	api: ["network:outbound"],
+	jira: ["network:outbound"],
 	graphql: ["network:outbound"],
 	json: ["filesystem:read"],
 	yaml: ["filesystem:read"],
@@ -222,6 +224,7 @@ export const TOOL_CLASSIFICATIONS = {
 	namecom: ["search", "research", "coding", "documentation", "debug"],
 	generatePptx: ["search", "research", "coding", "documentation", "debug"],
 	api: ["search", "research", "coding", "documentation", "debug"],
+	jira: ["search", "research", "coding", "documentation", "debug"],
 	graphql: ["search", "research", "coding", "documentation", "debug"],
 	json: ["search", "research", "coding", "documentation", "debug"],
 	yaml: ["search", "research", "coding", "documentation", "debug"],
@@ -376,6 +379,7 @@ export const TOOLS = {
 	namecom,
 	generatePptx: generatePptxTool,
 	api: createApiTool,
+	jira,
 	graphql: createGraphqlTool,
 	json: createJsonTool,
 	yaml: createYamlTool,
@@ -535,6 +539,18 @@ export async function buildToolConfig(options) {
 				// config; the model only references a credential by name. The sandbox
 				// path allowlist is threaded for download/file path validation.
 				tools.push(createApiTool(config?.api, { allowedPaths: runtimeOptions.allowedPaths }));
+				continue;
+			}
+
+			case "jira": {
+				if (!hasAllPerms) continue;
+				// Allowlist, rate limit and credential profiles come from server-side
+				// config; the model only references a credential by name.
+				const jiraTool = tool(
+					(input, opts = {}) => jiraImpl(input, { ...opts, policy: config?.jira }),
+					{ name: "jira", description: jira.description, schema: JiraInputSchema },
+				);
+				tools.push(jiraTool);
 				continue;
 			}
 
