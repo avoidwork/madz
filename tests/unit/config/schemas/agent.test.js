@@ -17,4 +17,19 @@ describe("AgentSchema", () => {
 		const result = AgentSchema.parse({});
 		assert.strictEqual(result.sampling, true);
 	});
+
+	it("defaults autoContinueLimit to 1000", () => {
+		const result = AgentSchema.parse({});
+		assert.strictEqual(result.autoContinueLimit, 1000);
+	});
+
+	it("accepts a custom autoContinueLimit", () => {
+		const result = AgentSchema.parse({ autoContinueLimit: 5 });
+		assert.strictEqual(result.autoContinueLimit, 5);
+	});
+
+	it("rejects a non-positive autoContinueLimit", () => {
+		assert.throws(() => AgentSchema.parse({ autoContinueLimit: 0 }));
+		assert.throws(() => AgentSchema.parse({ autoContinueLimit: -1 }));
+	});
 });

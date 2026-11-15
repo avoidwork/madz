@@ -40,3 +40,75 @@ describe("countToolMessageTokens", () => {
 		assert.strictEqual(await mod.countToolMessageTokens(model, "tool output"), 0);
 	});
 });
+
+describe("shouldAutoContinue", () => {
+	it("returns true when the last bubble ends on reasoning and the guard is not exhausted", async () => {
+		const mod = await import("../../../src/tui/conversationArea.js");
+		assert.strictEqual(
+			mod.shouldAutoContinue({
+				lastEventType: "reasoning",
+				streamingMsgId: "3",
+				lastMessageId: "3",
+				autoContinueCount: 0,
+				autoContinueLimit: 1000,
+			}),
+			true,
+		);
+	});
+
+	it("returns false when the last event is not reasoning", async () => {
+		const mod = await import("../../../src/tui/conversationArea.js");
+		assert.strictEqual(
+			mod.shouldAutoContinue({
+				lastEventType: "message",
+				streamingMsgId: "3",
+				lastMessageId: "3",
+				autoContinueCount: 0,
+				autoContinueLimit: 1000,
+			}),
+			false,
+		);
+	});
+
+	it("returns false when the streaming bubble is not the last", async () => {
+		const mod = await import("../../../src/tui/conversationArea.js");
+		assert.strictEqual(
+			mod.shouldAutoContinue({
+				lastEventType: "reasoning",
+				streamingMsgId: "2",
+				lastMessageId: "3",
+				autoContinueCount: 0,
+				autoContinueLimit: 1000,
+			}),
+			false,
+		);
+	});
+
+	it("returns false when the loop guard is exhausted", async () => {
+		const mod = await import("../../../src/tui/conversationArea.js");
+		assert.strictEqual(
+			mod.shouldAutoContinue({
+				lastEventType: "reasoning",
+				streamingMsgId: "3",
+				lastMessageId: "3",
+				autoContinueCount: 1000,
+				autoContinueLimit: 1000,
+			}),
+			false,
+		);
+	});
+
+	it("returns false when lastEventType is undefined", async () => {
+		const mod = await import("../../../src/tui/conversationArea.js");
+		assert.strictEqual(
+			mod.shouldAutoContinue({
+				lastEventType: undefined,
+				streamingMsgId: "3",
+				lastMessageId: "3",
+				autoContinueCount: 0,
+				autoContinueLimit: 1000,
+			}),
+			false,
+		);
+	});
+});

@@ -41,6 +41,35 @@ export async function countToolMessageTokens(model, text) {
 }
 
 /**
+ * Decide whether to dispatch a silent "Continue" after a turn ends.
+ *
+ * The reasoning-only auto-continue fires only when the streaming bubble is the
+ * last in the message list AND it ended on reasoning AND the loop guard is not
+ * exhausted. Earlier incomplete bubbles must never trigger it.
+ *
+ * @param {Object} params - Decision inputs
+ * @param {string | undefined} params.lastEventType - The last non-subagent event type
+ * @param {string | undefined} params.streamingMsgId - The streaming bubble's message ID
+ * @param {string | undefined} params.lastMessageId - The last message ID in the list
+ * @param {number} params.autoContinueCount - Current auto-continue count
+ * @param {number} params.autoContinueLimit - Max auto-continue count
+ * @returns {boolean} True when a silent "Continue" should be dispatched
+ */
+export function shouldAutoContinue({
+	lastEventType,
+	streamingMsgId,
+	lastMessageId,
+	autoContinueCount,
+	autoContinueLimit,
+}) {
+	return (
+		lastEventType === "reasoning" &&
+		streamingMsgId === lastMessageId &&
+		autoContinueCount < autoContinueLimit
+	);
+}
+
+/**
  * ConversationArea — owns all conversation and streaming state.
  * Communicates with InputArea exclusively via stable App-provided callbacks.
  * @type {React.ForwardRefRenderFunction}
@@ -94,6 +123,9 @@ const ConversationArea = forwardRef(function ConversationArea(
 	const dispatchPromiseRef = useRef(null);
 	const streamingMsgIdRef = useRef(null);
 	const tokenCacheRef = useRef({ content: "", tokens: 0 });
+	// Counts silent "Continue" nudges dispatched when a turn ends on reasoning.
+	// Bounded by config.agent.autoContinueLimit to prevent an infinite loop.
+	const autoContinueCountRef = useRef(0);
 	const toolMessageTokensRef = useRef(0);
 	const contextUpdateTimerRef = useRef(null);
 	const pendingContextRef = useRef({ content: "" });
@@ -460,6 +492,26 @@ const ConversationArea = forwardRef(function ConversationArea(
 				turnStartTime,
 				completedToolCalls,
 			);
+
+			// Reasoning-only auto-continue: when the last bubble ends on reasoning
+			// (the model produced no message content), nudge it with a silent
+			// "Continue" so it produces an actual response. Scoped to the LAST
+			// bubble only — earlier incomplete bubbles must not trigger it. Bounded
+			// by config.agent.autoContinueLimit to prevent an infinite loop.
+			const autoContinueLimit = config?.agent?.autoContinueLimit ?? 1000;
+			if (
+				shouldAutoContinue({
+					lastEventType: response?.lastEventType,
+					streamingMsgId: streamingMsgIdRef.current,
+					lastMessageId: messageListRef.current?.getLastMessageId(),
+					autoContinueCount: autoContinueCountRef.current,
+					autoContinueLimit,
+				})
+			) {
+				autoContinueCountRef.current += 1;
+				await handleChat("Continue", { silentUser: true });
+				return;
+			}
 
 			// A turn that ended on a `clarify` interrupt is paused, not complete:
 			// the agent has not produced its answer yet, so no assistant exchange
