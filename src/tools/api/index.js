@@ -2,11 +2,12 @@ import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { createWriteStream } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
-import { basename } from "node:path";
+import { basename, join, resolve } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { filterUrl, hostMatchesPattern } from "../../sandbox/urlFilter.js";
 import { ApiSchema } from "../../config/schemas/api.js";
+import { loadConfig } from "../../config/loader.js";
 import { logger } from "../../shared/logger.js";
 import { validatePath } from "../common.js";
 import { DEFAULT_RATE_LIMIT, createRateLimiter } from "./rateLimiter.js";
@@ -427,7 +428,14 @@ async function performRequest(req) {
 			const location = REDIRECT_STATUSES.has(resp.status) ? resp.headers.get("location") : null;
 			if (!location || maxRedirects === 0) {
 				if (downloadPath !== undefined) {
-					const built = await streamToDisk(resp, url, downloadPath, method, timeout, controller.signal);
+					const built = await streamToDisk(
+						resp,
+						url,
+						downloadPath,
+						method,
+						timeout,
+						controller.signal,
+					);
 					const retryable =
 						RETRY_STATUSES.has(resp.status) &&
 						(resp.status === 429 || IDEMPOTENT_METHODS.has(method));
@@ -516,7 +524,9 @@ async function encodeBody({ body, form, file, allowedPaths }, headers) {
 		if (!hasHeader(headers, "content-type")) {
 			headers["Content-Type"] = "application/x-www-form-urlencoded";
 		}
-		return { body: new URLSearchParams(Object.entries(form).map(([k, v]) => [k, String(v)])).toString() };
+		return {
+			body: new URLSearchParams(Object.entries(form).map(([k, v]) => [k, String(v)])).toString(),
+		};
 	}
 	if (body === undefined) return { body: undefined };
 	if (typeof body === "string") return { body };
@@ -535,7 +545,8 @@ async function encodeBody({ body, form, file, allowedPaths }, headers) {
  * @param {unknown} [options.body] - JSON value or raw string body
  * @param {Record<string, string|number|boolean>} [options.form] - urlencoded form body
  * @param {string} [options.file] - Local file path to send as multipart/form-data
- * @param {string} [options.download] - Destination path to stream the response body to
+ * @param {boolean|string} [options.download] - `true` to save to `downloadsDir`, or a destination path to stream the response body to
+ * @param {string} [options.downloadsDir] - Default directory (relative to cwd) for `download: true`
  * @param {string[]} [options.allowedPaths] - Sandbox allowlist for file/download paths
  * @param {object} [options.auth] - Resolved auth: `{ type, token?, key?, username?, password? }`
  * @param {number} [options.timeout] - Per-attempt timeout in ms
@@ -558,6 +569,7 @@ export async function makeApiRequest(
 		form,
 		file,
 		download,
+		downloadsDir = "downloads/",
 		allowedPaths = [],
 		auth,
 		timeout = DEFAULT_TIMEOUT,
@@ -603,7 +615,11 @@ export async function makeApiRequest(
 
 	let downloadPath;
 	if (download !== undefined) {
-		const validation = validatePath(download, allowedPaths);
+		// `download: true` saves to the configured downloads dir with a filename
+		// derived from the URL; a string is an explicit destination path.
+		const dest =
+			download === true ? join(downloadsDir, basename(target.pathname) || "download") : download;
+		const validation = validatePath(dest, allowedPaths);
 		if (!validation.allowed) return { ok: false, error: validation.error };
 		downloadPath = validation.realPath || validation.path;
 	}
@@ -663,10 +679,10 @@ export const ApiInputSchema = z
 				"Local file path to send as multipart/form-data (use instead of body or form); validated against the sandbox allowlist",
 			),
 		download: z
-			.string()
+			.union([z.boolean(), z.string()])
 			.optional()
 			.describe(
-				"Destination path to stream the response body to disk (bypasses maxBodySize); validated against the sandbox allowlist",
+				"Stream the response body to disk (bypasses maxBodySize). Pass true to save to the configured downloads dir, or a path (validated against the sandbox allowlist)",
 			),
 		credential: z
 			.string()
@@ -734,6 +750,7 @@ export async function apiImpl(input, policy = {}, runtime = {}) {
 		auth = resolved.auth;
 	}
 
+	const cwd = loadConfig().cwd || process.cwd();
 	return makeApiRequest(url, {
 		method,
 		headers,
@@ -742,6 +759,7 @@ export async function apiImpl(input, policy = {}, runtime = {}) {
 		form,
 		file,
 		download,
+		downloadsDir: resolve(cwd, parsedPolicy.downloadsDir),
 		allowedPaths: runtime.allowedPaths ?? [],
 		auth,
 		timeout: timeout ?? DEFAULT_TIMEOUT,

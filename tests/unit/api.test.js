@@ -461,7 +461,10 @@ describe("api download mode", () => {
 		try {
 			const bytes = new Uint8Array([1, 2, 3, 4, 5]);
 			const { fetch } = stub([
-				new Response(bytes, { status: 200, headers: { "content-type": "application/octet-stream" } }),
+				new Response(bytes, {
+					status: 200,
+					headers: { "content-type": "application/octet-stream" },
+				}),
 			]);
 			const r = await makeApiRequest("https://example.com/file", {
 				...base,
@@ -483,7 +486,10 @@ describe("api download mode", () => {
 		try {
 			const bytes = new Uint8Array(2048);
 			const { fetch } = stub([
-				new Response(bytes, { status: 200, headers: { "content-type": "application/octet-stream" } }),
+				new Response(bytes, {
+					status: 200,
+					headers: { "content-type": "application/octet-stream" },
+				}),
 			]);
 			const r = await makeApiRequest("https://example.com/file", {
 				...base,
@@ -539,9 +545,7 @@ describe("api download mode", () => {
 	});
 
 	it("re-validates redirect hops for a download", async () => {
-		const { fetch } = stub([
-			res({ status: 301, headers: { location: "https://other.com/" } }),
-		]);
+		const { fetch } = stub([res({ status: 301, headers: { location: "https://other.com/" } })]);
 		const r = await makeApiRequest("https://good.com/file", {
 			...base,
 			fetch,
@@ -595,6 +599,42 @@ describe("api download mode", () => {
 		} finally {
 			rmSync(dir, { recursive: true, force: true });
 		}
+	});
+
+	it("download: true saves to the configured downloads dir", async () => {
+		const dir = mkdtempSync(join(tmpdir(), "api-dl-"));
+		try {
+			const bytes = new Uint8Array([1, 2, 3]);
+			const { fetch } = stub([
+				new Response(bytes, {
+					status: 200,
+					headers: { "content-type": "application/octet-stream" },
+				}),
+			]);
+			const r = await makeApiRequest("https://example.com/file", {
+				...base,
+				fetch,
+				download: true,
+				downloadsDir: dir,
+				allowedPaths: [dir],
+			});
+			assert.strictEqual(r.ok, true);
+			assert.strictEqual(r.path, join(dir, "file"));
+			assert.deepStrictEqual([...readFileSync(join(dir, "file"))], [...bytes]);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("download: true rejects when the downloads dir is outside the sandbox", async () => {
+		const r = await makeApiRequest("https://example.com/file", {
+			...base,
+			download: true,
+			downloadsDir: "/etc",
+			allowedPaths: ["/tmp"],
+		});
+		assert.strictEqual(r.ok, false);
+		assert.match(r.error, /Access denied/);
 	});
 });
 
