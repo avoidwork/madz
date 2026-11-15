@@ -16,6 +16,7 @@ import { getModelContextLength } from "../provider/modelInfo.js";
 import { getActiveProviderConfig, getActiveProviderName } from "../provider/index.js";
 import { createTokenBudgetMiddleware } from "../provider/tokenBudgetMiddleware.js";
 import { createCopilotRetryMiddleware } from "../provider/copilotRetryMiddleware.js";
+import { createLoopDetectionMiddleware } from "../provider/loopDetectionMiddleware.js";
 import { createSummarizationMiddlewareFromConfig } from "../provider/summarizationMiddleware.js";
 import { createEvictionAwareFilesystemMiddleware } from "./evictionCeiling.js";
 import { createSkillsMiddleware } from "./skillsMiddleware.js";
@@ -510,6 +511,22 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 			? createCopilotRetryMiddleware({ maxRetries: 3 })
 			: null;
 
+	// Loop-detection middleware. Detects when the model repeats the same message
+	// or reasoning content and injects a "You're looping" nudge, escalating to the
+	// agent's compaction path when the loop persists. The `onCompact` callback is
+	// wired via closure after the agent exists (mirroring
+	// `compactOnContextWindowExceeded`), so it can call `agent.compactContext`.
+	// Returns null when disabled, so unset config is a true no-op.
+	let loopDetectionOnCompact;
+	const loopDetectionMiddleware = createLoopDetectionMiddleware({
+		config: config.loopDetection,
+		onCompact: async (threadId) => {
+			if (typeof loopDetectionOnCompact === "function") {
+				await loopDetectionOnCompact(threadId);
+			}
+		},
+	});
+
 	// Replacement for deepagents' FilesystemMiddleware with an eviction ceiling
 	// fixed to fit image payloads. The library evicts any ToolMessage whose
 	// stringified content exceeds `toolTokenLimitBeforeEvict * 4` characters
@@ -542,6 +559,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 				: []),
 			...(summarizationMiddleware ? [summarizationMiddleware] : []),
 			...(copilotRetryMiddleware ? [copilotRetryMiddleware] : []),
+			...(loopDetectionMiddleware ? [loopDetectionMiddleware] : []),
 			...(tokenBudgetMiddleware ? [tokenBudgetMiddleware] : []),
 		],
 		streamTransformers: [() => createTurnTransformer()],
@@ -564,6 +582,14 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	// and compacts the context for that thread, then the middleware re-sends.
 	compactOnContextWindowExceeded = async (err, request) => {
 		const threadId = request?.runtime?.configurable?.thread_id;
+		const config = threadId ? { configurable: { thread_id: threadId } } : undefined;
+		await agent.compactContext(config);
+	};
+
+	// Wire the loop-detection middleware's escalation to the agent's compaction
+	// path. The middleware is created before the agent, so this closure is set
+	// once the agent exists. It compacts the current thread's context.
+	loopDetectionOnCompact = async (threadId) => {
 		const config = threadId ? { configurable: { thread_id: threadId } } : undefined;
 		await agent.compactContext(config);
 	};
