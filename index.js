@@ -142,7 +142,7 @@ async function doBootstrap() {
 	await ensureToolsDir(config.memory.toolsDir);
 	await ensureScreenshotsDir(config.memory.screenshotsDir);
 	await ensureContextDir(config.memory.contextDir);
-	await ensureDownloadsDir(config.api?.downloadsDir || "downloads/");
+	await ensureDownloadsDir(config.api.downloadsDir);
 
 	const schedulesDir = fromCwd(config.memory?.schedulesDir || "memory/schedules/");
 
