@@ -25,6 +25,7 @@ import { ImageSchema } from "./schemas/image.js";
 import { SqlConfigSchema } from "./schemas/sql.js";
 import { NosqlConfigSchema } from "./schemas/nosql.js";
 import { JiraSchema } from "./schemas/jira.js";
+import { ConfluenceSchema } from "./schemas/confluence.js";
 import { McpSchema } from "./schemas/mcp.js";
 
 // Re-export individual schemas for backward compatibility
@@ -44,6 +45,7 @@ export {
 	SqlConfigSchema,
 	NosqlConfigSchema,
 	JiraSchema,
+	ConfluenceSchema,
 	McpSchema,
 	AzureProviderConfigSchema,
 	BedrockProviderConfigSchema,
@@ -61,6 +63,7 @@ export const ConfigSchema = z.object({
 	sandbox: SandboxScopeSchema.default({}),
 	api: ApiSchema.default({}),
 	jira: JiraSchema.default({}),
+	confluence: ConfluenceSchema.default({}),
 	browser: BrowserSchema.default({}),
 	search: SearchConfigSchema.default({}),
 	memory: MemorySchema.default({}),

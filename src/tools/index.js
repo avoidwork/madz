@@ -23,6 +23,7 @@ import { namecom } from "./dns/index.js";
 import { generatePptxTool } from "./pptx/index.js";
 import { createApiTool } from "./api/index.js";
 import { jira, jiraImpl, JiraInputSchema } from "./jira/index.js";
+import { confluence, confluenceImpl, ConfluenceInputSchema } from "./confluence/index.js";
 import { createGraphqlTool } from "./graphql/index.js";
 import { createJsonTool } from "./json/index.js";
 import { createYamlTool } from "./yaml/index.js";
@@ -88,6 +89,7 @@ export const TOOL_PERMISSIONS = {
 	generatePptx: ["filesystem:write"],
 	api: ["network:outbound"],
 	jira: ["network:outbound"],
+	confluence: ["network:outbound"],
 	graphql: ["network:outbound"],
 	json: ["filesystem:read"],
 	yaml: ["filesystem:read"],
@@ -225,6 +227,7 @@ export const TOOL_CLASSIFICATIONS = {
 	generatePptx: ["search", "research", "coding", "documentation", "debug"],
 	api: ["search", "research", "coding", "documentation", "debug"],
 	jira: ["search", "research", "coding", "documentation", "debug"],
+	confluence: ["search", "research", "coding", "documentation", "debug"],
 	graphql: ["search", "research", "coding", "documentation", "debug"],
 	json: ["search", "research", "coding", "documentation", "debug"],
 	yaml: ["search", "research", "coding", "documentation", "debug"],
@@ -380,6 +383,7 @@ export const TOOLS = {
 	generatePptx: generatePptxTool,
 	api: createApiTool,
 	jira,
+	confluence,
 	graphql: createGraphqlTool,
 	json: createJsonTool,
 	yaml: createYamlTool,
@@ -551,6 +555,22 @@ export async function buildToolConfig(options) {
 					{ name: "jira", description: jira.description, schema: JiraInputSchema },
 				);
 				tools.push(jiraTool);
+				continue;
+			}
+
+			case "confluence": {
+				if (!hasAllPerms) continue;
+				// Allowlist, rate limit and credential profiles come from server-side
+				// config; the model only references a credential by name.
+				const confluenceTool = tool(
+					(input, opts = {}) => confluenceImpl(input, { ...opts, policy: config?.confluence }),
+					{
+						name: "confluence",
+						description: confluence.description,
+						schema: ConfluenceInputSchema,
+					},
+				);
+				tools.push(confluenceTool);
 				continue;
 			}
 

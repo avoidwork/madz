@@ -23,4 +23,5 @@ export { ImageSchema } from "./image.js";
 export { SqlConfigSchema } from "./sql.js";
 export { NosqlConfigSchema } from "./nosql.js";
 export { JiraSchema, JiraCredentialSchema } from "./jira.js";
+export { ConfluenceSchema, ConfluenceCredentialSchema } from "./confluence.js";
 export { McpSchema } from "./mcp.js";
