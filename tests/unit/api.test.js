@@ -1,5 +1,8 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
+import { mkdtempSync, writeFileSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
 	apiImpl,
 	makeApiRequest,
@@ -81,7 +84,7 @@ describe("api input validation", () => {
 			body: "x",
 			form: { a: 1 },
 		});
-		assert.match(both.error, /either body or form/);
+		assert.match(both.error, /only one of body, form or file/);
 	});
 });
 
@@ -448,6 +451,216 @@ describe("api responses", () => {
 			{ fetch },
 		);
 		assert.match(r.error, /too large/);
+	});
+});
+
+describe("api download mode", () => {
+	it("streams the response body to the download path", async () => {
+		const dir = mkdtempSync(join(tmpdir(), "api-dl-"));
+		const out = join(dir, "out.bin");
+		try {
+			const bytes = new Uint8Array([1, 2, 3, 4, 5]);
+			const { fetch } = stub([
+				new Response(bytes, { status: 200, headers: { "content-type": "application/octet-stream" } }),
+			]);
+			const r = await makeApiRequest("https://example.com/file", {
+				...base,
+				fetch,
+				download: out,
+				allowedPaths: [dir],
+			});
+			assert.strictEqual(r.ok, true);
+			assert.strictEqual(r.path, out);
+			assert.deepStrictEqual([...readFileSync(out)], [...bytes]);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("bypasses maxBodySize for download", async () => {
+		const dir = mkdtempSync(join(tmpdir(), "api-dl-"));
+		const out = join(dir, "out.bin");
+		try {
+			const bytes = new Uint8Array(2048);
+			const { fetch } = stub([
+				new Response(bytes, { status: 200, headers: { "content-type": "application/octet-stream" } }),
+			]);
+			const r = await makeApiRequest("https://example.com/file", {
+				...base,
+				fetch,
+				download: out,
+				allowedPaths: [dir],
+				maxBodySize: 1024,
+			});
+			assert.strictEqual(r.ok, true);
+			assert.strictEqual(readFileSync(out).length, 2048);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("rejects a download path outside the sandbox", async () => {
+		const r = await makeApiRequest("https://example.com/file", {
+			...base,
+			download: "/etc/passwd",
+			allowedPaths: ["/tmp"],
+		});
+		assert.strictEqual(r.ok, false);
+		assert.match(r.error, /Access denied/);
+	});
+
+	it("times out a stalled download", async () => {
+		const dir = mkdtempSync(join(tmpdir(), "api-dl-"));
+		const out = join(dir, "out.bin");
+		try {
+			const stream = new ReadableStream({
+				start(controller) {
+					controller.enqueue(new Uint8Array(4));
+					// never closes: a stalled server
+				},
+			});
+			const fetch = async (_url, { signal }) => {
+				signal.addEventListener("abort", () => stream.cancel().catch(() => {}));
+				return new Response(stream, { headers: { "content-type": "application/octet-stream" } });
+			};
+			const r = await makeApiRequest("https://example.com/file", {
+				...base,
+				fetch,
+				download: out,
+				allowedPaths: [dir],
+				timeout: 50,
+				maxRetries: 0,
+			});
+			assert.strictEqual(r.ok, false);
+			assert.match(r.error, /timed out|aborted/i);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("re-validates redirect hops for a download", async () => {
+		const { fetch } = stub([
+			res({ status: 301, headers: { location: "https://other.com/" } }),
+		]);
+		const r = await makeApiRequest("https://good.com/file", {
+			...base,
+			fetch,
+			download: "/tmp/out.bin",
+			allowedPaths: ["/tmp"],
+			allowlist: ["good.com"],
+		});
+		assert.match(r.error, /not on allowlist/);
+	});
+
+	it("handles a no-body download (204) without writing", async () => {
+		const dir = mkdtempSync(join(tmpdir(), "api-dl-"));
+		const out = join(dir, "out.bin");
+		try {
+			const { fetch } = stub([res({ status: 204 })]);
+			const r = await makeApiRequest("https://example.com/file", {
+				...base,
+				fetch,
+				download: out,
+				allowedPaths: [dir],
+			});
+			assert.strictEqual(r.ok, true);
+			assert.strictEqual(r.path, out);
+			assert.strictEqual(r.status, 204);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("falls back to buffering when the response has no readable stream", async () => {
+		const dir = mkdtempSync(join(tmpdir(), "api-dl-"));
+		const out = join(dir, "out.bin");
+		try {
+			// A plain object response with no `body.getReader` (e.g. a mocked fetch).
+			const fetch = async () => ({
+				ok: true,
+				status: 200,
+				statusText: "OK",
+				headers: new Headers({ "content-type": "text/plain" }),
+				text: async () => "hello",
+				body: undefined,
+			});
+			const r = await makeApiRequest("https://example.com/file", {
+				...base,
+				fetch,
+				download: out,
+				allowedPaths: [dir],
+			});
+			assert.strictEqual(r.ok, true);
+			assert.strictEqual(readFileSync(out, "utf8"), "hello");
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+});
+
+describe("api file upload mode", () => {
+	it("sends a local file as multipart/form-data", async () => {
+		const dir = mkdtempSync(join(tmpdir(), "api-up-"));
+		const src = join(dir, "in.bin");
+		writeFileSync(src, Buffer.from([1, 2, 3]));
+		try {
+			const { fetch, calls } = stub([res()]);
+			const r = await makeApiRequest("https://example.com/upload", {
+				...base,
+				fetch,
+				method: "POST",
+				file: src,
+				allowedPaths: [dir],
+			});
+			assert.strictEqual(r.ok, true);
+			assert.ok(calls[0].options.body instanceof FormData);
+			assert.match(calls[0].options.headers["Content-Type"], /multipart\/form-data/);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("rejects a file path outside the sandbox", async () => {
+		const r = await makeApiRequest("https://example.com/upload", {
+			...base,
+			method: "POST",
+			file: "/etc/passwd",
+			allowedPaths: ["/tmp"],
+		});
+		assert.strictEqual(r.ok, false);
+		assert.match(r.error, /Access denied/);
+	});
+
+	it("rejects body and file together", async () => {
+		const r = await makeApiRequest("https://example.com/upload", {
+			...base,
+			method: "POST",
+			body: { a: 1 },
+			file: "/tmp/in.bin",
+			allowedPaths: ["/tmp"],
+		});
+		assert.match(r.error, /only one of body, form or file/);
+	});
+
+	it("rejects a file on a bodyless method", async () => {
+		const r = await makeApiRequest("https://example.com/upload", {
+			...base,
+			method: "GET",
+			file: "/tmp/in.bin",
+			allowedPaths: ["/tmp"],
+		});
+		assert.match(r.error, /not allowed for GET/);
+	});
+
+	it("reports a missing file", async () => {
+		const r = await makeApiRequest("https://example.com/upload", {
+			...base,
+			method: "POST",
+			file: "/tmp/does-not-exist.bin",
+			allowedPaths: ["/tmp"],
+		});
+		assert.strictEqual(r.ok, false);
+		assert.match(r.error, /Failed to read file/);
 	});
 });
 
