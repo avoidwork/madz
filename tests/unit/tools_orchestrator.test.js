@@ -197,3 +197,46 @@ describe("orchestrator - sql access", () => {
 		ok(toolsForCoding.includes("sql"), "getToolsForAgentTypes(['coding']) should include sql");
 	});
 });
+
+describe("orchestrator - jira access", () => {
+	it("ORCHESTRATOR_TOOLS should include jira", () => {
+		ok(ORCHESTRATOR_TOOLS.includes("jira"), "ORCHESTRATOR_TOOLS should include jira");
+	});
+
+	it("jira should be classified for subagent types", () => {
+		ok(TOOL_CLASSIFICATIONS.jira, "jira should have a TOOL_CLASSIFICATIONS entry");
+		ok(
+			TOOL_CLASSIFICATIONS.jira.includes("coding"),
+			"jira should include coding in its classifications",
+		);
+	});
+
+	it("getToolsForAgentTypes should return jira for coding type", async () => {
+		const tools = await loadTools();
+		const toolsForCoding = getToolsForAgentTypes(["coding"], tools);
+		ok(toolsForCoding.includes("jira"), "getToolsForAgentTypes(['coding']) should include jira");
+	});
+});
+
+describe("orchestrator - confluence access", () => {
+	it("ORCHESTRATOR_TOOLS should include confluence", () => {
+		ok(ORCHESTRATOR_TOOLS.includes("confluence"), "ORCHESTRATOR_TOOLS should include confluence");
+	});
+
+	it("confluence should be classified for subagent types", () => {
+		ok(TOOL_CLASSIFICATIONS.confluence, "confluence should have a TOOL_CLASSIFICATIONS entry");
+		ok(
+			TOOL_CLASSIFICATIONS.confluence.includes("coding"),
+			"confluence should include coding in its classifications",
+		);
+	});
+
+	it("getToolsForAgentTypes should return confluence for coding type", async () => {
+		const tools = await loadTools();
+		const toolsForCoding = getToolsForAgentTypes(["coding"], tools);
+		ok(
+			toolsForCoding.includes("confluence"),
+			"getToolsForAgentTypes(['coding']) should include confluence",
+		);
+	});
+});
