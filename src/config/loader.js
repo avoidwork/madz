@@ -20,12 +20,8 @@ const DROPPED_KEYS = [
 	"ratelimit",
 	"timeout",
 	"search",
-	"process",
-	"calendar",
 	"sql",
 	"nosql",
-	"subAgentstemperature", // lowercase version of "subAgentsTemperature"
-	"subagentsreasoning", // lowercase version of "subAgentsReasoning"
 ];
 
 // Cache for the schema-driven reverse map (built once)
