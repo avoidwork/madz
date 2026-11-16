@@ -362,8 +362,8 @@ describe("buildReverseMap", () => {
 
 	it("contains calendar.active path", () => {
 		const map = buildReverseMap(ConfigSchema);
-		assert.ok(map.has("ACTIVE"), "Should have ACTIVE");
-		assert.strictEqual(map.get("ACTIVE"), "calendar.active");
+		assert.ok(map.has("CALENDAR_ACTIVE"), "Should have CALENDAR_ACTIVE");
+		assert.strictEqual(map.get("CALENDAR_ACTIVE"), "calendar.active");
 	});
 
 	it("contains tui.statusBar.project path", () => {
@@ -490,8 +490,8 @@ describe("syncEnv", () => {
 		assert.strictEqual(raw.memory.maxEntries, 200);
 	});
 
-	it("materializes calendar.active from ACTIVE", () => {
-		process.env.ACTIVE = "msgraph";
+	it("materializes calendar.active from CALENDAR_ACTIVE", () => {
+		process.env.CALENDAR_ACTIVE = "msgraph";
 		const raw = {};
 		syncEnv(raw, ["calendar"]);
 		assert.strictEqual(raw.calendar.active, "msgraph");
