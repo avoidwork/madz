@@ -41,7 +41,7 @@ const base = {
 const withUrl = (opts = {}) => ({
 	...base,
 	...opts,
-	policy: { ...base.policy, baseUrl: "https://example.atlassian.net" },
+	policy: { ...base.policy, baseUrl: "https://jira.example.com" },
 });
 
 describe("jira input validation", () => {
@@ -74,7 +74,7 @@ describe("jira input validation", () => {
 });
 
 describe("jira actions", () => {
-	it("search posts JQL to /search/jql", async () => {
+	it("search posts JQL to /search", async () => {
 		const { fetch, calls } = stub([
 			res({ body: JSON.stringify({ issues: [], startAt: 0, total: 0 }) }),
 		]);
@@ -85,7 +85,7 @@ describe("jira actions", () => {
 		assert.strictEqual(r.ok, true);
 		assert.strictEqual(r.status, 200);
 		assert.strictEqual(r.data.total, 0);
-		assert.match(calls[0].url, /\/rest\/api\/3\/search\/jql$/);
+		assert.match(calls[0].url, /\/rest\/api\/2\/search$/);
 		assert.strictEqual(calls[0].options.method, "POST");
 	});
 
@@ -94,7 +94,7 @@ describe("jira actions", () => {
 		const r = await jiraImpl({ action: "get", key: "PROJ-1" }, withUrl({ fetch }));
 		assert.strictEqual(r.ok, true);
 		assert.strictEqual(r.data.key, "PROJ-1");
-		assert.match(calls[0].url, /\/rest\/api\/3\/issue\/PROJ-1$/);
+		assert.match(calls[0].url, /\/rest\/api\/2\/issue\/PROJ-1$/);
 		assert.strictEqual(calls[0].options.method, "GET");
 	});
 
@@ -151,15 +151,15 @@ describe("jira actions", () => {
 		assert.strictEqual(sent.body, "hi");
 	});
 
-	it("assign puts an account id", async () => {
+	it("assign puts a username", async () => {
 		const { fetch, calls } = stub([res({ body: "{}" })]);
 		const r = await jiraImpl(
-			{ action: "assign", key: "PROJ-1", assignee: "acc-123" },
+			{ action: "assign", key: "PROJ-1", assignee: "jdoe" },
 			withUrl({ fetch }),
 		);
 		assert.strictEqual(r.ok, true);
 		const sent = JSON.parse(calls[0].options.body);
-		assert.strictEqual(sent.accountId, "acc-123");
+		assert.strictEqual(sent.name, "jdoe");
 	});
 
 	it("metadata lookups hit the right endpoints", async () => {
@@ -172,7 +172,7 @@ describe("jira actions", () => {
 			const { fetch, calls } = stub([res({ body: "[]" })]);
 			const r = await jiraImpl({ action }, withUrl({ fetch }));
 			assert.strictEqual(r.ok, true, action);
-			assert.match(calls[0].url, new RegExp(`/rest/api/3${path}$`), action);
+			assert.match(calls[0].url, new RegExp(`/rest/api/2${path}$`), action);
 		}
 	});
 
@@ -180,7 +180,7 @@ describe("jira actions", () => {
 		const { fetch, calls } = stub([res({ body: "[]" })]);
 		const r = await jiraImpl({ action: "users", query: "jason" }, withUrl({ fetch }));
 		assert.strictEqual(r.ok, true);
-		assert.match(calls[0].url, /query=jason/);
+		assert.match(calls[0].url, /username=jason/);
 	});
 });
 
@@ -214,7 +214,7 @@ describe("jira auth", () => {
 	it("sends the personal access token as a bearer token", async () => {
 		const { fetch, calls } = stub([res({ body: "{}" })]);
 		const policy = {
-			baseUrl: "https://example.atlassian.net",
+			baseUrl: "https://jira.example.com",
 			token: "pat123",
 			rateLimit: 0,
 			timeout: 30000,

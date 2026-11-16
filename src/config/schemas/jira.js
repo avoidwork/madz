@@ -7,13 +7,13 @@ import { z } from "zod";
 export const JiraSchema = z.object({
 	/** Register the `jira` tool. Set `JIRA_ENABLED=false` to disable. */
 	enabled: z.boolean().default(true),
-	/** Base URL of the JIRA Cloud site, e.g. `https://example.atlassian.net`. Empty = unset. */
+	/** Base URL of the JIRA Data Center site, e.g. `https://jira.example.com`. Empty = unset. */
 	baseUrl: z.union([z.literal(""), z.string().url()]).optional(),
 	/** Personal access token, sent as a bearer token. Env: `JIRA_TOKEN`. Never exposed to the model. */
 	token: z.string().optional(),
 	/** Default project key for create and for search when no JQL is given. Env: `JIRA_PROJECT`. */
 	project: z.string().optional(),
-	/** Default assignee account id for create. Env: `JIRA_ASSIGNEE`. */
+	/** Default assignee username for create. Env: `JIRA_ASSIGNEE`. */
 	assignee: z.string().optional(),
 	/** Max requests per second, per host. `0` disables limiting. */
 	rateLimit: z.number().int().min(0).default(10),
