@@ -18,6 +18,7 @@ import { AgentSchema } from "./schemas/agent.js";
 import { PersistenceSchema } from "./schemas/persistence.js";
 import { SkillAgentMapSchema } from "./schemas/skillAgentMap.js";
 import { SubAgentsTemperatureSchema } from "./schemas/subAgentsTemperature.js";
+import { SubAgentsReasoningSchema } from "./schemas/subAgentsReasoning.js";
 import { SummarizationSchema } from "./schemas/summarization.js";
 import { LoopDetectionSchema } from "./schemas/loopDetection.js";
 import { VectorConfigSchema } from "./schemas/vector.js";
@@ -83,6 +84,7 @@ export const ConfigSchema = z.object({
 	skillAgentMap: SkillAgentMapSchema,
 	cwd: z.string().default(""),
 	subAgentsTemperature: SubAgentsTemperatureSchema,
+	subAgentsReasoning: SubAgentsReasoningSchema,
 	summarization: SummarizationSchema.default({}),
 	loopDetection: LoopDetectionSchema.default({}),
 	vector: VectorConfigSchema.default({}),
@@ -109,6 +111,22 @@ export function getSubAgentTemperature(agentName) {
 	// falling back to DEFAULT_CONFIG if not yet loaded.
 	const resolved = getResolvedConfig?.() ?? DEFAULT_CONFIG;
 	return resolved.subAgentsTemperature?.[agentName];
+}
+
+/**
+ * Get the reasoning effort for a specific sub-agent.
+ * @param {string} agentName - The agent name (e.g., "coding", "code-review")
+ * @returns {"low" | "medium" | "high" | undefined} The reasoning effort, or
+ *   undefined if not configured
+ */
+export function getSubAgentReasoning(agentName) {
+	if (!agentName || typeof agentName !== "string") {
+		return undefined;
+	}
+	// Read from the module-level resolved config set by loader.js,
+	// falling back to DEFAULT_CONFIG if not yet loaded.
+	const resolved = getResolvedConfig?.() ?? DEFAULT_CONFIG;
+	return resolved.subAgentsReasoning?.[agentName];
 }
 
 // Module-level reference to the resolved config, set by loader.js after loadConfig()

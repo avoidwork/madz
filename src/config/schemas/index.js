@@ -16,6 +16,7 @@ export { TuiSchema } from "./tui.js";
 export { AgentSchema } from "./agent.js";
 export { PersistenceSchema } from "./persistence.js";
 export { SubAgentsTemperatureSchema } from "./subAgentsTemperature.js";
+export { SubAgentsReasoningSchema } from "./subAgentsReasoning.js";
 export { SummarizationSchema } from "./summarization.js";
 export { LoopDetectionSchema } from "./loopDetection.js";
 export { VectorConfigSchema } from "./vector.js";

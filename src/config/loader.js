@@ -14,18 +14,7 @@ const CONFIG_PATH = join(PROJECT_ROOT, "../../config.yaml");
 
 // These container keys should not appear in the env var name.
 // Must be kept in sync with the DROPPED_KEYS list in _resolveEnvRecursively.
-const DROPPED_KEYS = [
-	"providers",
-	"credentials",
-	"ratelimit",
-	"timeout",
-	"search",
-	"process",
-	"calendar",
-	"sql",
-	"nosql",
-	"subAgentstemperature", // lowercase version of "subAgentsTemperature"
-];
+const DROPPED_KEYS = ["providers", "credentials", "ratelimit", "timeout", "search", "sql", "nosql"];
 
 // Cache for the schema-driven reverse map (built once)
 let _reverseMapCache = null;
@@ -427,20 +416,6 @@ function _derivePathFromEnvName(envName, knownSections) {
  * @returns {unknown}
  */
 export function _resolveEnvRecursively(node, path) {
-	// These container keys should not appear in the env var name
-	const DROPPED_KEYS = [
-		"providers", // e.g. providers.openai.credentials.apiKey → OPENAI_API_KEY
-		"credentials",
-		"ratelimit",
-		"timeout",
-		"search", // e.g. search.exa.apiKey → EXA_API_KEY
-		"process",
-		"calendar", // e.g. calendar.google.apiKey → GOOGLE_CALENDAR_API_KEY
-		"sql", // e.g. sql.postgres.host → POSTGRES_HOST
-		"nosql", // e.g. nosql.mongodb.host → MONGODB_HOST
-		"subAgentsTemperature", // e.g. subAgentsTemperature.coding → SUB_AGENTS_TEMPERATURE_CODING
-	];
-
 	if (Array.isArray(node)) {
 		return node.map((item, idx) => {
 			return _resolveEnvRecursively(item, [...path, String(idx)]);

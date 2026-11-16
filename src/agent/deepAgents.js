@@ -37,6 +37,25 @@ import { compactMessages, DEFAULT_KEEP_MESSAGES } from "./compaction.js";
 import { createTurnTransformer } from "../stream/transformers/index.js";
 
 /**
+ * Build the model-config overrides for a subagent from its per-agent
+ * temperature and reasoning-effort settings. Returns an empty object when
+ * neither is configured, so callers can skip creating a per-agent model.
+ * @param {number | undefined} temperature - Per-agent temperature, or undefined
+ * @param {"low" | "medium" | "high" | undefined} reasoning - Per-agent reasoning effort, or undefined
+ * @returns {Object} Overrides to merge onto the active provider config
+ */
+export function buildSubAgentModelOverrides(temperature, reasoning) {
+	const overrides = {};
+	if (temperature !== undefined) {
+		overrides.temperature = temperature;
+	}
+	if (reasoning !== undefined) {
+		overrides.reasoning = { effort: reasoning };
+	}
+	return overrides;
+}
+
+/**
  * Create subagent definitions with filtered tools and agent-specific skills.
  * @param {Object[]} allTools - Array of built tool instances
  * @param {Object} model - Chat model instance (orchestrator model)
@@ -63,16 +82,21 @@ export async function createSubagentDefinitions(allTools, model, skillRegistry, 
 		// Get skills specific to this agent (metadata.agent === agentName)
 		const agentSkills = skillRegistry.getSkillPathsForAgent(agentDef.name);
 
-		// Determine per-agent temperature from config
+		// Determine per-agent temperature and reasoning effort from config
 		const agentTemp = config.subAgentsTemperature?.[agentDef.name];
+		const agentReasoning = config.subAgentsReasoning?.[agentDef.name];
+		const overrides = buildSubAgentModelOverrides(agentTemp, agentReasoning);
 
-		// Create a per-agent model instance when a specific temperature is configured
+		// Create a per-agent model instance when a specific temperature or
+		// reasoning effort is configured. Overrides are merged onto the active
+		// provider config so the model keeps its base URL, credentials, and
+		// rate limits while applying the per-agent tuning.
 		let agentModel = model;
-		if (agentTemp !== undefined) {
+		if (Object.keys(overrides).length > 0) {
 			agentModel = createChatModel(
 				{
 					...providerConfig,
-					temperature: agentTemp,
+					...overrides,
 				},
 				{ memoryDir: resolve(config.cwd ?? ".", config.memory?.directory || "memory/") },
 			);
