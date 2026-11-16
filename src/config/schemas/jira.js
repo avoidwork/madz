@@ -21,8 +21,18 @@ export const JiraCredentialSchema = z.object({
  * widen the allowlist, raise the rate limit, or change the timeout.
  */
 export const JiraSchema = z.object({
-	/** Base URL of the JIRA Cloud site, e.g. `https://example.atlassian.net`. */
-	baseUrl: z.string().url().optional(),
+	/** Register the `jira` tool. Set `JIRA_ENABLED=false` to disable. */
+	enabled: z.boolean().default(true),
+	/** Base URL of the JIRA Cloud site, e.g. `https://example.atlassian.net`. Empty = unset. */
+	baseUrl: z.union([z.literal(""), z.string().url()]).optional(),
+	/** Basic-auth username (JIRA email). Env: `JIRA_EMAIL`. Never exposed to the model. */
+	email: z.string().optional(),
+	/** Basic-auth API token. Env: `JIRA_TOKEN`. Never exposed to the model. */
+	token: z.string().optional(),
+	/** Default project key for create and for search when no JQL is given. Env: `JIRA_PROJECT`. */
+	project: z.string().optional(),
+	/** Default assignee account id for create. Env: `JIRA_ASSIGNEE`. */
+	assignee: z.string().optional(),
 	/** Allowed hosts / URLs. Empty = any public host (internal addresses are always blocked). */
 	allowlist: z.array(z.string()).default([]),
 	/** Max requests per second, per host. `0` disables limiting. */

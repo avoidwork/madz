@@ -54,7 +54,7 @@ function buildRequest(input, baseUrl) {
 			return { method: "GET", url: path(`/issue/${encodeURIComponent(input.key)}`) };
 		case "create": {
 			const fields = {
-				project: input.project,
+				project: { key: input.project },
 				summary: input.summary,
 			};
 			if (input.issueType) fields.issuetype = { name: input.issueType };
@@ -222,7 +222,10 @@ export async function jiraImpl(input = {}, options = {}) {
 	}
 
 	let auth;
-	if (rest.credential) {
+	if (!rest.credential && policy.email && policy.token) {
+		// Default auth from config (JIRA_EMAIL / JIRA_TOKEN); the model never sees it.
+		auth = { type: "basic", username: policy.email, password: policy.token };
+	} else if (rest.credential) {
 		const resolved = resolveJiraCredential(rest.credential, policy, options.env ?? process.env);
 		if (resolved.error) return { ok: false, error: resolved.error };
 		const host = new URL(baseUrl).hostname;
@@ -235,7 +238,15 @@ export async function jiraImpl(input = {}, options = {}) {
 		auth = resolved.auth;
 	}
 
-	const { method, url, body, query } = buildRequest(validated.data, baseUrl);
+	const withDefaults = { ...validated.data };
+	if (action === "create") {
+		withDefaults.project ??= policy.project || undefined;
+		withDefaults.assignee ??= policy.assignee || undefined;
+	} else if (action === "search" && withDefaults.jql === undefined && policy.project) {
+		withDefaults.jql = `project = "${policy.project.replace(/["\\]/g, "")}"`;
+	}
+
+	const { method, url, body, query } = buildRequest(withDefaults, baseUrl);
 	const result = await makeApiRequest(url, {
 		method,
 		body,

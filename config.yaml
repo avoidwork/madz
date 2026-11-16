@@ -124,6 +124,16 @@ sandbox:
 api:
   maxBodySize: 10485760
   downloadsDir: downloads/
+jira:
+  enabled: true            # false = tool not registered (JIRA_ENABLED)
+  baseUrl: ""              # e.g. https://example.atlassian.net (JIRA_BASE_URL)
+  email: ""                # Basic-auth username (JIRA_EMAIL)
+  token: ""                # API token (JIRA_TOKEN)
+  project: ""              # default project key (JIRA_PROJECT)
+  assignee: ""             # default assignee account id (JIRA_ASSIGNEE)
+  allowlist: []
+  rateLimit: 10
+  timeout: 30000
 browser:
   allowlist: []
   timeoutMs: 30000

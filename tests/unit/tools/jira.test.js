@@ -108,7 +108,7 @@ describe("jira actions", () => {
 		assert.strictEqual(r.data.key, "PROJ-2");
 		assert.strictEqual(calls[0].options.method, "POST");
 		const sent = JSON.parse(calls[0].options.body);
-		assert.strictEqual(sent.fields.project, "PROJ");
+		assert.deepStrictEqual(sent.fields.project, { key: "PROJ" });
 		assert.deepStrictEqual(sent.fields.issuetype, { name: "Bug" });
 	});
 

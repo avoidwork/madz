@@ -44,7 +44,7 @@ function createJiraMock() {
 		// POST /rest/api/3/issue
 		if (path === "/rest/api/3/issue" && method === "POST") {
 			const id = String(nextId++);
-			const key = `${body.fields.project}-${id}`;
+			const key = `${body.fields.project.key}-${id}`;
 			const issue = { id, key, fields: body.fields };
 			issues.set(key, issue);
 			return json(201, issue);

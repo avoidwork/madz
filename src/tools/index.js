@@ -538,6 +538,12 @@ export async function buildToolConfig(options) {
 				continue;
 			}
 
+			case "jira": {
+				if (!hasAllPerms || config?.jira?.enabled === false) continue;
+				tools.push(TOOLS.jira);
+				continue;
+			}
+
 			case "graphql":
 			case "json":
 			case "yaml":
