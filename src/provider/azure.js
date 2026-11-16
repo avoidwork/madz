@@ -118,9 +118,17 @@ export function createAzureChatModel(config) {
 	}
 
 	// Pass reasoning configuration (effort) for models that support it.
+	//
+	// `reasoning_effort` MUST go through `modelKwargs`, not the `reasoning`
+	// constructor option. AzureChatOpenAI extends the same OpenAI Chat
+	// Completions client, whose completions path ignores `opts.reasoning`
+	// (that field belongs to the Responses API) and never emits a
+	// `reasoning_effort` request param. `modelKwargs` is merged verbatim into
+	// the request body, which is what the endpoint actually reads.
 	if (config.reasoning) {
-		opts.reasoning = {
-			effort: config.reasoning.effort,
+		opts.modelKwargs = {
+			...opts.modelKwargs,
+			reasoning_effort: config.reasoning.effort,
 		};
 	}
 

@@ -199,9 +199,18 @@ export function createChatModel(config, options = {}) {
 	}
 
 	// Pass reasoning configuration (effort) for models that support it (o3, o4-mini, etc.)
+	//
+	// `reasoning_effort` MUST go through `modelKwargs`, not the `reasoning`
+	// constructor option. ChatOpenAI's Chat Completions path ignores
+	// `opts.reasoning` (that field belongs to the Responses API) and never
+	// emits a `reasoning_effort` request param, so reasoning models such as
+	// DeepSeek never receive the request to reason and emit no
+	// `reasoning_content`. `modelKwargs` is merged verbatim into the request
+	// body, which is what the endpoint actually reads.
 	if (config.reasoning) {
-		opts.reasoning = {
-			effort: config.reasoning.effort,
+		opts.modelKwargs = {
+			...opts.modelKwargs,
+			reasoning_effort: config.reasoning.effort,
 		};
 	}
 
