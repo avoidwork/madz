@@ -232,6 +232,48 @@ describe("jira transitions", () => {
 	});
 });
 
+describe("jira transition body", () => {
+	it("sends only the transition id by default", async () => {
+		const { fetch, calls } = stub([res({ status: 204 })]);
+		const r = await jiraImpl(
+			{ action: "transition", key: "PROJ-1", transitionId: 31 },
+			withUrl({ fetch }),
+		);
+		assert.strictEqual(r.ok, true);
+		assert.deepStrictEqual(JSON.parse(calls[0].options.body), { transition: { id: "31" } });
+	});
+
+	it("sends fields and a comment when given", async () => {
+		const { fetch, calls } = stub([res({ status: 204 })]);
+		await jiraImpl(
+			{
+				action: "transition",
+				key: "PROJ-1",
+				transitionId: 31,
+				updates: { resolution: { name: "Fixed" } },
+				comment: "Fixed in 1.2",
+			},
+			withUrl({ fetch }),
+		);
+		assert.deepStrictEqual(JSON.parse(calls[0].options.body), {
+			transition: { id: "31" },
+			fields: { resolution: { name: "Fixed" } },
+			update: { comment: [{ add: { body: "Fixed in 1.2" } }] },
+		});
+	});
+
+	it("still requires key and transitionId", async () => {
+		const { fetch, calls } = stub([res({ status: 204 })]);
+		const r = await jiraImpl(
+			{ action: "transition", key: "PROJ-1", comment: "x" },
+			withUrl({ fetch }),
+		);
+		assert.strictEqual(r.ok, false);
+		assert.match(r.error, /transitionId/);
+		assert.strictEqual(calls.length, 0);
+	});
+});
+
 describe("jira error bodies", () => {
 	it("includes errorMessages and field errors from a 400", async () => {
 		const body = JSON.stringify({
