@@ -210,6 +210,96 @@ describe("jira error mapping", () => {
 	});
 });
 
+describe("jira transitions", () => {
+	it("lists available transitions for an issue", async () => {
+		const body = JSON.stringify({
+			transitions: [{ id: "31", name: "Done", to: { name: "Done" } }],
+		});
+		const { fetch, calls } = stub([res({ body })]);
+		const r = await jiraImpl({ action: "transitions", key: "PROJ-1" }, withUrl({ fetch }));
+		assert.strictEqual(r.ok, true);
+		assert.strictEqual(calls[0].options.method, "GET");
+		assert.match(calls[0].url, /\/rest\/api\/2\/issue\/PROJ-1\/transitions$/);
+		assert.strictEqual(r.data.transitions[0].id, "31");
+	});
+
+	it("requires a key to list transitions", async () => {
+		const { fetch, calls } = stub([res({ body: "{}" })]);
+		const r = await jiraImpl({ action: "transitions" }, withUrl({ fetch }));
+		assert.strictEqual(r.ok, false);
+		assert.match(r.error, /key/);
+		assert.strictEqual(calls.length, 0);
+	});
+});
+
+describe("jira error bodies", () => {
+	it("includes errorMessages and field errors from a 400", async () => {
+		const body = JSON.stringify({
+			errorMessages: ["The value 'x' does not exist for the field 'project'."],
+			errors: { summary: "You must specify a summary of the issue." },
+		});
+		const { fetch } = stub([res({ status: 400, body })]);
+		const r = await jiraImpl({ action: "search", jql: "bad" }, withUrl({ fetch }));
+		assert.strictEqual(r.ok, false);
+		assert.strictEqual(r.status, 400);
+		assert.match(r.error, /does not exist for the field 'project'/);
+		assert.match(r.error, /summary: You must specify a summary/);
+	});
+
+	it("falls back to the HTTP status when the body is not JSON", async () => {
+		const { fetch } = stub([res({ status: 502, body: "Bad Gateway" })]);
+		const r = await jiraImpl({ action: "get", key: "P-1" }, withUrl({ fetch }));
+		assert.strictEqual(r.ok, false);
+		assert.match(r.error, /HTTP 502/);
+	});
+});
+
+describe("jira required fields", () => {
+	const cases = [
+		[{ action: "get" }, /key/],
+		[{ action: "delete" }, /key/],
+		[{ action: "update", key: "P-1" }, /updates/],
+		[{ action: "transition", key: "P-1" }, /transitionId/],
+		[{ action: "comment", key: "P-1" }, /comment/],
+		[{ action: "assign", key: "P-1" }, /assignee/],
+		[{ action: "create", summary: "x" }, /project/],
+		[{ action: "create", project: "P" }, /summary/],
+		[{ action: "search" }, /jql/],
+		[{ action: "users" }, /query/],
+	];
+	for (const [input, pattern] of cases) {
+		it(`rejects ${JSON.stringify(input)} without sending a request`, async () => {
+			const { fetch, calls } = stub([res({ body: "{}" })]);
+			const r = await jiraImpl(input, withUrl({ fetch }));
+			assert.strictEqual(r.ok, false);
+			assert.match(r.error, pattern);
+			assert.strictEqual(calls.length, 0);
+		});
+	}
+
+	it("fills project and assignee for create from config", async () => {
+		const { fetch, calls } = stub([res({ body: "{}" })]);
+		const policy = {
+			...base.policy,
+			baseUrl: "https://jira.example.com",
+			project: "PROJ",
+			assignee: "jdoe",
+		};
+		const r = await jiraImpl({ action: "create", summary: "x" }, { ...base, policy, fetch });
+		assert.strictEqual(r.ok, true);
+		const sent = JSON.parse(calls[0].options.body);
+		assert.deepStrictEqual(sent.fields.project, { key: "PROJ" });
+		assert.deepStrictEqual(sent.fields.assignee, { name: "jdoe" });
+	});
+
+	it("searches the configured project when no jql is given", async () => {
+		const { fetch, calls } = stub([res({ body: "{}" })]);
+		const policy = { ...base.policy, baseUrl: "https://jira.example.com", project: "PROJ" };
+		await jiraImpl({ action: "search" }, { ...base, policy, fetch });
+		assert.strictEqual(JSON.parse(calls[0].options.body).jql, 'project = "PROJ"');
+	});
+});
+
 describe("jira auth", () => {
 	it("sends the personal access token as a bearer token", async () => {
 		const { fetch, calls } = stub([res({ body: "{}" })]);
