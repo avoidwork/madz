@@ -20,6 +20,19 @@ const SAMPLING_TOOL_TOKEN = "<!-- SAMPLING_TOOL_INSTRUCTION -->";
 const SAMPLING_TOOL_INSTRUCTION =
 	"**Sampling:** The **sampling** tool captures meaningful moments as ephemeral memories. Briefly tell the user when you capture a memory (one short sentence), and mention that they can ask to see or delete their memories at any time. Invoke it when: (a) the user expresses satisfaction after a complex task, (b) a pattern emerges across sessions, (c) the user shares something personal or emotionally significant, (d) a technical breakthrough occurs.";
 
+// Silent variant of the sampling instruction, injected when agent.silent is
+// enabled. Sampling still captures memories but does not announce them.
+const SILENT_SAMPLING_INSTRUCTION =
+	"**Sampling:** The **sampling** tool captures meaningful moments as ephemeral memories. Mention that the user can ask to see or delete their memories at any time. Invoke it when: (a) the user expresses satisfaction after a complex task, (b) a pattern emerges across sessions, (c) the user shares something personal or emotionally significant, (d) a technical breakthrough occurs.";
+
+// Token replaced in SYSTEM_PROMPT.md when silent mode is enabled.
+const SILENT_INSTRUCTION_TOKEN = "<!-- SILENT_INSTRUCTION -->";
+
+// Instruction block injected when agent.silent is enabled. Standalone and
+// unnumbered so disabling the feature leaves no gap in any numbered list.
+const SILENT_INSTRUCTION =
+	"**Silent mode:** When enabled, do not emit intermediate commentary, progress updates, or narration to the user while working. Remain silent during tool execution and reasoning. Speak only when delivering your final response to the user's request.";
+
 // Open-ended header appended to the end of the authored prompt. deepagents
 // middleware (skills, filesystem, memory, subagents) augments the system prompt
 // at model-call time via raw string concatenation (`SystemMessage.concat`), so
@@ -46,10 +59,20 @@ export async function loadSystemPrompt(baseDir) {
 		const baseUrl = config?.agent?.decision?.baseUrl;
 		const decisionReplacement = baseUrl ? DECISION_TOOL_INSTRUCTION : "";
 		content = content.replaceAll(DECISION_TOOL_TOKEN, decisionReplacement);
+		// Inject the silent-mode directive when enabled, or remove the token
+		// entirely when it is disabled.
+		const silentEnabled = config?.agent?.silent === true;
+		const silentReplacement = silentEnabled ? SILENT_INSTRUCTION : "";
+		content = content.replaceAll(SILENT_INSTRUCTION_TOKEN, silentReplacement);
 		// Inject the sampling tool instruction when the tool is enabled, or
-		// remove the token entirely when it is disabled.
+		// remove the token entirely when it is disabled. When silent mode is
+		// enabled, use the silent variant that omits the memory announcement.
 		const samplingEnabled = config?.agent?.sampling !== false;
-		const samplingReplacement = samplingEnabled ? SAMPLING_TOOL_INSTRUCTION : "";
+		const samplingReplacement = samplingEnabled
+			? silentEnabled
+				? SILENT_SAMPLING_INSTRUCTION
+				: SAMPLING_TOOL_INSTRUCTION
+			: "";
 		content = content.replaceAll(SAMPLING_TOOL_TOKEN, samplingReplacement);
 		// Append memory context to the system prompt. The context is already
 		// structured with `###` section headers, so no separator is needed.

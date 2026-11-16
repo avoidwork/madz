@@ -9,6 +9,7 @@ export const AgentSchema = z.object({
 	recursionLimit: z.number().int().positive().default(1000),
 	decision: DecisionSchema.default({}),
 	sampling: z.boolean().default(true),
+	silent: z.boolean().default(false),
 	bundledSkills: z.boolean().default(true),
 	autoContinueLimit: z.number().int().positive().default(1000),
 });

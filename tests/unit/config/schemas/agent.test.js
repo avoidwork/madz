@@ -18,6 +18,16 @@ describe("AgentSchema", () => {
 		assert.strictEqual(result.sampling, true);
 	});
 
+	it("defaults silent to false", () => {
+		const result = AgentSchema.parse({});
+		assert.strictEqual(result.silent, false);
+	});
+
+	it("accepts silent true", () => {
+		const result = AgentSchema.parse({ silent: true });
+		assert.strictEqual(result.silent, true);
+	});
+
 	it("defaults autoContinueLimit to 1000", () => {
 		const result = AgentSchema.parse({});
 		assert.strictEqual(result.autoContinueLimit, 1000);

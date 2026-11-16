@@ -54,4 +54,60 @@ describe("memory/prompts (hardening)", () => {
 			assert.ok(out.includes("delete their memories"));
 		}
 	});
+
+	it("strips the silent instruction token when silent is off (default)", async () => {
+		await writeFile(join(base, "prompts", "SYSTEM_PROMPT.md"), "<!-- SILENT_INSTRUCTION -->");
+		delete process.env.AGENT_SILENT;
+		const configLoader = await import("../../../src/config/loader.js");
+		configLoader._resetConfigCache();
+		const out = await loadSystemPrompt(base);
+		assert.ok(!out.includes("**Silent mode:**"));
+		assert.ok(!out.includes("<!-- SILENT_INSTRUCTION -->"));
+	});
+
+	it("injects the silent instruction directive when silent is on", async () => {
+		await writeFile(join(base, "prompts", "SYSTEM_PROMPT.md"), "<!-- SILENT_INSTRUCTION -->");
+		process.env.AGENT_SILENT = "true";
+		const configLoader = await import("../../../src/config/loader.js");
+		configLoader._resetConfigCache();
+		const out = await loadSystemPrompt(base);
+		assert.ok(out.includes("**Silent mode:**"));
+		assert.ok(out.includes("Speak only when delivering your final response"));
+		assert.ok(!out.includes("<!-- SILENT_INSTRUCTION -->"));
+		delete process.env.AGENT_SILENT;
+	});
+
+	it("injects the silent sampling variant (no announcement) when silent and sampling are on", async () => {
+		await writeFile(
+			join(base, "prompts", "SYSTEM_PROMPT.md"),
+			"<!-- SILENT_INSTRUCTION -->\n<!-- SAMPLING_TOOL_INSTRUCTION -->",
+		);
+		process.env.AGENT_SILENT = "true";
+		process.env.AGENT_SAMPLING = "true";
+		const configLoader = await import("../../../src/config/loader.js");
+		configLoader._resetConfigCache();
+		const out = await loadSystemPrompt(base);
+		assert.ok(out.includes("**Sampling:**"));
+		assert.ok(!out.includes("Briefly tell the user when you capture a memory"));
+		assert.ok(out.includes("delete their memories"));
+		delete process.env.AGENT_SILENT;
+		delete process.env.AGENT_SAMPLING;
+	});
+
+	it("omits the sampling instruction when silent is off and sampling is off", async () => {
+		await writeFile(
+			join(base, "prompts", "SYSTEM_PROMPT.md"),
+			"<!-- SILENT_INSTRUCTION -->\n<!-- SAMPLING_TOOL_INSTRUCTION -->",
+		);
+		process.env.AGENT_SILENT = "false";
+		process.env.AGENT_SAMPLING = "false";
+		const configLoader = await import("../../../src/config/loader.js");
+		configLoader._resetConfigCache();
+		const out = await loadSystemPrompt(base);
+		assert.ok(!out.includes("**Sampling:**"));
+		assert.ok(!out.includes("<!-- SAMPLING_TOOL_INSTRUCTION -->"));
+		assert.ok(!out.includes("**Silent mode:**"));
+		delete process.env.AGENT_SILENT;
+		delete process.env.AGENT_SAMPLING;
+	});
 });
