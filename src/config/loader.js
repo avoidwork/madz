@@ -25,6 +25,7 @@ const DROPPED_KEYS = [
 	"sql",
 	"nosql",
 	"subAgentstemperature", // lowercase version of "subAgentsTemperature"
+	"subagentsreasoning", // lowercase version of "subAgentsReasoning"
 ];
 
 // Cache for the schema-driven reverse map (built once)
@@ -439,6 +440,7 @@ export function _resolveEnvRecursively(node, path) {
 		"sql", // e.g. sql.postgres.host → POSTGRES_HOST
 		"nosql", // e.g. nosql.mongodb.host → MONGODB_HOST
 		"subAgentsTemperature", // e.g. subAgentsTemperature.coding → SUB_AGENTS_TEMPERATURE_CODING
+		"subAgentsReasoning", // e.g. subAgentsReasoning.coding → SUB_AGENTS_REASONING_CODING
 	];
 
 	if (Array.isArray(node)) {

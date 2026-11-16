@@ -272,6 +272,33 @@ describe("createSubagentDefinitions tool visibility", () => {
 	});
 });
 
+describe("buildSubAgentModelOverrides", () => {
+	it("returns empty overrides when neither temperature nor reasoning is set", async () => {
+		const { buildSubAgentModelOverrides } = await import("../../src/agent/deepAgents.js");
+		assert.deepStrictEqual(buildSubAgentModelOverrides(undefined, undefined), {});
+	});
+
+	it("applies temperature override alone", async () => {
+		const { buildSubAgentModelOverrides } = await import("../../src/agent/deepAgents.js");
+		assert.deepStrictEqual(buildSubAgentModelOverrides(0.3, undefined), { temperature: 0.3 });
+	});
+
+	it("applies reasoning override alone", async () => {
+		const { buildSubAgentModelOverrides } = await import("../../src/agent/deepAgents.js");
+		assert.deepStrictEqual(buildSubAgentModelOverrides(undefined, "high"), {
+			reasoning: { effort: "high" },
+		});
+	});
+
+	it("applies both temperature and reasoning overrides", async () => {
+		const { buildSubAgentModelOverrides } = await import("../../src/agent/deepAgents.js");
+		assert.deepStrictEqual(buildSubAgentModelOverrides(0.1, "high"), {
+			temperature: 0.1,
+			reasoning: { effort: "high" },
+		});
+	});
+});
+
 describe("compactAgentContext", () => {
 	/**
 	 * Create a mock LangChain message with the given type and content.

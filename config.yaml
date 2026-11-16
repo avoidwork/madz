@@ -229,6 +229,19 @@ subAgentsTemperature:
   textEditor: 0.4
   seoAnalyst: 0.3
   translator: 0.3
+subAgentsReasoning:
+  coding: medium
+  search: low
+  debug: high
+  "code-review": high
+  research: medium
+  testing: medium
+  documentation: low
+  "security-audit": high
+  performance: medium
+  textEditor: low
+  seoAnalyst: low
+  translator: low
 cwd: ""
 image:
   maxWidth: 1920
