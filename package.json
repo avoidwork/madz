@@ -94,7 +94,7 @@
     "cli-highlight": "^2.1.11",
     "cli-table3": "^0.6.5",
     "clipboardy": "^5.3.2",
-    "cron-parser": "^5.10.2",
+    "cron-parser": "^5.10.5",
     "csv-generate": "^4.6.2",
     "csv-parse": "^7.0.3",
     "csv-stringify": "^6.9.0",
