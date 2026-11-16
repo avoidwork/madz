@@ -5,7 +5,7 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { jiraImpl, resolveJiraCredential, JiraInputSchema } from "../../../src/tools/jira/index.js";
+import { jiraImpl, JiraInputSchema } from "../../../src/tools/jira/index.js";
 
 const noSleep = async () => {};
 
@@ -36,7 +36,7 @@ function stub(queue) {
 
 const base = {
 	sleep: noSleep,
-	policy: { rateLimit: 0, timeout: 30000, credentials: {} },
+	policy: { rateLimit: 0, timeout: 30000 },
 };
 const withUrl = (opts = {}) => ({
 	...base,
@@ -66,7 +66,7 @@ describe("jira input validation", () => {
 	it("requires a base URL", async () => {
 		const r = await jiraImpl(
 			{ action: "get", key: "PROJ-1" },
-			{ ...base, policy: { rateLimit: 0, timeout: 30000, credentials: {} } },
+			{ ...base, policy: { rateLimit: 0, timeout: 30000 } },
 		);
 		assert.strictEqual(r.ok, false);
 		assert.match(r.error, /No JIRA base URL/);
@@ -210,46 +210,30 @@ describe("jira error mapping", () => {
 	});
 });
 
-describe("jira credential resolution", () => {
-	it("resolves a basic credential from env", () => {
+describe("jira auth", () => {
+	it("sends the personal access token as a bearer token", async () => {
+		const { fetch, calls } = stub([res({ body: "{}" })]);
 		const policy = {
-			credentials: { jira: { usernameEnv: "JIRA_EMAIL", passwordEnv: "JIRA_TOKEN", hosts: [] } },
-		};
-		const r = resolveJiraCredential("jira", policy, { JIRA_EMAIL: "a@b.com", JIRA_TOKEN: "tok" });
-		assert.strictEqual(r.auth.type, "basic");
-		assert.strictEqual(r.auth.username, "a@b.com");
-		assert.strictEqual(r.auth.password, "tok");
-	});
-
-	it("rejects an unknown credential", () => {
-		const r = resolveJiraCredential("nope", { credentials: {} }, {});
-		assert.match(r.error, /Unknown credential/);
-	});
-
-	it("rejects a missing env var", () => {
-		const policy = {
-			credentials: { jira: { usernameEnv: "JIRA_EMAIL", passwordEnv: "JIRA_TOKEN", hosts: [] } },
-		};
-		const r = resolveJiraCredential("jira", policy, {});
-		assert.match(r.error, /not configured/);
-	});
-
-	it("rejects a host outside the credential allowlist", async () => {
-		const { fetch } = stub([res({ body: "{}" })]);
-		const policy = {
-			baseUrl: "https://evil.example.com",
+			baseUrl: "https://example.atlassian.net",
+			token: "pat123",
 			rateLimit: 0,
 			timeout: 30000,
-			credentials: {
-				jira: { usernameEnv: "JIRA_EMAIL", passwordEnv: "JIRA_TOKEN", hosts: ["*.atlassian.net"] },
-			},
 		};
-		const r = await jiraImpl(
-			{ action: "get", key: "PROJ-1", credential: "jira" },
-			{ ...base, policy, fetch, env: { JIRA_EMAIL: "a@b.com", JIRA_TOKEN: "tok" } },
-		);
+		await jiraImpl({ action: "get", key: "PROJ-1" }, { ...base, policy, fetch });
+		const header = calls[0].options.headers.Authorization ?? calls[0].options.headers.authorization;
+		assert.strictEqual(header, "Bearer pat123");
+	});
+
+	it("sends no Authorization header without a token", async () => {
+		const { fetch, calls } = stub([res({ body: "{}" })]);
+		await jiraImpl({ action: "get", key: "PROJ-1" }, withUrl({ fetch }));
+		const headers = calls[0].options.headers ?? {};
+		assert.strictEqual(headers.Authorization ?? headers.authorization, undefined);
+	});
+
+	it("rejects a credential field in input", async () => {
+		const r = await jiraImpl({ action: "get", key: "PROJ-1", credential: "x" }, withUrl());
 		assert.strictEqual(r.ok, false);
-		assert.match(r.error, /not permitted for host/);
 	});
 });
 

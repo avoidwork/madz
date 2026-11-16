@@ -136,7 +136,6 @@ describe("jira integration", () => {
 			baseUrl: "https://example.atlassian.net",
 			rateLimit: 0,
 			timeout: 30000,
-			credentials: {},
 		},
 	};
 
