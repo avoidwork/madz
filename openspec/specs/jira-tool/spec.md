@@ -1,12 +1,12 @@
 # jira-tool Specification
 
 ## Purpose
-Provides managing JIRA Cloud issues (search, get, create, update, delete, transition, comment, assign, and metadata lookups) via the REST API v3, authenticating with a personal access token and targeting only the configured `jira.baseUrl`.
+Provides managing JIRA Data Center issues (search, get, create, update, delete, transition, comment, assign, and metadata lookups) via the REST API v2, authenticating with a personal access token (bearer) and targeting only the configured `jira.baseUrl`.
 
 ## Requirements
 
 ### Requirement: JIRA issue search
-The system SHALL execute a JQL search against JIRA Cloud and return matching issues, supporting pagination via `startAt` and `maxResults` and field selection via `fields`.
+The system SHALL execute a JQL search against JIRA Data Center and return matching issues, supporting pagination via `startAt` and `maxResults` and field selection via `fields`.
 
 #### Scenario: Search by JQL
 - **WHEN** a user provides a JQL query
@@ -48,8 +48,8 @@ The system SHALL support reading a single issue by key and mutating issue fields
 - **THEN** the system adds the comment to the issue
 
 #### Scenario: Assign an issue
-- **WHEN** a user provides an issue key and an assignee
-- **THEN** the system assigns the issue to the user
+- **WHEN** a user provides an issue key and an assignee username
+- **THEN** the system assigns the issue to that user by `name`
 
 #### Scenario: Delete an issue
 - **WHEN** a user provides a valid issue key

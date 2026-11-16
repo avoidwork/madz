@@ -1,7 +1,7 @@
 /**
  * Integration tests for the JIRA tool.
  * Exercises the full lifecycle (search → get → create → transition → comment →
- * update → assign → delete) against an in-memory JIRA Cloud REST API v3 mock
+ * update → assign → delete) against an in-memory JIRA Data Center REST API v2 mock
  * installed as a `fetch` override.
  * @see {@link src/tools/jira/index.js}
  */
@@ -13,7 +13,7 @@ import { jiraImpl } from "../../../src/tools/jira/index.js";
 const noSleep = async () => {};
 
 /**
- * A minimal in-memory JIRA Cloud REST API v3 mock.
+ * A minimal in-memory JIRA Data Center REST API v2 mock.
  * @returns {{ fetch: Function, issues: Map }}
  */
 function createJiraMock() {
@@ -32,8 +32,8 @@ function createJiraMock() {
 		const method = options.method || "GET";
 		const body = options.body ? JSON.parse(options.body) : undefined;
 
-		// POST /rest/api/3/search/jql
-		if (path.endsWith("/search/jql") && method === "POST") {
+		// POST /rest/api/2/search
+		if (path.endsWith("/search") && method === "POST") {
 			const all = [...issues.values()];
 			const startAt = body?.startAt ?? 0;
 			const maxResults = body?.maxResults ?? 50;
@@ -41,8 +41,8 @@ function createJiraMock() {
 			return json(200, { issues: page, startAt, total: all.length, maxResults });
 		}
 
-		// POST /rest/api/3/issue
-		if (path === "/rest/api/3/issue" && method === "POST") {
+		// POST /rest/api/2/issue
+		if (path === "/rest/api/2/issue" && method === "POST") {
 			const id = String(nextId++);
 			const key = `${body.fields.project.key}-${id}`;
 			const issue = { id, key, fields: body.fields };
@@ -50,8 +50,8 @@ function createJiraMock() {
 			return json(201, issue);
 		}
 
-		// /rest/api/3/issue/:key
-		const m = path.match(/^\/rest\/api\/3\/issue\/([^/]+)$/);
+		// /rest/api/2/issue/:key
+		const m = path.match(/^\/rest\/api\/2\/issue\/([^/]+)$/);
 		if (m) {
 			const key = decodeURIComponent(m[1]);
 			const issue = issues.get(key);
@@ -70,8 +70,8 @@ function createJiraMock() {
 			}
 		}
 
-		// /rest/api/3/issue/:key/transitions
-		const tm = path.match(/^\/rest\/api\/3\/issue\/([^/]+)\/transitions$/);
+		// /rest/api/2/issue/:key/transitions
+		const tm = path.match(/^\/rest\/api\/2\/issue\/([^/]+)\/transitions$/);
 		if (tm && method === "POST") {
 			const key = decodeURIComponent(tm[1]);
 			const issue = issues.get(key);
@@ -80,31 +80,31 @@ function createJiraMock() {
 			return json(200, issue);
 		}
 
-		// /rest/api/3/issue/:key/comment
-		const cm = path.match(/^\/rest\/api\/3\/issue\/([^/]+)\/comment$/);
+		// /rest/api/2/issue/:key/comment
+		const cm = path.match(/^\/rest\/api\/2\/issue\/([^/]+)\/comment$/);
 		if (cm && method === "POST") {
 			const key = decodeURIComponent(cm[1]);
 			if (!issues.has(key)) return json(404, { errorMessages: ["Issue does not exist"] });
 			return json(201, { id: "1", body: body.body });
 		}
 
-		// /rest/api/3/issue/:key/assignee
-		const am = path.match(/^\/rest\/api\/3\/issue\/([^/]+)\/assignee$/);
+		// /rest/api/2/issue/:key/assignee
+		const am = path.match(/^\/rest\/api\/2\/issue\/([^/]+)\/assignee$/);
 		if (am && method === "PUT") {
 			const key = decodeURIComponent(am[1]);
 			const issue = issues.get(key);
 			if (!issue) return json(404, { errorMessages: ["Issue does not exist"] });
-			issue.fields.assignee = { accountId: body.accountId };
+			issue.fields.assignee = { name: body.name };
 			return json(200, issue);
 		}
 
 		// metadata endpoints
 		if (
 			[
-				"/rest/api/3/project",
-				"/rest/api/3/issuetype",
-				"/rest/api/3/status",
-				"/rest/api/3/field",
+				"/rest/api/2/project",
+				"/rest/api/2/issuetype",
+				"/rest/api/2/status",
+				"/rest/api/2/field",
 			].includes(path)
 		) {
 			return json(200, []);
@@ -133,7 +133,7 @@ describe("jira integration", () => {
 	const opts = {
 		sleep: noSleep,
 		policy: {
-			baseUrl: "https://example.atlassian.net",
+			baseUrl: "https://jira.example.com",
 			rateLimit: 0,
 			timeout: 30000,
 		},
@@ -177,7 +177,7 @@ describe("jira integration", () => {
 		// assign
 		r = await jiraImpl({ action: "assign", key, assignee: "acc-1" }, opts);
 		assert.strictEqual(r.ok, true);
-		assert.strictEqual(r.data.fields.assignee.accountId, "acc-1");
+		assert.strictEqual(r.data.fields.assignee.name, "acc-1");
 
 		// delete
 		r = await jiraImpl({ action: "delete", key }, opts);

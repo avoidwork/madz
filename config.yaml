@@ -126,10 +126,10 @@ api:
   downloadsDir: downloads/
 jira:
   enabled: true            # false = tool not registered (JIRA_ENABLED)
-  baseUrl: ""              # e.g. https://example.atlassian.net (JIRA_BASE_URL)
+  baseUrl: ""              # e.g. https://jira.example.com (JIRA_BASE_URL)
   token: ""                # personal access token, sent as Bearer (JIRA_TOKEN)
   project: ""              # default project key (JIRA_PROJECT)
-  assignee: ""             # default assignee account id (JIRA_ASSIGNEE)
+  assignee: ""             # default assignee username (JIRA_ASSIGNEE)
   rateLimit: 10
   timeout: 30000
 browser:
