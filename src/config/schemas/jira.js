@@ -18,7 +18,7 @@ export const JiraCredentialSchema = z.object({
 
 /**
  * Policy for the `jira` tool. Lives in server-side config so the model cannot
- * widen the allowlist, raise the rate limit, or change the timeout.
+ * raise the rate limit or change the timeout.
  */
 export const JiraSchema = z.object({
 	/** Register the `jira` tool. Set `JIRA_ENABLED=false` to disable. */
@@ -33,8 +33,6 @@ export const JiraSchema = z.object({
 	project: z.string().optional(),
 	/** Default assignee account id for create. Env: `JIRA_ASSIGNEE`. */
 	assignee: z.string().optional(),
-	/** Allowed hosts / URLs. Empty = any public host (internal addresses are always blocked). */
-	allowlist: z.array(z.string()).default([]),
 	/** Max requests per second, per host. `0` disables limiting. */
 	rateLimit: z.number().int().min(0).default(10),
 	/** Per-attempt timeout in milliseconds. */

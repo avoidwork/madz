@@ -131,7 +131,6 @@ jira:
   token: ""                # API token (JIRA_TOKEN)
   project: ""              # default project key (JIRA_PROJECT)
   assignee: ""             # default assignee account id (JIRA_ASSIGNEE)
-  allowlist: []
   rateLimit: 10
   timeout: 30000
 browser:

@@ -134,7 +134,6 @@ describe("jira integration", () => {
 		sleep: noSleep,
 		policy: {
 			baseUrl: "https://example.atlassian.net",
-			allowlist: [],
 			rateLimit: 0,
 			timeout: 30000,
 			credentials: {},

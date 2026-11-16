@@ -36,7 +36,7 @@ function stub(queue) {
 
 const base = {
 	sleep: noSleep,
-	policy: { allowlist: [], rateLimit: 0, timeout: 30000, credentials: {} },
+	policy: { rateLimit: 0, timeout: 30000, credentials: {} },
 };
 const withUrl = (opts = {}) => ({
 	...base,
@@ -66,7 +66,7 @@ describe("jira input validation", () => {
 	it("requires a base URL", async () => {
 		const r = await jiraImpl(
 			{ action: "get", key: "PROJ-1" },
-			{ ...base, policy: { allowlist: [], rateLimit: 0, timeout: 30000, credentials: {} } },
+			{ ...base, policy: { rateLimit: 0, timeout: 30000, credentials: {} } },
 		);
 		assert.strictEqual(r.ok, false);
 		assert.match(r.error, /No JIRA base URL/);
@@ -238,7 +238,6 @@ describe("jira credential resolution", () => {
 		const { fetch } = stub([res({ body: "{}" })]);
 		const policy = {
 			baseUrl: "https://evil.example.com",
-			allowlist: [],
 			rateLimit: 0,
 			timeout: 30000,
 			credentials: {
