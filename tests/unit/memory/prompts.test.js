@@ -78,7 +78,7 @@ describe("memory/prompts (hardening)", () => {
 		const configLoader = await import("../../../src/config/loader.js");
 		configLoader._resetConfigCache();
 		const out = await loadSystemPrompt(base);
-		assert.ok(out.includes("3.1. Silent mode:"));
+		assert.ok(out.includes("3.1. Remain silent while working."));
 		assert.ok(out.includes("Speak only when delivering your final response"));
 		assert.ok(!out.includes("Be concise."));
 		assert.ok(!out.includes("<!-- SILENT_INSTRUCTION -->"));

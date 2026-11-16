@@ -35,9 +35,11 @@ const RULE_31_DEFAULT =
 	"Be concise. Say only what is needed. No preamble, no restating the user's question, no filler. Get to the answer.";
 
 // Rule 3.1 body when agent.silent is enabled. Replaces the default so the
-// orchestrator stays silent except for its final response.
+// orchestrator stays silent except for its final response. Written as a direct
+// imperative directive — the agent sees only this text, not the config flag, so
+// no conditional framing it cannot verify.
 const RULE_31_SILENT =
-	"Silent mode: When enabled, do not emit intermediate commentary, progress updates, or narration to the user while working. Remain silent during tool execution and reasoning. Speak only when delivering your final response to the user's request.";
+	"Remain silent while working. Do not emit intermediate commentary, progress updates, or narration to the user during tool execution or reasoning. Speak only when delivering your final response to the user's request.";
 
 // Open-ended header appended to the end of the authored prompt. deepagents
 // middleware (skills, filesystem, memory, subagents) augments the system prompt
