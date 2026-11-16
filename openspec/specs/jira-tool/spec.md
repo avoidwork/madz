@@ -1,7 +1,7 @@
 # jira-tool Specification
 
 ## Purpose
-Provides managing JIRA Cloud issues (search, get, create, update, delete, transition, comment, assign, and metadata lookups) via the REST API v3, with server-side credential profiles and sandbox allowlist enforcement on the JIRA host.
+Provides managing JIRA Cloud issues (search, get, create, update, delete, transition, comment, assign, and metadata lookups) via the REST API v3, authenticating with a personal access token and targeting only the configured `jira.baseUrl`.
 
 ## Requirements
 
@@ -29,7 +29,15 @@ The system SHALL support reading a single issue by key and mutating issue fields
 
 #### Scenario: Create an issue
 - **WHEN** a user provides a project, issue type, and summary
-- **THEN** the system creates the issue and returns the new issue key
+- **THEN** the system creates the issue, sending the project as `{ key }`, and returns the new issue key
+
+#### Scenario: Create an issue using configured defaults
+- **WHEN** a user creates an issue without a project or assignee and `jira.project` / `jira.assignee` are configured
+- **THEN** the system uses the configured project and assignee
+
+#### Scenario: Search without JQL uses the configured project
+- **WHEN** a user searches without JQL and `jira.project` is configured
+- **THEN** the system searches `project = "<jira.project>"`
 
 #### Scenario: Transition an issue
 - **WHEN** a user provides an issue key and a transition id
@@ -54,16 +62,24 @@ The system SHALL support metadata lookups for projects, issue types, statuses, f
 - **WHEN** a user requests the projects list
 - **THEN** the system returns the available projects
 
-### Requirement: Server-side credential resolution
-The system SHALL resolve JIRA credentials (Basic auth `email:token`) from a named, server-side credential profile referencing `process.env` variables only. Secrets SHALL NOT appear in tool input or output.
+### Requirement: Server-side configuration and authentication
+The system SHALL read its settings from the `jira` config section, each mappable from an environment variable: `enabled` (`JIRA_ENABLED`), `baseUrl` (`JIRA_BASE_URL`), `token` (`JIRA_TOKEN`), `project` (`JIRA_PROJECT`), `assignee` (`JIRA_ASSIGNEE`), `rateLimit` and `timeout`. The system SHALL authenticate with the personal access token as `Authorization: Bearer <token>`. Secrets SHALL NOT appear in tool input or output, and the tool input SHALL NOT accept a token, credential name, or base URL.
 
-#### Scenario: Credentials resolved from env
-- **WHEN** a credential profile names `JIRA_EMAIL` and `JIRA_TOKEN` and both are set
-- **THEN** the system attaches Basic auth to the request without exposing the token
+#### Scenario: Token sent as a bearer token
+- **WHEN** `jira.token` is set
+- **THEN** the system attaches `Authorization: Bearer <token>` to the request without exposing the token
 
-#### Scenario: Missing credential env var
-- **WHEN** a referenced credential env var is not set
-- **THEN** the system returns an error indicating the credential is not configured
+#### Scenario: No token configured
+- **WHEN** `jira.token` is not set
+- **THEN** the system sends the request without an Authorization header
+
+#### Scenario: Tool disabled
+- **WHEN** `jira.enabled` is `false`
+- **THEN** the `jira` tool is not registered
+
+#### Scenario: Missing base URL
+- **WHEN** `jira.baseUrl` is not set
+- **THEN** the system returns an error indicating the base URL is not configured
 
 ### Requirement: Input validation and error mapping
 The system SHALL validate all JIRA tool input against a Zod schema before processing, rejecting unknown actions and invalid input, and SHALL map non-2xx JIRA responses to a structured error.
@@ -84,12 +100,12 @@ The system SHALL validate all JIRA tool input against a Zod schema before proces
 - **WHEN** the JIRA host returns 401
 - **THEN** the system returns a structured error indicating authentication failed
 
-### Requirement: Host allowlist and SSRF protection
-The system SHALL validate the outbound JIRA host against the configured allowlist and apply DNS-aware SSRF protection via `makeApiRequest`.
+### Requirement: Single configured target
+The system SHALL send every request to the configured `jira.baseUrl` only. The model SHALL NOT be able to supply or override the target host, so no separate allowlist is configured.
 
-#### Scenario: Host outside allowlist is rejected
-- **WHEN** the configured JIRA host is not in the allowlist
-- **THEN** the system returns an access-denied error
+#### Scenario: Base URL cannot be overridden by input
+- **WHEN** a user passes a `baseUrl` in the tool input
+- **THEN** the system rejects the input as invalid
 
 ### Requirement: Rate-limit handling
 The system SHALL retry on 429 responses using the shared per-host rate limiter and retry budget.
