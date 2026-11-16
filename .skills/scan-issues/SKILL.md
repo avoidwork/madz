@@ -107,7 +107,7 @@ The `create-feature` → `commit-push` pipeline within `fix-issue` handles PR cr
   gh pr merge "$PR_NUMBER" --auto --merge --repo "$REPO"
 
   # Verify auto-merge was enabled successfully
-  AUTO_MERGE=$(gh pr view "$PR_NUMBER" --json autoMerge --jq '.enabled' --repo "$REPO" 2>/dev/null || true)
+  AUTO_MERGE=$(gh pr view "$PR_NUMBER" --json autoMergeRequest --jq '.autoMergeRequest != null' --repo "$REPO" 2>/dev/null || true)
   if [ "$AUTO_MERGE" != "true" ]; then
     echo "WARNING: Auto-merge may not be enabled for PR #$PR_NUMBER (state: $AUTO_MERGE)."
   else
