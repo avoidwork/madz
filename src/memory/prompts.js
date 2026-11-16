@@ -25,13 +25,19 @@ const SAMPLING_TOOL_INSTRUCTION =
 const SILENT_SAMPLING_INSTRUCTION =
 	"**Sampling:** The **sampling** tool captures meaningful moments as ephemeral memories. Mention that the user can ask to see or delete their memories at any time. Invoke it when: (a) the user expresses satisfaction after a complex task, (b) a pattern emerges across sessions, (c) the user shares something personal or emotionally significant, (d) a technical breakthrough occurs.";
 
-// Token replaced in SYSTEM_PROMPT.md when silent mode is enabled.
+// Token replaced in SYSTEM_PROMPT.md with the rule 3.1 body. The token sits
+// inside the rule so the ternary swaps the entire rule body between the
+// default "Be concise" text and the silent-mode directive.
 const SILENT_INSTRUCTION_TOKEN = "<!-- SILENT_INSTRUCTION -->";
 
-// Instruction block injected when agent.silent is enabled. Standalone and
-// unnumbered so disabling the feature leaves no gap in any numbered list.
-const SILENT_INSTRUCTION =
-	"**Silent mode:** When enabled, do not emit intermediate commentary, progress updates, or narration to the user while working. Remain silent during tool execution and reasoning. Speak only when delivering your final response to the user's request.";
+// Default rule 3.1 body (silent mode disabled).
+const RULE_31_DEFAULT =
+	"Be concise. Say only what is needed. No preamble, no restating the user's question, no filler. Get to the answer.";
+
+// Rule 3.1 body when agent.silent is enabled. Replaces the default so the
+// orchestrator stays silent except for its final response.
+const RULE_31_SILENT =
+	"Silent mode: When enabled, do not emit intermediate commentary, progress updates, or narration to the user while working. Remain silent during tool execution and reasoning. Speak only when delivering your final response to the user's request.";
 
 // Open-ended header appended to the end of the authored prompt. deepagents
 // middleware (skills, filesystem, memory, subagents) augments the system prompt
@@ -59,11 +65,11 @@ export async function loadSystemPrompt(baseDir) {
 		const baseUrl = config?.agent?.decision?.baseUrl;
 		const decisionReplacement = baseUrl ? DECISION_TOOL_INSTRUCTION : "";
 		content = content.replaceAll(DECISION_TOOL_TOKEN, decisionReplacement);
-		// Inject the silent-mode directive when enabled, or remove the token
-		// entirely when it is disabled.
+		// Swap rule 3.1's body between the default "Be concise" text and the
+		// silent-mode directive based on the config flag.
 		const silentEnabled = config?.agent?.silent === true;
-		const silentReplacement = silentEnabled ? SILENT_INSTRUCTION : "";
-		content = content.replaceAll(SILENT_INSTRUCTION_TOKEN, silentReplacement);
+		const rule31Replacement = silentEnabled ? RULE_31_SILENT : RULE_31_DEFAULT;
+		content = content.replaceAll(SILENT_INSTRUCTION_TOKEN, rule31Replacement);
 		// Inject the sampling tool instruction when the tool is enabled, or
 		// remove the token entirely when it is disabled. When silent mode is
 		// enabled, use the silent variant that omits the memory announcement.
