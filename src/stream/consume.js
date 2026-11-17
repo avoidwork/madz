@@ -13,9 +13,11 @@ import { isSubagentNamespace } from "./namespace.js";
  * @param {Function} [streamingCallback] - Callback for streamed chunks
  * @param {Object} [options] - Options
  * @param {boolean} [options.showToolResults=true] - Whether to emit `tool` events
- * @param {{push: Function, reset: Function}} [options.loopDetector] - Streaming repetition
- *   detector. When it flags a loop the stream is abandoned (closing the underlying
- *   iterator) and `loopDetected` is returned true.
+ * @param {{push: Function, reset: Function}} [options.loopDetector] - Segment loop
+ *   detector. Each non-subagent message/reasoning event is pushed as a segment
+ *   (`{ type, content, id? }`, the shape the TUI coalesces). When it flags a loop
+ *   the stream is abandoned (closing the underlying iterator) and `loopDetected`
+ *   is returned true.
  * @returns {Promise<{content: string, reasoning: string, interrupted: boolean, lastEventType: string | null, loopDetected: boolean}>}
  */
 export async function consumeStream(stream, streamingCallback, options = {}) {
@@ -67,7 +69,16 @@ export async function consumeStream(stream, streamingCallback, options = {}) {
 
 				if (!isSubagent) {
 					content += text;
-					if (loopDetector?.push("message", text)) loopDetected = true;
+					const blockIndex = msg?.content?.[0]?.index;
+					if (
+						loopDetector?.push({
+							type: "message",
+							content: text,
+							...(blockIndex != null ? { id: blockIndex } : {}),
+						})
+					) {
+						loopDetected = true;
+					}
 				}
 
 				if (streamingCallback) {
@@ -89,7 +100,9 @@ export async function consumeStream(stream, streamingCallback, options = {}) {
 			if (reasoningContent) {
 				if (!isSubagent) {
 					reasoning += reasoningContent;
-					if (loopDetector?.push("reasoning", reasoningContent)) loopDetected = true;
+					if (loopDetector?.push({ type: "reasoning", content: reasoningContent })) {
+						loopDetected = true;
+					}
 				}
 				if (streamingCallback) {
 					streamingCallback({
@@ -106,7 +119,15 @@ export async function consumeStream(stream, streamingCallback, options = {}) {
 					if (block?.type === "reasoning" && block.reasoning) {
 						if (!isSubagent) {
 							reasoning += block.reasoning;
-							if (loopDetector?.push("reasoning", block.reasoning)) loopDetected = true;
+							if (
+								loopDetector?.push({
+									type: "reasoning",
+									content: block.reasoning,
+									...(block.id != null ? { id: block.id } : {}),
+								})
+							) {
+								loopDetected = true;
+							}
 						}
 						if (streamingCallback) {
 							streamingCallback({

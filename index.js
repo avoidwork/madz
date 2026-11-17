@@ -19,7 +19,7 @@ import {
 import { resumeSession } from "./src/session/resume.js";
 import { logger, flush as flushLogger } from "./src/shared/logger.js";
 import { consumeStream } from "./src/stream/consume.js";
-import { createStreamLoopDetector } from "./src/stream/loopDetector.js";
+import { createSegmentLoopDetector } from "./src/stream/loopDetector.js";
 
 // ---------------------------------------------------------------------------
 // CLI arguments
@@ -301,7 +301,7 @@ async function runAgent(input, threadExtras, streamingCallback, signal) {
 	const loopDetector =
 		loopConfig.enabled === false
 			? undefined
-			: createStreamLoopDetector({
+			: createSegmentLoopDetector({
 					windowSize: loopConfig.windowSize,
 					threshold: loopConfig.threshold,
 					ttlMs: loopConfig.ttlMs,
