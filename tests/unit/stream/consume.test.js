@@ -103,6 +103,31 @@ describe("consumeStream lastEventType", () => {
 		assert.strictEqual(result.lastEventType, "message");
 	});
 
+	it("skips human messages (injected nudges) so they are not rendered as assistant output", async () => {
+		const events = [];
+		const result = await consumeStream(
+			makeStream([
+				[[], "messages", [{ _getType: () => "human", text: "You're looping" }]],
+				[
+					[],
+					"messages",
+					[
+						{
+							_getType: () => "ai",
+							text: "real answer",
+							content: [{ type: "text", text: "real answer" }],
+						},
+					],
+				],
+			]),
+			(ev) => events.push(ev),
+		);
+		assert.strictEqual(result.content, "real answer");
+		assert.strictEqual(result.lastEventType, "message");
+		assert.strictEqual(events.length, 1);
+		assert.strictEqual(events[0].text, "real answer");
+	});
+
 	it("tracks a tool event as the last event type", async () => {
 		const result = await consumeStream(
 			makeStream([

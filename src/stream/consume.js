@@ -39,6 +39,11 @@ export async function consumeStream(stream, streamingCallback, options = {}) {
 			const msgType = msg?._getType ? msg._getType() : msg?.type;
 			const text = msg?.text ?? "";
 
+			// Human messages are inputs or injected nudges (e.g. the loop-detection
+			// "You're looping" nudge), not assistant output. Skip them so they are
+			// never rendered into the assistant's streaming bubble.
+			if (msgType === "human") continue;
+
 			if (text) {
 				// ToolMessage text is emitted as a distinct `tool` event, never
 				// folded into the message segment.
