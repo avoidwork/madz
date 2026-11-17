@@ -13,7 +13,10 @@ import { isSubagentNamespace } from "./namespace.js";
  * @param {Function} [streamingCallback] - Callback for streamed chunks
  * @param {Object} [options] - Options
  * @param {boolean} [options.showToolResults=true] - Whether to emit `tool` events
- * @returns {Promise<{content: string, reasoning: string, interrupted: boolean, lastEventType: string | null}>}
+ * @param {{push: Function, reset: Function}} [options.loopDetector] - Streaming repetition
+ *   detector. When it flags a loop the stream is abandoned (closing the underlying
+ *   iterator) and `loopDetected` is returned true.
+ * @returns {Promise<{content: string, reasoning: string, interrupted: boolean, lastEventType: string | null, loopDetected: boolean}>}
  */
 export async function consumeStream(stream, streamingCallback, options = {}) {
 	const showToolResults = options.showToolResults;
@@ -21,6 +24,8 @@ export async function consumeStream(stream, streamingCallback, options = {}) {
 	let reasoning = "";
 	let interrupted = false;
 	let lastEventType = null;
+	let loopDetected = false;
+	const loopDetector = options.loopDetector;
 
 	for await (const [namespace, mode, payload] of stream) {
 		// Subagent runs are nested under a `tools:<id>` namespace segment. Their
@@ -62,6 +67,7 @@ export async function consumeStream(stream, streamingCallback, options = {}) {
 
 				if (!isSubagent) {
 					content += text;
+					if (loopDetector?.push("message", text)) loopDetected = true;
 				}
 
 				if (streamingCallback) {
@@ -83,6 +89,7 @@ export async function consumeStream(stream, streamingCallback, options = {}) {
 			if (reasoningContent) {
 				if (!isSubagent) {
 					reasoning += reasoningContent;
+					if (loopDetector?.push("reasoning", reasoningContent)) loopDetected = true;
 				}
 				if (streamingCallback) {
 					streamingCallback({
@@ -99,6 +106,7 @@ export async function consumeStream(stream, streamingCallback, options = {}) {
 					if (block?.type === "reasoning" && block.reasoning) {
 						if (!isSubagent) {
 							reasoning += block.reasoning;
+							if (loopDetector?.push("reasoning", block.reasoning)) loopDetected = true;
 						}
 						if (streamingCallback) {
 							streamingCallback({
@@ -132,7 +140,10 @@ export async function consumeStream(stream, streamingCallback, options = {}) {
 				if (!isSubagent) lastEventType = "on_tool_end";
 			}
 		}
+
+		// Abandon the stream; leaving the for-await closes the iterator.
+		if (loopDetected) break;
 	}
 
-	return { content, reasoning, interrupted, lastEventType };
+	return { content, reasoning, interrupted, lastEventType, loopDetected };
 }

@@ -19,6 +19,7 @@ import {
 import { resumeSession } from "./src/session/resume.js";
 import { logger, flush as flushLogger } from "./src/shared/logger.js";
 import { consumeStream } from "./src/stream/consume.js";
+import { createStreamLoopDetector } from "./src/stream/loopDetector.js";
 
 // ---------------------------------------------------------------------------
 // CLI arguments
@@ -296,21 +297,57 @@ async function doBootstrap() {
  * @param {AbortSignal} [signal] - Abort signal
  */
 async function runAgent(input, threadExtras, streamingCallback, signal) {
-	const stream = await agent.stream(input, {
+	const loopConfig = config.loopDetection ?? {};
+	const loopDetector =
+		loopConfig.enabled === false
+			? undefined
+			: createStreamLoopDetector({
+					windowSize: loopConfig.windowSize,
+					threshold: loopConfig.threshold,
+					ttlMs: loopConfig.ttlMs,
+				});
+	const maxNudges = loopConfig.streamMaxNudges ?? 2;
+	const threadConfig = {
 		configurable: { thread_id: sessionState.getSessionId(), ...threadExtras },
 		maxTokens: providerConfig.maxTokens,
 		signal,
 		recursionLimit: config.agent?.recursionLimit,
 		streamMode: ["messages", "tools", "values"],
 		subgraphs: true,
-	});
-	const { content, reasoning, interrupted, lastEventType } = await consumeStream(
-		stream,
-		streamingCallback,
-		{
-			showToolResults,
-		},
-	);
+	};
+
+	let currentInput = input;
+	let nudges = 0;
+	let result;
+	let content = "";
+	let reasoning = "";
+
+	// A loop inside a single generation is caught while streaming: abandon the
+	// stream, then re-run with a nudge (or compact once nudges are exhausted).
+	while (true) {
+		const stream = await agent.stream(currentInput, threadConfig);
+		result = await consumeStream(stream, streamingCallback, { showToolResults, loopDetector });
+		content += result.content;
+		reasoning += result.reasoning;
+
+		if (!result.loopDetected || signal?.aborted) break;
+
+		loopDetector?.reset();
+		if (nudges >= maxNudges) {
+			logger.warn("[loopDetection] stream loop persists; compacting context");
+			try {
+				await agent.compactContext(threadConfig);
+			} catch (err) {
+				logger.warn({ error: err?.message }, "[loopDetection] compaction failed");
+			}
+			break;
+		}
+		nudges++;
+		logger.warn({ nudges }, "[loopDetection] stream loop detected; aborting and nudging");
+		currentInput = { messages: [new HumanMessage("You're looping")] };
+	}
+
+	const { interrupted, lastEventType } = result;
 	return {
 		provider: providerName,
 		content,
