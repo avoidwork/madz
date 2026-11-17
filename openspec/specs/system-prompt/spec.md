@@ -69,7 +69,7 @@ The `loadSystemPrompt` function in `src/memory/prompts.js` SHALL swap the body o
 
 #### Scenario: Directive injected when silent enabled
 - **WHEN** `agent.silent` is `true`
-- **THEN** `loadSystemPrompt` SHALL replace the `<!-- RULE_31_INSTRUCTION -->` token in `SYSTEM_PROMPT.md` with the silent-mode directive instructing the orchestrator to remain silent except when delivering its final response
+- **THEN** `loadSystemPrompt` SHALL replace the `<!-- RULE_31_INSTRUCTION -->` token in `SYSTEM_PROMPT.md` with the silent-mode directive instructing the orchestrator to remain silent except when delivering its final response, treating tool calls as non-speech and forbidding commentary, progress updates, narration, or reasoning aloud between tool calls or after tool results
 
 #### Scenario: Default body used when silent disabled
 - **WHEN** `agent.silent` is `false` or unset

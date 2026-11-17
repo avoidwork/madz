@@ -39,7 +39,7 @@ const RULE_31_DEFAULT =
 // imperative directive — the agent sees only this text, not the config flag, so
 // no conditional framing it cannot verify.
 const RULE_31_SILENT =
-	"Remain silent while working. Do not emit intermediate commentary, progress updates, or narration to the user during tool execution or reasoning. Speak only when delivering your final response to the user's request.";
+	"Remain silent while working. Tool calls are not speech — invoke tools without any accompanying text or preamble. Do not emit commentary, progress updates, narration, or reasoning aloud between tool calls or after tool results. Your reasoning is internal; the user sees only your final response. Speak once, at the end, when delivering the answer to the user's request.";
 
 // Open-ended header appended to the end of the authored prompt. deepagents
 // middleware (skills, filesystem, memory, subagents) augments the system prompt

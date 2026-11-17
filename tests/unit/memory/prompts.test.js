@@ -79,7 +79,8 @@ describe("memory/prompts (hardening)", () => {
 		configLoader._resetConfigCache();
 		const out = await loadSystemPrompt(base);
 		assert.ok(out.includes("3.1. Remain silent while working."));
-		assert.ok(out.includes("Speak only when delivering your final response"));
+		assert.ok(out.includes("Tool calls are not speech"));
+		assert.ok(out.includes("Speak once, at the end"));
 		assert.ok(!out.includes("Be concise."));
 		assert.ok(!out.includes("<!-- RULE_31_INSTRUCTION -->"));
 		delete process.env.AGENT_SILENT;
