@@ -546,6 +546,12 @@ export async function buildToolConfig(options) {
 				continue;
 			}
 
+			case "confluence": {
+				if (!hasAllPerms || config?.confluence?.enabled === false) continue;
+				tools.push(TOOLS.confluence);
+				continue;
+			}
+
 			case "graphql":
 			case "json":
 			case "yaml":

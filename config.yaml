@@ -32,6 +32,12 @@ calendar:
     rateLimit:
       requestsPerMinute: 60
     tenantId: ""
+confluence:
+  baseUrl: ""   # e.g. https://example.atlassian.net (CONFLUENCE_BASE_URL)
+  enabled: true # false = tool not registered (CONFLUENCE_ENABLED)
+  rateLimit: 10
+  timeout: 30000
+  token: ""     # personal access token, sent as Bearer (CONFLUENCE_TOKEN)
 cwd: ""
 email:
   provider:

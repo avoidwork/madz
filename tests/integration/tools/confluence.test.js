@@ -80,10 +80,8 @@ const withUrl = (opts = {}) => ({
 	sleep: noSleep,
 	...opts,
 	policy: {
-		allowlist: [],
 		rateLimit: 0,
 		timeout: 30000,
-		credentials: {},
 		baseUrl: "https://example.atlassian.net",
 	},
 });
