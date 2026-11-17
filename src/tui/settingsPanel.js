@@ -126,7 +126,9 @@ function flattenConfig(obj, prefix = "") {
 function getConfigSections(config) {
 	if (!config || typeof config !== "object") return [];
 	const skip = new Set(["cwd"]);
-	return Object.keys(config).filter((k) => !skip.has(k));
+	return Object.keys(config)
+		.filter((k) => !skip.has(k))
+		.sort((a, b) => a.localeCompare(b));
 }
 
 /**

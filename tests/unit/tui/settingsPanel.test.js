@@ -57,6 +57,27 @@ describe("SettingsPanel", () => {
 		assert.ok(result.includes("provider"));
 	});
 
+	it("renders sections in alphabetical order", () => {
+		const unsorted = {
+			cwd: "/tmp",
+			zebra: { a: 1 },
+			agent: { maxTokensMinute: 100 },
+			mango: { b: 2 },
+		};
+		const result = renderToString(
+			React.createElement(SettingsPanel, {
+				config: unsorted,
+				activeView: "settings",
+			}),
+		);
+		const agentIdx = result.indexOf("agent");
+		const mangoIdx = result.indexOf("mango");
+		const zebraIdx = result.indexOf("zebra");
+		assert.ok(agentIdx !== -1 && mangoIdx !== -1 && zebraIdx !== -1);
+		assert.ok(agentIdx < mangoIdx, "agent should come before mango");
+		assert.ok(mangoIdx < zebraIdx, "mango should come before zebra");
+	});
+
 	it("does not render the cwd section (internal key)", () => {
 		const result = renderToString(
 			React.createElement(SettingsPanel, {
