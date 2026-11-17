@@ -7,8 +7,8 @@ The deepAgents orchestrator narrates its work — intermediate commentary, progr
 ## What Changes
 
 - Add a `silent` boolean config option (default `false`) under the `agent:` block in `config.yaml`, validated by a new `silent: z.boolean().default(false)` field in `AgentSchema` (`src/config/schemas/agent.js`).
-- Add a `<!-- SILENT_INSTRUCTION -->` token in the Delivery subsection of `DELIVERY & OUTPUT` in `prompts/SYSTEM_PROMPT.md`, near rule 3.1, as a standalone unnumbered bolded directive (matching the existing decision/sampling pattern) so disabling it leaves no numbering gap.
-- In `loadSystemPrompt()` (`src/memory/prompts.js`), define a `SILENT_INSTRUCTION` constant and `SILENT_INSTRUCTION_TOKEN`. Replace the token with the directive when `config.agent.silent` is true; strip it when false.
+- Add a `<!-- RULE_31_INSTRUCTION -->` token as the body of rule 3.1 in the Delivery subsection of `DELIVERY & OUTPUT` in `prompts/SYSTEM_PROMPT.md`.
+- In `loadSystemPrompt()` (`src/memory/prompts.js`), define a `RULE_31_TOKEN` constant plus `RULE_31_DEFAULT` and `RULE_31_SILENT` body constants. Swap the token for the default "Be concise" body when `config.agent.silent` is false, and for the silent directive when true.
 - When `silent` is true, also inject a silent variant of the sampling instruction that omits the "briefly tell the user when you capture a memory" sentence — sampling still captures memories but does not announce them. When `silent` is false, inject the full sampling instruction as today.
 - Scope: orchestrator only. The sole caller of `loadSystemPrompt()` is `createDeepAgentsOrchestrator()` in `src/agent/deepAgents.js`, which inherits the behavior automatically. Subagents report to the orchestrator, not the user, so they are untouched.
 
@@ -26,8 +26,8 @@ None.
 
 - `src/config/schemas/agent.js` — add `silent` field to `AgentSchema`.
 - `config.yaml` — add `silent: false` under `agent:`.
-- `prompts/SYSTEM_PROMPT.md` — add `<!-- SILENT_INSTRUCTION -->` token in Delivery subsection.
-- `src/memory/prompts.js` — add `SILENT_INSTRUCTION`/`SILENT_INSTRUCTION_TOKEN` and injection logic in `loadSystemPrompt()`.
+- `prompts/SYSTEM_PROMPT.md` — add `<!-- RULE_31_INSTRUCTION -->` token as rule 3.1 body in Delivery subsection.
+- `src/memory/prompts.js` — add `RULE_31_TOKEN`/`RULE_31_DEFAULT`/`RULE_31_SILENT` and swap logic in `loadSystemPrompt()`.
 - `tests/unit/memory/prompts.test.js` — add silent on/off and silent sampling variant tests.
 - `tests/unit/config/schemas/agent.test.js` — verify `silent` default and acceptance.
 - No new dependencies; no runtime behavior change when `silent` is false (default).
