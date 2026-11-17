@@ -81,10 +81,34 @@ describe("memory/prompts (hardening)", () => {
 		assert.ok(out.includes("3.1. Remain silent while working."));
 		assert.ok(out.includes("Tool calls are not speech"));
 		assert.ok(out.includes("Speak once, at the end"));
-		assert.ok(out.includes("Silence is the default state"));
-		assert.ok(out.includes("overrides all persona, voice, and verbosity guidance"));
 		assert.ok(!out.includes("Be concise."));
 		assert.ok(!out.includes("<!-- RULE_31_INSTRUCTION -->"));
+		delete process.env.AGENT_SILENT;
+	});
+
+	it("keeps the full persona delivery block when silent is off (default)", async () => {
+		await writeFile(join(base, "prompts", "SYSTEM_PROMPT.md"), "<!-- PERSONA_INSTRUCTION -->");
+		delete process.env.AGENT_SILENT;
+		const configLoader = await import("../../../src/config/loader.js");
+		configLoader._resetConfigCache();
+		const out = await loadSystemPrompt(base);
+		assert.ok(out.includes("**Voice & delivery:**"));
+		assert.ok(out.includes("**Verbosity cap:**"));
+		assert.ok(out.includes("**Engagement:**"));
+		assert.ok(!out.includes("<!-- PERSONA_INSTRUCTION -->"));
+	});
+
+	it("drops the persona delivery sections that invite talking when silent is on", async () => {
+		await writeFile(join(base, "prompts", "SYSTEM_PROMPT.md"), "<!-- PERSONA_INSTRUCTION -->");
+		process.env.AGENT_SILENT = "true";
+		const configLoader = await import("../../../src/config/loader.js");
+		configLoader._resetConfigCache();
+		const out = await loadSystemPrompt(base);
+		assert.ok(!out.includes("**Voice & delivery:**"));
+		assert.ok(!out.includes("**Verbosity cap:**"));
+		assert.ok(out.includes("**Execution mode:**"));
+		assert.ok(out.includes("**Engagement:**"));
+		assert.ok(!out.includes("<!-- PERSONA_INSTRUCTION -->"));
 		delete process.env.AGENT_SILENT;
 	});
 
