@@ -2,7 +2,7 @@ agent:
   autoContinueLimit: 1000 # max silent "Continue" nudges when a turn ends on reasoning
   bundledSkills: true     # false = only 'reflection' loaded from .skills/
   decision:
-    baseUrl: "" # empty = tool not registered
+    baseUrl: ""           # empty = tool not registered
     model: tev1:4b
   recursionLimit: 1000
   sampling: true          # false = tool not registered
