@@ -81,6 +81,8 @@ describe("memory/prompts (hardening)", () => {
 		assert.ok(out.includes("3.1. Remain silent while working."));
 		assert.ok(out.includes("Tool calls are not speech"));
 		assert.ok(out.includes("Speak once, at the end"));
+		assert.ok(out.includes("Silence is the default state"));
+		assert.ok(out.includes("overrides all persona, voice, and verbosity guidance"));
 		assert.ok(!out.includes("Be concise."));
 		assert.ok(!out.includes("<!-- RULE_31_INSTRUCTION -->"));
 		delete process.env.AGENT_SILENT;
