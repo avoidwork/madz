@@ -28,7 +28,7 @@ const SILENT_SAMPLING_INSTRUCTION =
 // Token replaced in SYSTEM_PROMPT.md with the rule 3.1 body. The token sits
 // inside the rule so the ternary swaps the entire rule body between the
 // default "Be concise" text and the silent-mode directive.
-const SILENT_INSTRUCTION_TOKEN = "<!-- SILENT_INSTRUCTION -->";
+const RULE_31_TOKEN = "<!-- RULE_31_INSTRUCTION -->";
 
 // Default rule 3.1 body (silent mode disabled).
 const RULE_31_DEFAULT =
@@ -71,7 +71,7 @@ export async function loadSystemPrompt(baseDir) {
 		// silent-mode directive based on the config flag.
 		const silentEnabled = config?.agent?.silent === true;
 		const rule31Replacement = silentEnabled ? RULE_31_SILENT : RULE_31_DEFAULT;
-		content = content.replaceAll(SILENT_INSTRUCTION_TOKEN, rule31Replacement);
+		content = content.replaceAll(RULE_31_TOKEN, rule31Replacement);
 		// Inject the sampling tool instruction when the tool is enabled, or
 		// remove the token entirely when it is disabled. When silent mode is
 		// enabled, use the silent variant that omits the memory announcement.

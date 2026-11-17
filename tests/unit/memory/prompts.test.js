@@ -58,7 +58,7 @@ describe("memory/prompts (hardening)", () => {
 	it("keeps the default rule 3.1 body when silent is off (default)", async () => {
 		await writeFile(
 			join(base, "prompts", "SYSTEM_PROMPT.md"),
-			"- **3.1. <!-- SILENT_INSTRUCTION -->**",
+			"- **3.1. <!-- RULE_31_INSTRUCTION -->**",
 		);
 		delete process.env.AGENT_SILENT;
 		const configLoader = await import("../../../src/config/loader.js");
@@ -66,13 +66,13 @@ describe("memory/prompts (hardening)", () => {
 		const out = await loadSystemPrompt(base);
 		assert.ok(out.includes("3.1. Be concise."));
 		assert.ok(!out.includes("Silent mode:"));
-		assert.ok(!out.includes("<!-- SILENT_INSTRUCTION -->"));
+		assert.ok(!out.includes("<!-- RULE_31_INSTRUCTION -->"));
 	});
 
 	it("swaps rule 3.1 to the silent directive when silent is on", async () => {
 		await writeFile(
 			join(base, "prompts", "SYSTEM_PROMPT.md"),
-			"- **3.1. <!-- SILENT_INSTRUCTION -->**",
+			"- **3.1. <!-- RULE_31_INSTRUCTION -->**",
 		);
 		process.env.AGENT_SILENT = "true";
 		const configLoader = await import("../../../src/config/loader.js");
@@ -81,14 +81,14 @@ describe("memory/prompts (hardening)", () => {
 		assert.ok(out.includes("3.1. Remain silent while working."));
 		assert.ok(out.includes("Speak only when delivering your final response"));
 		assert.ok(!out.includes("Be concise."));
-		assert.ok(!out.includes("<!-- SILENT_INSTRUCTION -->"));
+		assert.ok(!out.includes("<!-- RULE_31_INSTRUCTION -->"));
 		delete process.env.AGENT_SILENT;
 	});
 
 	it("injects the silent sampling variant (no announcement) when silent and sampling are on", async () => {
 		await writeFile(
 			join(base, "prompts", "SYSTEM_PROMPT.md"),
-			"- **3.1. <!-- SILENT_INSTRUCTION -->**\n<!-- SAMPLING_TOOL_INSTRUCTION -->",
+			"- **3.1. <!-- RULE_31_INSTRUCTION -->**\n<!-- SAMPLING_TOOL_INSTRUCTION -->",
 		);
 		process.env.AGENT_SILENT = "true";
 		process.env.AGENT_SAMPLING = "true";
@@ -105,7 +105,7 @@ describe("memory/prompts (hardening)", () => {
 	it("omits the sampling instruction when silent is off and sampling is off", async () => {
 		await writeFile(
 			join(base, "prompts", "SYSTEM_PROMPT.md"),
-			"- **3.1. <!-- SILENT_INSTRUCTION -->**\n<!-- SAMPLING_TOOL_INSTRUCTION -->",
+			"- **3.1. <!-- RULE_31_INSTRUCTION -->**\n<!-- SAMPLING_TOOL_INSTRUCTION -->",
 		);
 		process.env.AGENT_SILENT = "false";
 		process.env.AGENT_SAMPLING = "false";
