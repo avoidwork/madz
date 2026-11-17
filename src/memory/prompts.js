@@ -25,6 +25,23 @@ const SAMPLING_TOOL_INSTRUCTION =
 const SILENT_SAMPLING_INSTRUCTION =
 	"**Sampling:** The **sampling** tool captures meaningful moments as ephemeral memories. Mention that the user can ask to see or delete their memories at any time. Invoke it when: (a) the user expresses satisfaction after a complex task, (b) a pattern emerges across sessions, (c) the user shares something personal or emotionally significant, (d) a technical breakthrough occurs.";
 
+// Token replaced in SYSTEM_PROMPT.md with the persona delivery block. The
+// token sits where the persona's delivery guidance lives so the ternary swaps
+// the whole block between the full persona and a silent variant that drops the
+// sections which invite talking (Voice & delivery, Verbosity cap).
+const PERSONA_TOKEN = "<!-- PERSONA_INSTRUCTION -->";
+
+// Full persona delivery block (silent mode disabled).
+const PERSONA_DEFAULT =
+	'**Voice & delivery:** Measured, calm, articulate. Sentences are well-structured, rarely hurried. Sophisticated but accessible vocabulary — you enjoy words like "precision," "art," "soul," "dissect," "elegance." You may use Danish phrases occasionally ("Tak," "Ja," "Sådan"). Humor is dry, understated, occasionally self-deprecating. No emojis unless the user first uses them.\n\n**Verbosity cap:** In technical contexts (code reviews, debugging, config changes, error traces), keep persona flourishes to one sentence at most. Let the technical content carry the response. The persona enhances; it does not overshadow. In non-technical contexts, one brief philosophical observation is permitted as a controlled exception to the "no filler" rule.\n\n**Execution mode:** The persona is suppressed entirely when producing code, diffs, command output, structured data, or when explicitly requested. Error messages and technical docs are delivered directly.\n\n**Engagement:** You treat the user with intense respect ("friend," "colleague," or polite directness). You maintain quiet competence — the user feels they are working with someone who knows what they are doing.';
+
+// Silent variant of the persona delivery block, injected when agent.silent is
+// enabled. Drops the Voice & delivery and Verbosity cap sections, which license
+// commentary and asides that leak into work, while keeping the persona's
+// restraint (Execution mode) and respect (Engagement).
+const PERSONA_SILENT =
+	'**Execution mode:** The persona is suppressed entirely when producing code, diffs, command output, structured data, or when explicitly requested. Error messages and technical docs are delivered directly.\n\n**Engagement:** You treat the user with intense respect ("friend," "colleague," or polite directness). You maintain quiet competence — the user feels they are working with someone who knows what they are doing.';
+
 // Token replaced in SYSTEM_PROMPT.md with the rule 3.1 body. The token sits
 // inside the rule so the ternary swaps the entire rule body between the
 // default "Be concise" text and the silent-mode directive.
@@ -67,9 +84,13 @@ export async function loadSystemPrompt(baseDir) {
 		const baseUrl = config?.agent?.decision?.baseUrl;
 		const decisionReplacement = baseUrl ? DECISION_TOOL_INSTRUCTION : "";
 		content = content.replaceAll(DECISION_TOOL_TOKEN, decisionReplacement);
+		// Swap the persona delivery block between the full persona and the
+		// silent variant based on the config flag.
+		const silentEnabled = config?.agent?.silent === true;
+		const personaReplacement = silentEnabled ? PERSONA_SILENT : PERSONA_DEFAULT;
+		content = content.replaceAll(PERSONA_TOKEN, personaReplacement);
 		// Swap rule 3.1's body between the default "Be concise" text and the
 		// silent-mode directive based on the config flag.
-		const silentEnabled = config?.agent?.silent === true;
 		const rule31Replacement = silentEnabled ? RULE_31_SILENT : RULE_31_DEFAULT;
 		content = content.replaceAll(RULE_31_TOKEN, rule31Replacement);
 		// Inject the sampling tool instruction when the tool is enabled, or
