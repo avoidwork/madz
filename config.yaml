@@ -1,12 +1,12 @@
 agent:
   autoContinueLimit: 1000 # max silent "Continue" nudges when a turn ends on reasoning
-  bundledSkills: true # false = only 'reflection' loaded from .skills/
+  bundledSkills: true     # false = only 'reflection' loaded from .skills/
   decision:
     baseUrl: "" # empty = tool not registered
     model: tev1:4b
   recursionLimit: 1000
-  sampling: true # false = tool not registered
-  silent: false # true = orchestrator stays silent except for final response
+  sampling: true          # false = tool not registered
+  silent: false           # true = orchestrator stays silent except for final response
 api:
   downloadsDir: downloads/
   maxBodySize: 10485760
@@ -42,13 +42,13 @@ image:
   maxDimension: 3000
   maxWidth: 1920
 jira:
-  assignee: "" # default assignee username (JIRA_ASSIGNEE)
-  baseUrl: "" # e.g. https://jira.example.com (JIRA_BASE_URL)
+  assignee: ""  # default assignee username (JIRA_ASSIGNEE)
+  baseUrl: ""   # e.g. https://jira.example.com (JIRA_BASE_URL)
   enabled: true # false = tool not registered (JIRA_ENABLED)
-  project: "" # default project key (JIRA_PROJECT)
+  project: ""   # default project key (JIRA_PROJECT)
   rateLimit: 10
   timeout: 30000
-  token: "" # personal access token, sent as Bearer (JIRA_TOKEN)
+  token: ""     # personal access token, sent as Bearer (JIRA_TOKEN)
 loopDetection:
   enabled: true
   escalationCount: 3
