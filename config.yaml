@@ -59,8 +59,7 @@ loopDetection:
   enabled: true
   streamMaxNudges: 2
   threshold: 2
-  ttlMs: 60000
-  windowSize: 50
+  windowSize: 1000
 memory:
   checkpointsDir: memory/checkpoints/
   contextDir: memory/context/

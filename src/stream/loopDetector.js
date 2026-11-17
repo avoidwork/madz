@@ -1,79 +1,73 @@
 import { createHash } from "node:crypto";
-import { coalesceSegments } from "../tui/messages.js";
 
 /**
  * Create a streaming loop detector that hashes stream segments.
  *
- * Stream events are folded into segments with the same `coalesceSegments`
- * routine the TUI uses (see docs/STREAMING.md), so a segment here is exactly
- * a `message` or `reasoning` block as the app defines it: chunks sharing an
- * `id` merge into one block, and id-less reasoning splits on a grammatical
- * sentence boundary. When a new segment starts, the previous one is complete;
- * its content is hashed into a rolling window. A loop is flagged when the same
- * segment (same type and content) completes more than `threshold` times.
+ * A segment is one streamed delta: a small group of characters exactly as it
+ * arrives (not a sentence or paragraph). Each delta is hashed and appended to
+ * a bounded list, per stream kind (reasoning, message). A looping model
+ * re-emits the same sequence of segments, so a loop is a trailing run of the
+ * hash list that repeats back-to-back more than `threshold` times, whatever
+ * the length of the repeating unit (a word, a sentence, a paragraph).
  *
- * Tool segments are not hashed. A segment is never counted until it closes, so
- * a single unbroken block cannot be flagged by this detector.
+ * `windowSize` must be large enough to hold `threshold + 1` copies of the
+ * longest unit to be caught: a paragraph is on the order of 100 deltas.
  *
  * @param {Object} [options] - Options
- * @param {number} [options.windowSize=50] - Segment hashes retained
- * @param {number} [options.threshold=2] - Completions above which a loop is flagged
- * @param {number} [options.ttlMs] - Hashes older than this are pruned (no expiry when unset)
- * @param {Function} [options.now] - Clock returning ms (injectable for tests)
- * @returns {{ push: (segment: {type: string, content: string, id?: string | number}) => boolean, reset: () => void }} Detector
+ * @param {number} [options.windowSize=1000] - Segment hashes retained per kind
+ * @param {number} [options.threshold=2] - Back-to-back repeats above which a loop is flagged
+ * @returns {{ push: (kind: string, delta: string) => boolean, reset: () => void }} Detector
  */
 export function createSegmentLoopDetector(options = {}) {
-	const windowSize = options.windowSize ?? 50;
+	const windowSize = options.windowSize ?? 1000;
 	const threshold = options.threshold ?? 2;
-	const ttlMs = options.ttlMs;
-	const now = options.now ?? (() => Date.now());
+	const needed = threshold + 1;
 
-	let segments = [];
-	/** @type {{hash: string, ts: number}[]} */
-	let hashes = [];
+	/** @type {Map<string, string[]>} */
+	const lists = new Map();
 
 	/**
-	 * Hash a completed segment into the window and report whether it repeats
-	 * more than `threshold` times.
-	 * @param {{type: string, content: string}} segment - The completed segment
-	 * @returns {boolean} True when the segment is looping
+	 * Check whether the tail of the list is one unit repeated `needed` times.
+	 * @param {string[]} list - Segment hashes, oldest first
+	 * @returns {boolean} True when a repeating unit is found
 	 */
-	function record(segment) {
-		if (segment.type !== "message" && segment.type !== "reasoning") return false;
-		const content = segment.content.trim();
-		if (content.length === 0) return false;
-
-		const nowMs = now();
-		if (ttlMs !== undefined) {
-			while (hashes.length > 0 && nowMs - hashes[0].ts > ttlMs) hashes.shift();
+	function isLooping(list) {
+		const n = list.length;
+		const last = list[n - 1];
+		for (let period = 1; period * needed <= n; period++) {
+			// Cheap reject: the unit's last segment must recur exactly one period back.
+			if (list[n - 1 - period] !== last) continue;
+			let match = true;
+			for (let i = 1; i < period * (needed - 1) && match; i++) {
+				if (list[n - 1 - i] !== list[n - 1 - i - period]) match = false;
+			}
+			if (match) return true;
 		}
-		const hash = createHash("sha256").update(`${segment.type}\0${content}`).digest("hex");
-		hashes.push({ hash, ts: nowMs });
-		while (hashes.length > windowSize) hashes.shift();
-
-		let count = 0;
-		for (const entry of hashes) if (entry.hash === hash) count++;
-		return count > threshold;
+		return false;
 	}
 
 	return {
 		/**
-		 * Fold a stream event's segment in. If it starts a new segment, the
-		 * previous one is complete and is hashed.
-		 * @param {{type: string, content: string, id?: string | number}} segment - Incoming segment
-		 * @returns {boolean} True when a completed segment is looping
+		 * Record a streamed segment.
+		 * @param {string} kind - Stream kind, e.g. "reasoning" or "message"
+		 * @param {string} delta - The segment exactly as streamed
+		 * @returns {boolean} True when the stream is looping
 		 */
-		push(segment) {
-			const before = segments.length;
-			segments = coalesceSegments(segments, segment);
-			if (before > 0 && segments.length > before) return record(segments[before - 1]);
-			return false;
+		push(kind, delta) {
+			if (typeof delta !== "string" || delta.length === 0) return false;
+			let list = lists.get(kind);
+			if (!list) {
+				list = [];
+				lists.set(kind, list);
+			}
+			list.push(createHash("sha256").update(delta).digest("hex"));
+			while (list.length > windowSize) list.shift();
+			return isLooping(list);
 		},
 
 		/** Clear all state (call after a nudge so the next attempt starts fresh). */
 		reset() {
-			segments = [];
-			hashes = [];
+			lists.clear();
 		},
 	};
 }

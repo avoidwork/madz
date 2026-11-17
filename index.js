@@ -304,7 +304,6 @@ async function runAgent(input, threadExtras, streamingCallback, signal) {
 			: createSegmentLoopDetector({
 					windowSize: loopConfig.windowSize,
 					threshold: loopConfig.threshold,
-					ttlMs: loopConfig.ttlMs,
 				});
 	const maxNudges = loopConfig.streamMaxNudges ?? 2;
 	const threadConfig = {

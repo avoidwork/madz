@@ -4,8 +4,10 @@
  * multi-character `reasoning_content` deltas that split mid-word and never
  * align to sentence or paragraph boundaries, with no block ids.
  *
- * The fixture is a TUI capture of the model repeating the same paragraph. When
- * the loop happens it is one paragraph repeating; sometimes two sentences,
+ * A segment is one streamed delta. A looping model re-emits the same tokens,
+ * so the unit is cut into deltas once and that same delta sequence repeats.
+ * The fixture is a TUI capture of the model repeating the same paragraph; when
+ * the loop happens it is one paragraph repeating, sometimes two sentences,
  * sometimes one, sometimes more. Each shape is replayed here.
  */
 
@@ -114,10 +116,22 @@ function reasoningStream(deltas, probe) {
  * @returns {Promise<{ result: Object, probe: Object, total: number }>} Outcome
  */
 async function replay(unit, { repeats, separator, min, max, seed }) {
-	const text = Array.from({ length: repeats }, () => unit).join(separator);
-	const deltas = toDeltas(text, min, max, seed);
+	// A looping model re-emits the same tokens: chunk the unit once, then
+	// repeat that identical delta sequence.
+	const unitDeltas = toDeltas(unit, min, max, seed);
+	const sepDeltas = separator ? [separator] : [];
+	const deltas = [];
+	for (let i = 0; i < repeats; i++) {
+		if (i > 0) deltas.push(...sepDeltas);
+		deltas.push(...unitDeltas);
+	}
 	const probe = { consumed: 0, closed: false };
-	const detector = createSegmentLoopDetector({ threshold: 2 });
+	// The window must hold threshold + 1 (3) back-to-back copies of the unit;
+	// size it to the unit so tiny deltas on long units are still testable.
+	const detector = createSegmentLoopDetector({
+		threshold: 2,
+		windowSize: Math.max(1000, unitDeltas.length * 3 + sepDeltas.length * 2 + 10),
+	});
 	const result = await consumeStream(reasoningStream(deltas, probe), undefined, {
 		loopDetector: detector,
 	});
