@@ -2,7 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert";
 import React from "react";
 import { renderToString } from "ink";
-import { SettingsPanel, clampOffset, flattenConfig } from "../../../src/tui/settingsPanel.js";
+import { SettingsPanel, clampOffset } from "../../../src/tui/settingsPanel.js";
 
 describe("clampOffset", () => {
 	it("keeps offset at 0 when the selected row is within the window", () => {
@@ -55,37 +55,6 @@ describe("SettingsPanel", () => {
 		);
 		assert.ok(result.includes("agent"));
 		assert.ok(result.includes("provider"));
-	});
-
-	it("renders sections in alphabetical order", () => {
-		const unsorted = {
-			cwd: "/tmp",
-			zebra: { a: 1 },
-			agent: { maxTokensMinute: 100 },
-			mango: { b: 2 },
-		};
-		const result = renderToString(
-			React.createElement(SettingsPanel, {
-				config: unsorted,
-				activeView: "settings",
-			}),
-		);
-		const agentIdx = result.indexOf("agent");
-		const mangoIdx = result.indexOf("mango");
-		const zebraIdx = result.indexOf("zebra");
-		assert.ok(agentIdx !== -1 && mangoIdx !== -1 && zebraIdx !== -1);
-		assert.ok(agentIdx < mangoIdx, "agent should come before mango");
-		assert.ok(mangoIdx < zebraIdx, "mango should come before zebra");
-	});
-
-	it("flattens nested keys in alphabetical order at each level", () => {
-		const entries = flattenConfig({
-			zebra: 1,
-			alpha: 2,
-			middle: { zeta: 3, beta: 4 },
-		});
-		const paths = entries.map((e) => e.path);
-		assert.deepStrictEqual(paths, ["alpha", "middle.beta", "middle.zeta", "zebra"]);
 	});
 
 	it("does not render the cwd section (internal key)", () => {

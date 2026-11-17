@@ -90,10 +90,9 @@ function SettingsSelectList({ items, isFocused, limit, onSelect }) {
 
 /**
  * Flatten a nested config object into an array of { path, value } pairs,
- * skipping null/undefined leaves and circular refs. Keys are visited in
- * alphabetical order at each level.
+ * skipping null/undefined leaves and circular refs.
  */
-export function flattenConfig(obj, prefix = "") {
+function flattenConfig(obj, prefix = "") {
 	const entries = [];
 	if (!obj || typeof obj !== "object") {
 		if (obj !== undefined && obj !== null) {
@@ -101,7 +100,7 @@ export function flattenConfig(obj, prefix = "") {
 		}
 		return entries;
 	}
-	for (const [key, val] of Object.entries(obj).sort(([a], [b]) => a.localeCompare(b))) {
+	for (const [key, val] of Object.entries(obj)) {
 		const fullPath = prefix ? `${prefix}.${key}` : key;
 		if (val !== null && val !== undefined && typeof val === "object" && !Array.isArray(val)) {
 			entries.push(...flattenConfig(val, fullPath));
@@ -127,9 +126,7 @@ export function flattenConfig(obj, prefix = "") {
 function getConfigSections(config) {
 	if (!config || typeof config !== "object") return [];
 	const skip = new Set(["cwd"]);
-	return Object.keys(config)
-		.filter((k) => !skip.has(k))
-		.sort((a, b) => a.localeCompare(b));
+	return Object.keys(config).filter((k) => !skip.has(k));
 }
 
 /**

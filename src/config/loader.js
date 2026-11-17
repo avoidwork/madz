@@ -486,6 +486,32 @@ function validateConfig(raw) {
 	return ConfigSchema.parse(raw);
 }
 
+/**
+ * Recursively sort object keys alphabetically (localeCompare) so the resolved
+ * config object's key order is deterministic and matches config.yaml, which is
+ * maintained in alphabetical order. Arrays are preserved in order; only plain
+ * object keys are sorted. Mutates and returns the input.
+ * @param {unknown} node - Config node to sort in place
+ * @returns {unknown} The same node reference
+ */
+function sortConfigKeys(node) {
+	if (Array.isArray(node)) {
+		for (const item of node) sortConfigKeys(item);
+		return node;
+	}
+	if (node && typeof node === "object") {
+		for (const value of Object.values(node)) sortConfigKeys(value);
+		const sorted = {};
+		for (const key of Object.keys(node).sort((a, b) => a.localeCompare(b))) {
+			sorted[key] = node[key];
+		}
+		// Replace the object's own keys in sorted order.
+		for (const key of Object.keys(node)) delete node[key];
+		Object.assign(node, sorted);
+	}
+	return node;
+}
+
 // Module-level cache for loadConfig
 let cachedConfig = null;
 
@@ -527,6 +553,9 @@ export function loadConfig() {
 	const config = validateConfig(resolved);
 	// Capture the original working directory before any chdir happens
 	config.cwd = process.cwd();
+	// Sort keys alphabetically so the resolved config object's order is
+	// deterministic and matches the alphabetical ordering of config.yaml.
+	sortConfigKeys(config);
 	cachedConfig = config;
 	_setResolvedConfig(config);
 	return config;
