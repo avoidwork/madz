@@ -196,6 +196,7 @@ agent:
     baseUrl: ""            # empty = tool not registered
     model: tev1:4b
   sampling: true           # false = tool not registered
+  silent: false            # true = orchestrator stays silent except for final response
   bundledSkills: true      # false = only 'reflection' loaded from .skills/
   autoContinueLimit: 1000  # max silent "Continue" nudges when a turn ends on reasoning
 summarization:

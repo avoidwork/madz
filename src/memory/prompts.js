@@ -20,6 +20,27 @@ const SAMPLING_TOOL_TOKEN = "<!-- SAMPLING_TOOL_INSTRUCTION -->";
 const SAMPLING_TOOL_INSTRUCTION =
 	"**Sampling:** The **sampling** tool captures meaningful moments as ephemeral memories. Briefly tell the user when you capture a memory (one short sentence), and mention that they can ask to see or delete their memories at any time. Invoke it when: (a) the user expresses satisfaction after a complex task, (b) a pattern emerges across sessions, (c) the user shares something personal or emotionally significant, (d) a technical breakthrough occurs.";
 
+// Silent variant of the sampling instruction, injected when agent.silent is
+// enabled. Sampling still captures memories but does not announce them.
+const SILENT_SAMPLING_INSTRUCTION =
+	"**Sampling:** The **sampling** tool captures meaningful moments as ephemeral memories. Mention that the user can ask to see or delete their memories at any time. Invoke it when: (a) the user expresses satisfaction after a complex task, (b) a pattern emerges across sessions, (c) the user shares something personal or emotionally significant, (d) a technical breakthrough occurs.";
+
+// Token replaced in SYSTEM_PROMPT.md with the rule 3.1 body. The token sits
+// inside the rule so the ternary swaps the entire rule body between the
+// default "Be concise" text and the silent-mode directive.
+const RULE_31_TOKEN = "<!-- RULE_31_INSTRUCTION -->";
+
+// Default rule 3.1 body (silent mode disabled).
+const RULE_31_DEFAULT =
+	"Be concise. Say only what is needed. No preamble, no restating the user's question, no filler. Get to the answer.";
+
+// Rule 3.1 body when agent.silent is enabled. Replaces the default so the
+// orchestrator stays silent except for its final response. Written as a direct
+// imperative directive — the agent sees only this text, not the config flag, so
+// no conditional framing it cannot verify.
+const RULE_31_SILENT =
+	"Remain silent while working. Do not emit intermediate commentary, progress updates, or narration to the user during tool execution or reasoning. Speak only when delivering your final response to the user's request.";
+
 // Open-ended header appended to the end of the authored prompt. deepagents
 // middleware (skills, filesystem, memory, subagents) augments the system prompt
 // at model-call time via raw string concatenation (`SystemMessage.concat`), so
@@ -46,10 +67,20 @@ export async function loadSystemPrompt(baseDir) {
 		const baseUrl = config?.agent?.decision?.baseUrl;
 		const decisionReplacement = baseUrl ? DECISION_TOOL_INSTRUCTION : "";
 		content = content.replaceAll(DECISION_TOOL_TOKEN, decisionReplacement);
+		// Swap rule 3.1's body between the default "Be concise" text and the
+		// silent-mode directive based on the config flag.
+		const silentEnabled = config?.agent?.silent === true;
+		const rule31Replacement = silentEnabled ? RULE_31_SILENT : RULE_31_DEFAULT;
+		content = content.replaceAll(RULE_31_TOKEN, rule31Replacement);
 		// Inject the sampling tool instruction when the tool is enabled, or
-		// remove the token entirely when it is disabled.
+		// remove the token entirely when it is disabled. When silent mode is
+		// enabled, use the silent variant that omits the memory announcement.
 		const samplingEnabled = config?.agent?.sampling !== false;
-		const samplingReplacement = samplingEnabled ? SAMPLING_TOOL_INSTRUCTION : "";
+		const samplingReplacement = samplingEnabled
+			? silentEnabled
+				? SILENT_SAMPLING_INSTRUCTION
+				: SAMPLING_TOOL_INSTRUCTION
+			: "";
 		content = content.replaceAll(SAMPLING_TOOL_TOKEN, samplingReplacement);
 		// Append memory context to the system prompt. The context is already
 		// structured with `###` section headers, so no separator is needed.
