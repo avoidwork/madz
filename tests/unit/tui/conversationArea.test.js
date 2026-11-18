@@ -117,6 +117,19 @@ describe("decideLoopAction", () => {
 		assert.strictEqual(mod.decideLoopAction({ ...base, lastMessageId: "4" }).action, "none");
 	});
 
+	it("does nothing when the turn is paused on an interrupt, even if it looped", async () => {
+		const mod = await import("../../../src/tui/conversationArea.js");
+		// A paused turn is waiting for the user's answer: no nudge, no compaction.
+		const out = mod.decideLoopAction({ ...base, interrupted: true, nudges: [90000, 95000] });
+		assert.strictEqual(out.action, "none");
+		assert.deepStrictEqual(out.nudges, [90000, 95000], "no strike is recorded");
+	});
+
+	it("treats an undefined interrupted flag as not interrupted", async () => {
+		const mod = await import("../../../src/tui/conversationArea.js");
+		assert.strictEqual(mod.decideLoopAction({ ...base, interrupted: undefined }).action, "nudge");
+	});
+
 	it("strike 1 nudges", async () => {
 		const mod = await import("../../../src/tui/conversationArea.js");
 		const out = mod.decideLoopAction({ ...base, nudges: [] });
@@ -253,6 +266,51 @@ describe("shouldAutoContinue", () => {
 				streamingMsgId: "3",
 				lastMessageId: "3",
 				autoContinueCount: 1000,
+				autoContinueLimit: 1000,
+			}),
+			false,
+		);
+	});
+
+	it("returns true when the turn ends on a tool message", async () => {
+		const mod = await import("../../../src/tui/conversationArea.js");
+		for (const lastEventType of ["tool", "on_tool_end"]) {
+			assert.strictEqual(
+				mod.shouldAutoContinue({
+					lastEventType,
+					streamingMsgId: "3",
+					lastMessageId: "3",
+					autoContinueCount: 0,
+					autoContinueLimit: 1000,
+				}),
+				true,
+			);
+		}
+	});
+
+	it("returns false when the turn ends on a tool start", async () => {
+		const mod = await import("../../../src/tui/conversationArea.js");
+		assert.strictEqual(
+			mod.shouldAutoContinue({
+				lastEventType: "on_tool_start",
+				streamingMsgId: "3",
+				lastMessageId: "3",
+				autoContinueCount: 0,
+				autoContinueLimit: 1000,
+			}),
+			false,
+		);
+	});
+
+	it("returns false when the turn was interrupted", async () => {
+		const mod = await import("../../../src/tui/conversationArea.js");
+		assert.strictEqual(
+			mod.shouldAutoContinue({
+				lastEventType: "tool",
+				interrupted: true,
+				streamingMsgId: "3",
+				lastMessageId: "3",
+				autoContinueCount: 0,
 				autoContinueLimit: 1000,
 			}),
 			false,
