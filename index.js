@@ -305,48 +305,24 @@ async function runAgent(input, threadExtras, streamingCallback, signal) {
 					windowSize: loopConfig.windowSize,
 					threshold: loopConfig.threshold,
 				});
-	const maxNudges = loopConfig.streamMaxNudges ?? 2;
-	const threadConfig = {
+	const stream = await agent.stream(input, {
 		configurable: { thread_id: sessionState.getSessionId(), ...threadExtras },
 		maxTokens: providerConfig.maxTokens,
 		signal,
 		recursionLimit: config.agent?.recursionLimit,
 		streamMode: ["messages", "tools", "values"],
 		subgraphs: true,
-	};
-
-	let currentInput = input;
-	let nudges = 0;
-	let result;
-	let content = "";
-	let reasoning = "";
-
-	// A loop inside a single generation is caught while streaming: abandon the
-	// stream, then re-run with a nudge (or compact once nudges are exhausted).
-	while (true) {
-		const stream = await agent.stream(currentInput, threadConfig);
-		result = await consumeStream(stream, streamingCallback, { showToolResults, loopDetector });
-		content += result.content;
-		reasoning += result.reasoning;
-
-		if (!result.loopDetected || signal?.aborted) break;
-
-		loopDetector?.reset();
-		if (nudges >= maxNudges) {
-			logger.warn("[loopDetection] stream loop persists; compacting context");
-			try {
-				await agent.compactContext(threadConfig);
-			} catch (err) {
-				logger.warn({ error: err?.message }, "[loopDetection] compaction failed");
-			}
-			break;
-		}
-		nudges++;
-		logger.warn({ nudges }, "[loopDetection] stream loop detected; aborting and nudging");
-		currentInput = { messages: [new HumanMessage("You're looping")] };
-	}
-
-	const { interrupted, lastEventType } = result;
+	});
+	// A detected loop abandons the stream; the caller (the TUI) sends the silent
+	// nudge, the same way it sends the reasoning-only "Continue".
+	const { content, reasoning, interrupted, lastEventType, loopDetected } = await consumeStream(
+		stream,
+		streamingCallback,
+		{
+			showToolResults,
+			loopDetector,
+		},
+	);
 	return {
 		provider: providerName,
 		content,
@@ -354,6 +330,7 @@ async function runAgent(input, threadExtras, streamingCallback, signal) {
 		tokens: { input: 0, output: 0 },
 		interrupted,
 		lastEventType,
+		loopDetected,
 	};
 }
 

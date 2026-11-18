@@ -41,6 +41,43 @@ describe("countToolMessageTokens", () => {
 	});
 });
 
+describe("shouldNudgeLoop", () => {
+	const base = {
+		loopDetected: true,
+		streamingMsgId: "3",
+		lastMessageId: "3",
+		loopNudgeCount: 0,
+		loopNudgeLimit: 2,
+	};
+
+	it("returns true when the detector flagged the last bubble and the limit is not exhausted", async () => {
+		const mod = await import("../../../src/tui/conversationArea.js");
+		assert.strictEqual(mod.shouldNudgeLoop(base), true);
+	});
+
+	it("returns false when no loop was detected", async () => {
+		const mod = await import("../../../src/tui/conversationArea.js");
+		assert.strictEqual(mod.shouldNudgeLoop({ ...base, loopDetected: false }), false);
+		assert.strictEqual(mod.shouldNudgeLoop({ ...base, loopDetected: undefined }), false);
+	});
+
+	it("returns false when the streaming bubble is not the last message", async () => {
+		const mod = await import("../../../src/tui/conversationArea.js");
+		assert.strictEqual(mod.shouldNudgeLoop({ ...base, lastMessageId: "4" }), false);
+	});
+
+	it("returns false once the nudge limit is exhausted", async () => {
+		const mod = await import("../../../src/tui/conversationArea.js");
+		assert.strictEqual(mod.shouldNudgeLoop({ ...base, loopNudgeCount: 2 }), false);
+		assert.strictEqual(mod.shouldNudgeLoop({ ...base, loopNudgeCount: 1 }), true);
+	});
+
+	it("never nudges when the limit is 0", async () => {
+		const mod = await import("../../../src/tui/conversationArea.js");
+		assert.strictEqual(mod.shouldNudgeLoop({ ...base, loopNudgeLimit: 0 }), false);
+	});
+});
+
 describe("shouldAutoContinue", () => {
 	it("returns true when the last bubble ends on reasoning and the guard is not exhausted", async () => {
 		const mod = await import("../../../src/tui/conversationArea.js");

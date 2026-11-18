@@ -70,6 +70,33 @@ export function shouldAutoContinue({
 }
 
 /**
+ * Decide whether to dispatch a silent loop nudge after a turn ends.
+ *
+ * Mirrors `shouldAutoContinue`: it fires only when the streaming bubble is the
+ * last in the message list AND the stream was abandoned because the loop
+ * detector flagged it AND the nudge limit is not exhausted.
+ *
+ * @param {Object} params - Decision inputs
+ * @param {boolean | undefined} params.loopDetected - Whether the loop detector flagged the stream
+ * @param {string | undefined} params.streamingMsgId - The streaming bubble's message ID
+ * @param {string | undefined} params.lastMessageId - The last message ID in the list
+ * @param {number} params.loopNudgeCount - Current loop nudge count
+ * @param {number} params.loopNudgeLimit - Max loop nudge count
+ * @returns {boolean} True when a silent loop nudge should be dispatched
+ */
+export function shouldNudgeLoop({
+	loopDetected,
+	streamingMsgId,
+	lastMessageId,
+	loopNudgeCount,
+	loopNudgeLimit,
+}) {
+	return (
+		loopDetected === true && streamingMsgId === lastMessageId && loopNudgeCount < loopNudgeLimit
+	);
+}
+
+/**
  * ConversationArea — owns all conversation and streaming state.
  * Communicates with InputArea exclusively via stable App-provided callbacks.
  * @type {React.ForwardRefRenderFunction}
@@ -126,6 +153,9 @@ const ConversationArea = forwardRef(function ConversationArea(
 	// Counts silent "Continue" nudges dispatched when a turn ends on reasoning.
 	// Bounded by config.agent.autoContinueLimit to prevent an infinite loop.
 	const autoContinueCountRef = useRef(0);
+	// Counts silent loop nudges dispatched when the loop detector abandons a
+	// stream. Bounded by config.loopDetection.streamMaxNudges.
+	const loopNudgeCountRef = useRef(0);
 	const toolMessageTokensRef = useRef(0);
 	const contextUpdateTimerRef = useRef(null);
 	const pendingContextRef = useRef({ content: "" });
@@ -493,6 +523,25 @@ const ConversationArea = forwardRef(function ConversationArea(
 				completedToolCalls,
 			);
 
+			// Loop nudge: when the loop detector abandoned the stream, nudge the model
+			// with a silent "You're looping", the same way the reasoning-only
+			// "Continue" below is dispatched. Scoped to the LAST bubble and bounded by
+			// config.loopDetection.streamMaxNudges.
+			const loopNudgeLimit = config?.loopDetection?.streamMaxNudges ?? 2;
+			if (
+				shouldNudgeLoop({
+					loopDetected: response?.loopDetected,
+					streamingMsgId: streamingMsgIdRef.current,
+					lastMessageId: messageListRef.current?.getLastMessageId(),
+					loopNudgeCount: loopNudgeCountRef.current,
+					loopNudgeLimit,
+				})
+			) {
+				loopNudgeCountRef.current += 1;
+				await handleChat("You're looping", { silentUser: true });
+				return;
+			}
+
 			// Reasoning-only auto-continue: when the last bubble ends on reasoning
 			// (the model produced no message content), nudge it with a silent
 			// "Continue" so it produces an actual response. Scoped to the LAST
@@ -574,6 +623,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 		// not per-process. A reasoning loop is a per-thread phenomenon; a fresh
 		// session must not inherit a counter exhausted by a prior thread.
 		autoContinueCountRef.current = 0;
+		loopNudgeCountRef.current = 0;
 		messageListRef.current?.clear();
 		// Recompute the context size for the fresh thread rather than hard-setting
 		// 0. The system prompt (SYSTEM_PROMPT.md + AGENTS.md + memory context) is
