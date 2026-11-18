@@ -153,6 +153,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 	// Counts silent "Continue" nudges dispatched when a turn ends on reasoning.
 	// Bounded by config.agent.autoContinueLimit to prevent an infinite loop.
 	const autoContinueCountRef = useRef(0);
+	const autoContinueLimit = config?.agent?.autoContinueLimit;
 	// Counts silent loop nudges dispatched when the loop detector abandons a
 	// stream. Bounded by config.loopDetection.streamMaxNudges.
 	const loopNudgeCountRef = useRef(0);
@@ -547,7 +548,6 @@ const ConversationArea = forwardRef(function ConversationArea(
 			// "Continue" so it produces an actual response. Scoped to the LAST
 			// bubble only — earlier incomplete bubbles must not trigger it. Bounded
 			// by config.agent.autoContinueLimit to prevent an infinite loop.
-			const autoContinueLimit = config?.agent?.autoContinueLimit ?? 1000;
 			if (
 				shouldAutoContinue({
 					lastEventType: response?.lastEventType,
