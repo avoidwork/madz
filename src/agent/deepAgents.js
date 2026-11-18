@@ -245,6 +245,32 @@ export function toConversationExchange(message) {
  *   Result describing what was removed and trimmed
  */
 export async function compactAgentContext(agent, config, sessionState, options = {}) {
+	// Serialize compactions per thread so overlapping triggers (auto, manual,
+	// loop escalation, context-window handler) cannot interleave.
+	const key = config?.configurable?.thread_id ?? "__default__";
+	const prev = compactionLocks.get(key) ?? Promise.resolve();
+	const run = prev.then(() => runCompaction(agent, config, sessionState, options));
+	const tail = run.catch(() => {});
+	compactionLocks.set(key, tail);
+	try {
+		return await run;
+	} finally {
+		if (compactionLocks.get(key) === tail) compactionLocks.delete(key);
+	}
+}
+
+/** Per-thread compaction queue tails. */
+const compactionLocks = new Map();
+
+/**
+ * Perform one compaction. See {@link compactAgentContext}.
+ * @param {Object} agent - The orchestrator
+ * @param {Object} config - Runnable config
+ * @param {Object} [sessionState] - Session state to sync
+ * @param {Object} [options] - Compaction options
+ * @returns {Promise<Object>} Compaction result
+ */
+async function runCompaction(agent, config, sessionState, options = {}) {
 	const keepRecent = options.keepRecent ?? DEFAULT_KEEP_MESSAGES;
 	const backend = options.backend;
 	const model = options.model;
@@ -293,6 +319,25 @@ export async function compactAgentContext(agent, config, sessionState, options =
 	if (!summarized && filtered.length > keepRecent) {
 		trimmed = filtered.length - keepRecent;
 		finalMessages = filtered.slice(-keepRecent);
+	}
+
+	// Summarization is slow; messages may have been written to the thread since
+	// the snapshot was read. Re-read and carry over anything new so it is not
+	// wiped by the replace-all update.
+	try {
+		const latest = await agent.getState(config);
+		const latestMessages = latest?.values?.messages || [];
+		const seen = new Set(messages.map((m) => m.id).filter(Boolean));
+		const added = latestMessages.filter((m) => !m.id || !seen.has(m.id));
+		const oldLen = messages.length;
+		// Messages without ids can't be matched; fall back to positional tail.
+		const fresh =
+			added.length > 0 && added.every((m) => m.id) ? added : latestMessages.slice(oldLen);
+		if (fresh.length > 0) {
+			finalMessages = [...finalMessages, ...fresh];
+		}
+	} catch (err) {
+		logger.warn({ error: err.message }, "[compact] could not re-read state before write");
 	}
 
 	// Replace the checkpointer state with the compacted message set.

@@ -334,6 +334,49 @@ describe("compactAgentContext", () => {
 		};
 	}
 
+	it("preserves messages written to the thread while compaction runs", async () => {
+		const { compactAgentContext } = await import("../../src/agent/deepAgents.js");
+		const original = [
+			makeMessage("human", "one", { id: "a" }),
+			makeMessage("ai", "two", { id: "b" }),
+		];
+		const arrived = makeMessage("human", "new question", { id: "c" });
+		let calls = 0;
+		const updated = { messages: null };
+		const agent = {
+			getState: async () => ({
+				values: { messages: calls++ === 0 ? original : [...original, arrived] },
+			}),
+			updateState: async (_config, values) => {
+				updated.messages = values.messages;
+			},
+		};
+		const result = await compactAgentContext(agent, { configurable: { thread_id: "race" } });
+
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(updated.messages.at(-1).content, "new question");
+	});
+
+	it("serializes concurrent compactions on the same thread", async () => {
+		const { compactAgentContext } = await import("../../src/agent/deepAgents.js");
+		const events = [];
+		let reads = 0;
+		const agent = {
+			getState: async () => {
+				// Odd reads are the initial snapshot of a compaction.
+				if (reads++ % 2 === 0) events.push("start");
+				await new Promise((r) => setTimeout(r, 10));
+				return { values: { messages: [makeMessage("human", "x", { id: "a" })] } };
+			},
+			updateState: async () => {
+				events.push("end");
+			},
+		};
+		const config = { configurable: { thread_id: "serial" } };
+		await Promise.all([compactAgentContext(agent, config), compactAgentContext(agent, config)]);
+		assert.deepStrictEqual(events, ["start", "end", "start", "end"]);
+	});
+
 	it("removes readImage ToolMessages with non-empty data", async () => {
 		const { compactAgentContext } = await import("../../src/agent/deepAgents.js");
 		const messages = [
