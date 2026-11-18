@@ -314,14 +314,12 @@ async function runAgent(input, threadExtras, streamingCallback, signal) {
 	});
 	// A detected loop abandons the stream; the caller (the TUI) sends the silent
 	// nudge, the same way it sends the reasoning-only "Continue".
-	const { content, reasoning, interrupted, lastEventType, loopDetected } = await consumeStream(
-		stream,
-		streamingCallback,
-		{
+	const { content, reasoning, interrupted, lastEventType, loopDetected, silentViolation } =
+		await consumeStream(stream, streamingCallback, {
 			showToolResults,
 			loopDetector,
-		},
-	);
+			silent: config.agent?.silent === true,
+		});
 	return {
 		provider: providerName,
 		content,
@@ -330,6 +328,7 @@ async function runAgent(input, threadExtras, streamingCallback, signal) {
 		interrupted,
 		lastEventType,
 		loopDetected,
+		silentViolation,
 	};
 }
 

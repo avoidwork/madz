@@ -78,6 +78,33 @@ export function shouldAutoContinue({
 	);
 }
 
+/** Silent nudge sent when the assistant narrates while `agent.silent` is enabled. */
+export const SILENT_MODE_NUDGE = "Stay quiet, silent mode is enabled";
+
+/**
+ * Decide whether to send the silent-mode nudge after a turn ends.
+ *
+ * Fires only when the stream was abandoned for a silent-mode violation (a second
+ * message streaming in the same turn), the streaming bubble is the last in the
+ * list, and the turn was not paused by an interrupt. The nudge corrects behavior
+ * rather than continuing a turn, so it is not counted against `autoContinueLimit`.
+ *
+ * @param {Object} params - Decision inputs
+ * @param {boolean | undefined} params.silentViolation - Whether the stream was abandoned
+ * @param {boolean} [params.interrupted] - True when the turn paused on an interrupt
+ * @param {string | undefined} params.streamingMsgId - The streaming bubble's message ID
+ * @param {string | undefined} params.lastMessageId - The last message ID in the list
+ * @returns {boolean} True when the silent-mode nudge should be dispatched
+ */
+export function shouldNudgeSilent({
+	silentViolation,
+	interrupted = false,
+	streamingMsgId,
+	lastMessageId,
+}) {
+	return silentViolation === true && !interrupted && streamingMsgId === lastMessageId;
+}
+
 /**
  * Decide whether to send a silent "Continue" after a loop-triggered compaction.
  *
@@ -616,6 +643,21 @@ const ConversationArea = forwardRef(function ConversationArea(
 				turnStartTime,
 				completedToolCalls,
 			);
+
+			// Silent mode: the stream was abandoned because a second message started
+			// streaming. Nudge the assistant to stay quiet. This is not a continuation,
+			// so it does not count against autoContinueLimit.
+			if (
+				shouldNudgeSilent({
+					silentViolation: response?.silentViolation,
+					interrupted: response?.interrupted,
+					streamingMsgId: streamingMsgIdRef.current,
+					lastMessageId: messageListRef.current?.getLastMessageId(),
+				})
+			) {
+				await handleChat(SILENT_MODE_NUDGE, { silentUser: true });
+				return;
+			}
 
 			// Loop nudge: when the loop detector abandoned the stream, nudge the model
 			// with a silent "You're looping", the same way the reasoning-only
