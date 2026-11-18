@@ -8,7 +8,8 @@ import { z } from "zod";
  * words per kind (reasoning, message), and only the last `windowSize` sentences
  * and `wordWindowSize` words are kept. A loop is a sentence repeated more than
  * `threshold` times within the sentence window, or a run of words repeated
- * back-to-back more than `threshold` times (loops with no punctuation). The
+ * back-to-back more than `threshold` times (loops with no punctuation). State
+ * is kept per stream (a kind plus an id), at most `maxStreams` at once. The
  * stream is then abandoned and the TUI sends a silent "You're looping" nudge.
  * If `escalationCount` nudges occur within `escalationWindowMs`, the context is
  * compacted instead of nudging again.
@@ -23,6 +24,13 @@ export const LoopDetectionSchema = z
 		// copies of the longest repeating unit: the two-paragraph capture is 190
 		// words, so 3 copies need 570.
 		wordWindowSize: z.number().int().positive().default(1000),
+		// Maximum number of streams (a kind plus an id) tracked at once. A long turn
+		// can produce hundreds to thousands of reasoning and message streams, but only
+		// the ones still receiving deltas matter; when more than this many are live,
+		// the least recently updated is evicted. A looping stream is always actively
+		// receiving deltas, so it is never the one evicted. Each full stream holds
+		// about 30-40 KB (measured), so 1000 is on the order of 30-40 MB worst case.
+		maxStreams: z.number().int().positive().default(1000),
 		// Accumulated stream text older than this many ms is dropped, so past
 		// content cannot cause false positives as new content streams in.
 		ttlMs: z.number().int().positive().default(60000),

@@ -33,12 +33,14 @@ export async function destroyPool() {
  * Create a streaming loop detector.
  *
  * Each streamed delta is split once, as it arrives, into completed sentences
- * and words. State is kept per block: the key is the kind (reasoning, message)
- * plus the stream block's id, so concurrent blocks never mix and detection is
- * restricted to the one block a delta belongs to. A delta with no id (Chat
- * Completions `reasoning_content`) is keyed by kind alone. At most `maxBlocks`
- * blocks are tracked; the least recently updated is evicted. Only the last
- * `windowSize` sentences
+ * and words. State is kept per stream: the key is the kind (reasoning, message)
+ * plus the stream's id, so concurrent streams never mix and detection is
+ * restricted to the one stream a delta belongs to. A delta with no id (Chat
+ * Completions `reasoning_content`) is keyed by kind alone. At most `maxStreams`
+ * streams are tracked at once; the least recently updated is evicted. A looping
+ * stream is by definition receiving deltas, so it is never the one evicted; the
+ * cap only matters when more than `maxStreams` streams are live at the same
+ * moment. Only the last `windowSize` sentences
  * and `wordWindowSize` words are kept, so memory and the cost of a check stay
  * bounded however long the stream runs, and the provider's delta boundaries do
  * not matter. A loop is a sentence repeated within the sentence window, or a
@@ -47,14 +49,14 @@ export async function destroyPool() {
  *
  * The check runs in a worker thread so it never blocks the main loop. `push`
  * returns immediately with the latest known result. A check starts only when a
- * delta completed a new sentence or word, and at most one check per block is in
+ * delta completed a new sentence or word, and at most one check per stream is in
  * flight.
  *
  * @param {Object} [options] - Options
  * @param {number} [options.windowSize=20] - Recent completed sentences kept and compared
  * @param {number} [options.wordWindowSize=1000] - Recent completed words kept and compared
  * @param {number} [options.threshold=2] - Repeats above which a loop is flagged
- * @param {number} [options.maxBlocks=16] - Concurrent blocks tracked; the least recently updated is evicted
+ * @param {number} [options.maxStreams=1000] - Streams tracked at once; the least recently updated is evicted
  * @param {number} [options.ttlMs] - State older than this is dropped (no expiry when unset)
  * @param {Function} [options.now] - Clock returning ms (injectable for tests)
  * @param {{ run: Function }} [options.runner] - Runs a check; defaults to the shared pool, injectable for tests
@@ -64,7 +66,7 @@ export function createSegmentLoopDetector(options = {}) {
 	const windowSize = options.windowSize ?? 20;
 	const wordWindowSize = options.wordWindowSize ?? 1000;
 	const threshold = options.threshold ?? 2;
-	const maxBlocks = options.maxBlocks ?? 16;
+	const maxStreams = options.maxStreams ?? 1000;
 	const ttlMs = options.ttlMs;
 	const now = options.now ?? (() => Date.now());
 	const runner = options.runner ?? { run: (task) => getPool().run(task) };
@@ -99,11 +101,11 @@ export function createSegmentLoopDetector(options = {}) {
 	}
 
 	/**
-	 * Get (or create) the state for a block and mark it most recently used. The
-	 * least recently used block is evicted once more than `maxBlocks` are tracked.
-	 * @param {string} key - Block key (kind, or kind plus id)
+	 * Get (or create) the state for a stream and mark it most recently used. The
+	 * least recently used stream is evicted once more than `maxStreams` are tracked.
+	 * @param {string} key - Stream key (kind, or kind plus id)
 	 * @param {KindState} [replacement] - State to install in place of the existing one
-	 * @returns {KindState} The block's state
+	 * @returns {KindState} The stream's state
 	 */
 	function touch(key, replacement) {
 		const existing = kinds.get(key);
@@ -111,7 +113,7 @@ export function createSegmentLoopDetector(options = {}) {
 		if (existing && existing !== state) existing.dead = true;
 		kinds.delete(key);
 		kinds.set(key, state);
-		if (kinds.size > maxBlocks) {
+		if (kinds.size > maxStreams) {
 			const oldest = kinds.keys().next().value;
 			kinds.get(oldest).dead = true;
 			kinds.delete(oldest);
@@ -160,8 +162,8 @@ export function createSegmentLoopDetector(options = {}) {
 		 * Record a streamed delta.
 		 * @param {string} kind - Stream kind, e.g. "reasoning" or "message"
 		 * @param {string} delta - The delta exactly as streamed
-		 * @param {string | number} [id] - The stream block's id; a delta with no id is keyed by kind alone
-		 * @returns {boolean} True when a completed check has flagged a loop for this block
+		 * @param {string | number} [id] - The stream's id; a delta with no id is keyed by kind alone
+		 * @returns {boolean} True when a completed check has flagged a loop for this stream
 		 */
 		push(kind, delta, id) {
 			if (typeof delta !== "string" || delta.length === 0) return false;
@@ -169,8 +171,8 @@ export function createSegmentLoopDetector(options = {}) {
 			let state = touch(key);
 			const nowMs = now();
 			if (ttlMs !== undefined && nowMs - state.ts > ttlMs) {
-				// Expired: start this block over. touch() marks the old state dead, so
-				// its in-flight answer is dropped without affecting any other block.
+				// Expired: start this stream over. touch() marks the old state dead, so
+				// its in-flight answer is dropped without affecting any other stream.
 				state = touch(key, freshState());
 			}
 			state.ts = nowMs;

@@ -56,11 +56,36 @@ describe("loopDetection config schema", () => {
 
 	it("keeps the other defaults", () => {
 		const cfg = LoopDetectionSchema.parse({});
+		assert.strictEqual(cfg.maxStreams, 1000);
 		assert.strictEqual(cfg.windowSize, 20);
 		assert.strictEqual(cfg.threshold, 2);
 		assert.strictEqual(cfg.ttlMs, 60000);
 		assert.strictEqual(cfg.escalationCount, 3);
 		assert.strictEqual(cfg.escalationWindowMs, 60000);
+	});
+});
+
+describe("loopDetection maxStreams", () => {
+	it("defaults to 1000", () => {
+		assert.strictEqual(LoopDetectionSchema.parse({}).maxStreams, 1000);
+	});
+
+	it("accepts a configured value", () => {
+		assert.strictEqual(LoopDetectionSchema.parse({ maxStreams: 5000 }).maxStreams, 5000);
+	});
+
+	it("rejects zero, negative and fractional values", () => {
+		for (const bad of [0, -1, 2.5]) {
+			assert.throws(() => LoopDetectionSchema.parse({ maxStreams: bad }), `maxStreams ${bad}`);
+		}
+	});
+
+	it("is set in config.yaml to the schema default", () => {
+		const yaml = readFileSync(
+			fileURLToPath(new URL("../../../config.yaml", import.meta.url)),
+			"utf8",
+		);
+		assert.match(yaml, /^\s+maxStreams: 1000$/m);
 	});
 });
 
