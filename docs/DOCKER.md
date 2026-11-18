@@ -256,7 +256,10 @@ The active provider is selected by the `enabled` flag, not by config position or
 
 ### Summarization
 
-Context compaction is configured in `config.yaml` (`summarization.keepMessages`, `summarization.contextFraction`); see [CONFIGURATION.md](CONFIGURATION.md#summarization).
+| Variable                         | Default | Description                                                   |
+| -------------------------------- | ------- | ------------------------------------------------------------- |
+| `SUMMARIZATION_CONTEXT_FRACTION` | `0.8`   | Fraction of the context window at which the TUI auto-compacts |
+| `SUMMARIZATION_KEEP_MESSAGES`    | `5`     | Recent messages kept verbatim after compaction                |
 
 ### Vector Search
 
