@@ -13,6 +13,9 @@ import { isSubagentNamespace } from "./namespace.js";
  * @param {Function} [streamingCallback] - Callback for streamed chunks
  * @param {Object} [options] - Options
  * @param {boolean} [options.showToolResults=true] - Whether to emit `tool` events
+ * @param {boolean} [options.silent=false] - Silent mode (`agent.silent`). When a second
+ *   text-bearing assistant message starts while the turn is still streaming, the stream is
+ *   abandoned before that text is forwarded and `silentViolation` is returned true.
  * @param {{push: Function, settle?: Function, reset: Function}} [options.loopDetector] - Loop
  *   detector. Each non-subagent message/reasoning delta is pushed to it together with
  *   the stream block's id (the content-block index for messages, `block.id` for
@@ -25,7 +28,7 @@ import { isSubagentNamespace } from "./namespace.js";
  *   id arrives, or a tool result follows) `end()` collects the verdict and releases
  *   the detector's word and sentence lists. The detector is also reset when the
  *   stream itself ends, however it ends.
- * @returns {Promise<{content: string, reasoning: string, interrupted: boolean, lastEventType: string | null, loopDetected: boolean}>}
+ * @returns {Promise<{content: string, reasoning: string, interrupted: boolean, lastEventType: string | null, loopDetected: boolean, silentViolation: boolean}>}
  */
 export async function consumeStream(stream, streamingCallback, options = {}) {
 	try {
@@ -42,7 +45,7 @@ export async function consumeStream(stream, streamingCallback, options = {}) {
  * @param {AsyncIterable} stream - The agent stream (subgraphs mode)
  * @param {Function} [streamingCallback] - Callback for streamed chunks
  * @param {Object} options - Options
- * @returns {Promise<{content: string, reasoning: string, interrupted: boolean, lastEventType: string | null, loopDetected: boolean}>}
+ * @returns {Promise<{content: string, reasoning: string, interrupted: boolean, lastEventType: string | null, loopDetected: boolean, silentViolation: boolean}>}
  */
 async function drainStream(stream, streamingCallback, options) {
 	const showToolResults = options.showToolResults;
@@ -51,6 +54,10 @@ async function drainStream(stream, streamingCallback, options) {
 	let interrupted = false;
 	let lastEventType = null;
 	let loopDetected = false;
+	let silentViolation = false;
+	/** Id of the last assistant message that carried text, and how many have. */
+	let lastTextMsgId = null;
+	let textMessageCount = 0;
 	const loopDetector = options.loopDetector;
 	/** The id shared by the chunks of the message currently streaming. */
 	let currentMsgId = null;
@@ -106,6 +113,19 @@ async function drainStream(stream, streamingCallback, options) {
 					}
 					if (!isSubagent) lastEventType = "tool";
 					continue;
+				}
+
+				// Silent mode: a second text-bearing message in the same turn means the
+				// assistant is narrating. Stop before its text reaches the bubble.
+				if (options.silent && !isSubagent && currentMsgId != null) {
+					if (currentMsgId !== lastTextMsgId) {
+						lastTextMsgId = currentMsgId;
+						textMessageCount += 1;
+					}
+					if (textMessageCount >= 2) {
+						silentViolation = true;
+						break;
+					}
 				}
 
 				if (!isSubagent) {
@@ -195,5 +215,5 @@ async function drainStream(stream, streamingCallback, options) {
 	// a loop in the final deltas is not missed.
 	if (!loopDetected && loopDetector?.settle) loopDetected = await loopDetector.settle();
 
-	return { content, reasoning, interrupted, lastEventType, loopDetected };
+	return { content, reasoning, interrupted, lastEventType, loopDetected, silentViolation };
 }
