@@ -9,7 +9,7 @@ after(async () => {
 });
 
 /** Runner that executes the check inline, so unit tests need no thread. */
-const inline = { run: async (task) => checkLoop(task.text, task) };
+const inline = { run: async (task) => checkLoop(task) };
 
 const detector = (extra = {}) => createSegmentLoopDetector({ runner: inline, ...extra });
 
@@ -77,7 +77,7 @@ describe("createSegmentLoopDetector (worker-backed)", () => {
 				peak = Math.max(peak, running);
 				await new Promise((r) => setTimeout(r, 5));
 				running--;
-				return checkLoop(task.text, task);
+				return checkLoop(task);
 			},
 		};
 		const d = createSegmentLoopDetector({ runner: slow });
@@ -90,9 +90,9 @@ describe("createSegmentLoopDetector (worker-backed)", () => {
 		const seen = [];
 		const slow = {
 			run: async (task) => {
-				seen.push(task.text);
+				seen.push(task);
 				await new Promise((r) => setTimeout(r, 5));
-				return checkLoop(task.text, task);
+				return checkLoop(task);
 			},
 		};
 		const d = createSegmentLoopDetector({ runner: slow });
@@ -101,6 +101,7 @@ describe("createSegmentLoopDetector (worker-backed)", () => {
 		d.push("reasoning", "ok ");
 		assert.strictEqual(await d.settle(), true);
 		assert.ok(seen.length >= 2, "the tail was checked again");
+		assert.ok(seen.at(-1).words.length > seen[0].words.length, "the later check saw newer words");
 	});
 
 	it("treats a failing check as not looping and keeps streaming", async () => {
@@ -134,11 +135,96 @@ describe("createSegmentLoopDetector (worker-backed)", () => {
 		assert.strictEqual(await d.settle(), true);
 	});
 
+	it("keeps only the last windowSize sentences and wordWindowSize words", async () => {
+		const seen = [];
+		const spy = {
+			run: async (task) => {
+				seen.push(task);
+				return false;
+			},
+		};
+		const d = createSegmentLoopDetector({ runner: spy, windowSize: 5, wordWindowSize: 12 });
+		for (let i = 0; i < 100; i++) {
+			d.push("reasoning", `Unique sentence number ${i} here. `);
+			await d.settle();
+		}
+		const last = seen.at(-1);
+		assert.ok(last.sentences.length <= 5, `sentences ${last.sentences.length}`);
+		assert.ok(last.words.length <= 12, `words ${last.words.length}`);
+		assert.strictEqual(last.sentences.at(-1), "Unique sentence number 99 here.");
+	});
+
+	it("sends the worker a bounded task however long the stream gets", async () => {
+		const sizes = [];
+		const spy = {
+			run: async (task) => {
+				sizes.push(task.sentences.length + task.words.length);
+				return false;
+			},
+		};
+		const d = createSegmentLoopDetector({ runner: spy, windowSize: 20, wordWindowSize: 200 });
+		for (let i = 0; i < 2000; i++) {
+			d.push("reasoning", `Distinct sentence ${i} goes here. `);
+			if (i % 50 === 0) await d.settle();
+		}
+		await d.settle();
+		assert.ok(Math.max(...sizes) <= 220, `max task size ${Math.max(...sizes)}`);
+	});
+
+	it("does not start a check for a delta that completes no sentence or word", async () => {
+		let calls = 0;
+		const spy = {
+			run: async () => {
+				calls++;
+				return false;
+			},
+		};
+		const d = createSegmentLoopDetector({ runner: spy });
+		d.push("reasoning", "hel");
+		d.push("reasoning", "lo");
+		d.push("reasoning", " wor");
+		await d.settle();
+		const afterFirstWord = calls;
+		d.push("reasoning", "l");
+		d.push("reasoning", "d");
+		await d.settle();
+		assert.strictEqual(calls, afterFirstWord, "no new check until a word completes");
+	});
+
+	it("finds a sentence whose boundary falls across two deltas", async () => {
+		const d = detector();
+		for (const delta of ["Same thing.", " ", "Same thing.", " ", "Same thing.", " ", "x"]) {
+			d.push("reasoning", delta);
+		}
+		assert.strictEqual(await d.settle(), true);
+	});
+
+	it("reaches the same verdict however the stream is chunked", async () => {
+		const text = "This is a test of streamed repetition. ".repeat(5);
+		for (const size of [1, 2, 3, 5, 8, 13]) {
+			const d = detector();
+			for (let i = 0; i < text.length; i += size) d.push("reasoning", text.slice(i, i + size));
+			assert.strictEqual(await d.settle(), true, `chunk size ${size}`);
+		}
+	});
+
+	it("drops state older than ttlMs for that kind only", async () => {
+		let clock = 0;
+		const d = detector({ ttlMs: 100, now: () => clock });
+		d.push("reasoning", "ok ok ");
+		await d.settle();
+		clock = 50;
+		d.push("message", "fresh ");
+		clock = 500;
+		d.push("reasoning", "ok ");
+		assert.strictEqual(await d.settle(), false);
+	});
+
 	it("reset clears state and discards a stale in-flight result", async () => {
 		const slow = {
 			run: async (task) => {
 				await new Promise((r) => setTimeout(r, 10));
-				return checkLoop(task.text, task);
+				return checkLoop(task);
 			},
 		};
 		const d = createSegmentLoopDetector({ runner: slow });

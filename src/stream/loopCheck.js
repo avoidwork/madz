@@ -1,41 +1,59 @@
 /**
- * Pure loop checks over accumulated stream text. They look at the text itself,
- * never at how the provider happened to split it into deltas, so a repeat is
- * found however each copy was chunked. Kept free of I/O so the worker thread
- * and the unit tests run the exact same code.
+ * Pure loop checks. They work on already-split sentences and words, never on
+ * the raw stream, so how the provider cut the stream into deltas does not
+ * matter, and the cost of a check depends on the window, not on how long the
+ * stream has been running. Kept free of I/O so the worker thread and the unit
+ * tests run the exact same code.
  */
-
-const SENTENCE_BOUNDARY = /(?<=[.!?])\s+|\n+/;
 
 /**
- * Split text into completed sentences. A sentence ends at `.`, `?` or `!`
- * followed by whitespace, or at a newline. The trailing piece has not ended
- * yet, so it is dropped.
- * @param {string} text - Accumulated stream text
- * @returns {string[]} Completed sentences, whitespace collapsed
+ * Take the sentences that have completed in `pending`. A sentence ends at `.`,
+ * `?` or `!` followed by whitespace, or at a newline. Only the text from `from`
+ * on is scanned, so a caller that appends a delta and passes the old length
+ * pays for the delta, not for everything seen so far.
+ * @param {string} pending - Text not yet consumed (an unfinished sentence plus new text)
+ * @param {number} [from=0] - Index to start scanning at (the length before the new text was appended)
+ * @returns {{ sentences: string[], rest: string }} Completed sentences (whitespace collapsed)
+ *   and the unfinished remainder to carry forward
  */
-export function completedSentences(text) {
-	const parts = text.split(SENTENCE_BOUNDARY);
-	parts.pop();
-	const out = [];
-	for (const part of parts) {
-		const sentence = part.replace(/\s+/g, " ").trim();
-		if (sentence) out.push(sentence);
+export function takeSentences(pending, from = 0) {
+	const boundary = /(?<=[.!?])\s+|\n+/g;
+	boundary.lastIndex = from;
+	const sentences = [];
+	let start = 0;
+	let match;
+	while ((match = boundary.exec(pending)) !== null) {
+		const sentence = pending.slice(start, match.index).replace(/\s+/g, " ").trim();
+		if (sentence) sentences.push(sentence);
+		start = match.index + match[0].length;
 	}
-	return out;
+	return { sentences, rest: pending.slice(start) };
 }
 
 /**
- * Look for a sentence that repeats within the last `windowSize` completed
- * sentences.
- * @param {string} text - Accumulated stream text
- * @param {number} windowSize - How many recent sentences to compare
- * @param {number} threshold - Occurrences above which a sentence is looping
- * @returns {boolean} True when a sentence occurs more than `threshold` times
+ * Take the words that have completed once `delta` is appended. A word ends at
+ * whitespace; a trailing piece with no whitespace after it may continue in the
+ * next delta, so it is carried forward.
+ * @param {string} partial - Unfinished word carried from the previous delta
+ * @param {string} delta - New text
+ * @returns {{ words: string[], rest: string }} Completed words and the unfinished remainder
  */
-export function hasDuplicateSentence(text, windowSize, threshold) {
+export function takeWords(partial, delta) {
+	const text = partial + delta;
+	const parts = text.split(/\s+/);
+	const rest = /\s$/.test(text) ? "" : parts.pop();
+	return { words: parts.filter(Boolean), rest };
+}
+
+/**
+ * Look for a sentence that occurs more than `threshold` times in `sentences`.
+ * @param {string[]} sentences - The recent completed sentences
+ * @param {number} threshold - Occurrences above which a sentence is looping
+ * @returns {boolean} True when a sentence repeats
+ */
+export function hasDuplicateSentence(sentences, threshold) {
 	const counts = new Map();
-	for (const sentence of completedSentences(text).slice(-windowSize)) {
+	for (const sentence of sentences) {
 		const count = (counts.get(sentence) ?? 0) + 1;
 		if (count > threshold) return true;
 		counts.set(sentence, count);
@@ -44,14 +62,13 @@ export function hasDuplicateSentence(text, windowSize, threshold) {
 }
 
 /**
- * Look for a run of words repeated back-to-back at the end of the text. This
+ * Look for a run of words repeated back-to-back at the end of `words`. This
  * covers loops with no sentence terminator at all, such as "ok ok ok ok".
- * @param {string} text - Accumulated stream text
+ * @param {string[]} words - The recent completed words
  * @param {number} threshold - Back-to-back repeats above which a loop is flagged
  * @returns {boolean} True when the tail is one word run repeated more than `threshold` times
  */
-export function hasRepeatedWords(text, threshold) {
-	const words = text.split(/\s+/).filter(Boolean);
+export function hasRepeatedWords(words, threshold) {
 	const needed = threshold + 1;
 	const n = words.length;
 	const last = words[n - 1];
@@ -68,13 +85,13 @@ export function hasRepeatedWords(text, threshold) {
 }
 
 /**
- * Check accumulated stream text for a loop.
- * @param {string} text - Accumulated stream text
- * @param {Object} options - Options
- * @param {number} options.windowSize - Recent completed sentences to compare
- * @param {number} options.threshold - Repeats above which a loop is flagged
- * @returns {boolean} True when the text is looping
+ * Check the recent sentences and words for a loop.
+ * @param {Object} task - The check
+ * @param {string[]} task.sentences - Recent completed sentences
+ * @param {string[]} task.words - Recent completed words
+ * @param {number} task.threshold - Repeats above which a loop is flagged
+ * @returns {boolean} True when the stream is looping
  */
-export function checkLoop(text, { windowSize, threshold }) {
-	return hasDuplicateSentence(text, windowSize, threshold) || hasRepeatedWords(text, threshold);
+export function checkLoop({ sentences, words, threshold }) {
+	return hasDuplicateSentence(sentences, threshold) || hasRepeatedWords(words, threshold);
 }
