@@ -317,8 +317,8 @@ async function runAgent(input, threadExtras, streamingCallback, signal) {
 		streamMode: ["messages", "tools", "values"],
 		subgraphs: true,
 	});
-	// A detected loop abandons the stream; the caller (the TUI) sends the nudge,
-	// the same way it sends the reasoning-only "Continue".
+	// A detected loop abandons the stream; the caller (the TUI) sends the silent
+	// nudge, the same way it sends the reasoning-only "Continue".
 	const { content, reasoning, interrupted, lastEventType, loopDetected } = await consumeStream(
 		stream,
 		streamingCallback,

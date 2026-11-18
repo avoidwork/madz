@@ -537,8 +537,8 @@ const ConversationArea = forwardRef(function ConversationArea(
 			);
 
 			// Loop nudge: when the loop detector abandoned the stream, nudge the model
-			// with "You're looping". Rendered as a visible user message (not silent) so
-			// it is obvious when the detector fires. Scoped to the LAST bubble. After
+			// with a silent "You're looping", the same way the reasoning-only
+			// "Continue" below is dispatched. Scoped to the LAST bubble. After
 			// `escalationCount` nudges within `escalationWindowMs`, compact the
 			// context instead of nudging again.
 			const loop = decideLoopAction({
@@ -556,7 +556,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 				return;
 			}
 			if (loop.action === "nudge") {
-				await handleChat("You're looping");
+				await handleChat("You're looping", { silentUser: true });
 				return;
 			}
 
