@@ -70,6 +70,24 @@ export function shouldAutoContinue({
 }
 
 /**
+ * Decide whether to send a silent "Continue" after a loop-triggered compaction.
+ *
+ * The model is resumed only when the compaction succeeded (a failed one leaves
+ * the looping context in place, so continuing would loop again) and the shared
+ * auto-continue guard is not exhausted, so a model that keeps looping cannot
+ * cycle through nudge, compact, continue forever.
+ *
+ * @param {Object} params - Decision inputs
+ * @param {boolean} params.compacted - Whether the compaction succeeded
+ * @param {number} params.autoContinueCount - Current auto-continue count
+ * @param {number} params.autoContinueLimit - Max auto-continue count
+ * @returns {boolean} True when a silent "Continue" should be dispatched
+ */
+export function shouldContinueAfterCompact({ compacted, autoContinueCount, autoContinueLimit }) {
+	return compacted === true && autoContinueCount < autoContinueLimit;
+}
+
+/**
  * Decide what to do after a turn when the loop detector may have abandoned the stream.
  *
  * Mirrors `shouldAutoContinue`: it acts only when the streaming bubble is the
@@ -303,11 +321,12 @@ const ConversationArea = forwardRef(function ConversationArea(
 	 * Compact the context window on demand.
 	 * Invokes the agent's compaction routine, syncs the TUI conversation view,
 	 * recomputes the context size.
+	 * @returns {Promise<boolean>} True when the context was compacted
 	 */
 	const handleCompact = async () => {
 		if (!compactContext) {
 			addMessage({ role: "system", content: "Compaction is not available." });
-			return;
+			return false;
 		}
 		const compactMsgId = addMessage({ role: "system", content: "Compacting context window..." });
 		try {
@@ -325,13 +344,15 @@ const ConversationArea = forwardRef(function ConversationArea(
 				messageListRef.current?.updateMessage(compactMsgId, { content: msg });
 				// Recompute the context size so the status bar reflects the reduced window.
 				await updateContextSize(sessionState, config);
-			} else {
-				const msg = `Compaction failed: ${result?.error || "unknown error"}`;
-				messageListRef.current?.updateMessage(compactMsgId, { content: msg });
+				return true;
 			}
+			const msg = `Compaction failed: ${result?.error || "unknown error"}`;
+			messageListRef.current?.updateMessage(compactMsgId, { content: msg });
+			return false;
 		} catch (err) {
 			const msg = `Compaction failed: ${err.message}`;
 			messageListRef.current?.updateMessage(compactMsgId, { content: msg });
+			return false;
 		}
 	};
 
@@ -554,7 +575,19 @@ const ConversationArea = forwardRef(function ConversationArea(
 			});
 			loopNudgesRef.current = loop.nudges;
 			if (loop.action === "compact") {
-				await handleCompact();
+				const compacted = await handleCompact();
+				// After a successful compaction, resume the model with a silent
+				// "Continue", counted against the same autoContinueLimit guard.
+				if (
+					shouldContinueAfterCompact({
+						compacted,
+						autoContinueCount: autoContinueCountRef.current,
+						autoContinueLimit,
+					})
+				) {
+					autoContinueCountRef.current += 1;
+					await handleChat("Continue", { silentUser: true });
+				}
 				return;
 			}
 			if (loop.action === "nudge") {

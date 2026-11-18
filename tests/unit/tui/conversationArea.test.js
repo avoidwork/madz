@@ -41,6 +41,55 @@ describe("countToolMessageTokens", () => {
 	});
 });
 
+describe("shouldContinueAfterCompact", () => {
+	it("continues after a successful compaction", async () => {
+		const mod = await import("../../../src/tui/conversationArea.js");
+		assert.strictEqual(
+			mod.shouldContinueAfterCompact({
+				compacted: true,
+				autoContinueCount: 0,
+				autoContinueLimit: 1000,
+			}),
+			true,
+		);
+	});
+
+	it("does not continue after a failed compaction", async () => {
+		const mod = await import("../../../src/tui/conversationArea.js");
+		for (const compacted of [false, undefined, null]) {
+			assert.strictEqual(
+				mod.shouldContinueAfterCompact({
+					compacted,
+					autoContinueCount: 0,
+					autoContinueLimit: 1000,
+				}),
+				false,
+				`compacted ${compacted}`,
+			);
+		}
+	});
+
+	it("stops once the shared auto-continue limit is reached", async () => {
+		const mod = await import("../../../src/tui/conversationArea.js");
+		assert.strictEqual(
+			mod.shouldContinueAfterCompact({
+				compacted: true,
+				autoContinueCount: 999,
+				autoContinueLimit: 1000,
+			}),
+			true,
+		);
+		assert.strictEqual(
+			mod.shouldContinueAfterCompact({
+				compacted: true,
+				autoContinueCount: 1000,
+				autoContinueLimit: 1000,
+			}),
+			false,
+		);
+	});
+});
+
 describe("decideLoopAction", () => {
 	const base = {
 		loopDetected: true,
