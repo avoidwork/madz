@@ -134,8 +134,7 @@ export function bootstrap() {
 async function doBootstrap() {
 	config = loadConfig();
 
-	const { createDeepAgentsOrchestrator, toConversationExchange } =
-		await import("./src/agent/deepAgents.js");
+	const { createDeepAgentsOrchestrator } = await import("./src/agent/deepAgents.js");
 	const { ensureToolsDir, ensureScreenshotsDir, ensureContextDir, expireEphemeralMemories } =
 		await import("./src/memory/index.js");
 	const { ensureDownloadsDir } = await import("./src/downloads/index.js");
@@ -265,12 +264,6 @@ async function doBootstrap() {
 
 	// Manual context compaction (the `/compact` slash command)
 	compactContext = (options) => agent.compactContext(currentSessionConfig(), sessionState, options);
-
-	// Automatic compaction rewrites the checkpointer mid-run; keep the session's
-	// conversation in step so saved sessions and the TUI agree with the model.
-	agent.onCompacted?.((result) => {
-		sessionState.loadConversation(result.messages.map(toConversationExchange));
-	});
 
 	// Real LangChain message array from the checkpointer for the context counter.
 	// Returns null on failure so the TUI falls back to sessionState.

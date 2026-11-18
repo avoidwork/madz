@@ -16,7 +16,6 @@ import { getModelContextLength } from "../provider/modelInfo.js";
 import { getActiveProviderConfig, getActiveProviderName } from "../provider/index.js";
 import { createTokenBudgetMiddleware } from "../provider/tokenBudgetMiddleware.js";
 import { createCopilotRetryMiddleware } from "../provider/copilotRetryMiddleware.js";
-import { createSummarizationMiddlewareFromConfig } from "../provider/summarizationMiddleware.js";
 import { createEvictionAwareFilesystemMiddleware } from "./evictionCeiling.js";
 import { createSkillsMiddleware } from "./skillsMiddleware.js";
 import {
@@ -325,7 +324,7 @@ export async function compactAgentContext(agent, config, sessionState, options =
 
 /**
  * Create a Deep Agents orchestrator with coding and utility sub-agents.
- * Uses deepagents middleware for filesystem, memory, skills, and summarization.
+ * Uses deepagents middleware for filesystem, memory, and skills.
  * @param {import("@langchain/langgraph").BaseCheckpointSaver | null} [checkpointer=null] - Optional checkpointer
  * @returns {Promise<{agent: Object, model: Object}>} The orchestrator agent and its chat model
  */
@@ -462,68 +461,23 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		},
 	});
 
-	// Configurable summarization middleware. Registered BEFORE the token-budget
-	// middleware so the budget observes the post-summarization message set.
-	// Returns null when the `summarization` config section is absent or
-	// `enabled` is false, so unset config is a true no-op (deepagents' library
-	// default of 170k trigger / keep 6 applies). When enabled, the returned
-	// middleware is named `SummarizationMiddleware`, which displaces the library
-	// default via same-name merge semantics in `createDeepAgent`.
-	// Derive the summarization trigger from the provider model context length.
-	// The configured token value is a guess that drifts from reality as models
-	// change. When the model's real context window is smaller than the
-	// configured trigger, the conversation overflows before summarization fires;
-	// when larger, we summarize too early. Resolve the context length at init
-	// and override the trigger with 80% of it. The 80% is hardcoded; no config
-	// schema change. If the context length cannot be resolved (unreachable,
-	// model not found, field absent), fall back to the configured token value so
-	// startup never blocks on a network call.
+	// Resolve the model's real context length at init. If it cannot be resolved
+	// (unreachable, model not found, field absent) startup continues and the
+	// configured context window is used. Auto-compaction itself runs from the
+	// TUI (see `autoCompactIfNeeded`).
 	const contextLength = await getModelContextLength(providerConfig, { memoryDir });
-	// Mutate the shared config singleton so the derived trigger and the
-	// server-derived context window are visible everywhere they are read
-	// (e.g. the /settings view and the TUI status-bar context meter).
-	// `loadConfig()` is cached, so this is the same object the SettingsPanel
-	// reads. The derived trigger is also used by the middleware created below.
+	// Mutate the shared config singleton so the server-derived context window is
+	// visible everywhere it is read (e.g. the /settings view and the TUI
+	// status-bar context meter). `loadConfig()` is cached, so this is the same
+	// object the SettingsPanel reads.
 	if (contextLength !== undefined) {
-		const triggerTokens = Math.floor(contextLength * 0.8);
-		logger.info(
-			{ contextLength, triggerTokens },
-			"[summarization] derived trigger from provider model context length",
-		);
-		config.summarization.trigger = { type: "tokens", value: triggerTokens };
-		// Also update the active provider's context window so the TUI status bar
+		// Update the active provider's context window so the TUI status bar
 		// spinner reflects the real model context length rather than the
 		// configured default. `providerName` is the config key (e.g. "openai").
 		if (config.providers?.[providerName]) {
 			config.providers[providerName].contextWindow = contextLength;
 		}
 	}
-
-	// Listeners notified after an automatic compaction rewrites the checkpointer,
-	// so the TUI can resync its conversation view and context meter.
-	const compactionListeners = new Set();
-	const summarizationMiddleware = createSummarizationMiddlewareFromConfig({
-		backend,
-		model,
-		systemPrompt,
-		config: config.summarization,
-		onCompacted: (result) => {
-			for (const listener of compactionListeners) listener(result);
-		},
-		// Same tokenizer the status bar uses, so "80%" means the same thing in
-		// both places.
-		tokenCounter:
-			typeof model.getNumTokensFromMessages === "function"
-				? async (messages) => (await model.getNumTokensFromMessages(messages)).totalCount
-				: undefined,
-	});
-
-	// Image-dispatch middleware. Registered AFTER summarization and BEFORE
-	// token-budget: AgentNode composes the wrapModelCall chain backwards, so the
-	// last entry is innermost. Registering after summarization means this
-	// middleware observes the final post-summarization message set; registering
-	// before token-budget means the budget sees the injected image when
-	// estimating context cost.
 
 	// Copilot 403 retry middleware. Registered LAST so it is innermost and
 	// retries the raw model call. Only wired for GitHub Copilot connections,
@@ -539,10 +493,9 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	// stringified content exceeds `toolTokenLimitBeforeEvict * 4` characters
 	// (default 20,000 tokens -> 80,000 chars), which destroys `readImage`'s
 	// base64 JSON before the model can see it.
-	// Displaces the library default via same-name merge in `mergeMiddlewareStack`
-	// — the mechanism our SummarizationMiddleware above also relies on. The name
-	// is asserted in tests: if it drifts, a second copy stacks and the bug
-	// survives while looking fixed.
+	// Displaces the library default via same-name merge in `mergeMiddlewareStack`.
+	// The name is asserted in tests: if it drifts, a second copy stacks and the
+	// bug survives while looking fixed.
 	const filesystemMiddleware = createEvictionAwareFilesystemMiddleware({
 		backend,
 		permissions: [],
@@ -564,7 +517,6 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 			...(skillPaths.length > 0
 				? [createSkillsMiddleware({ registry: skillRegistry, sources: skillPaths })]
 				: []),
-			...(summarizationMiddleware ? [summarizationMiddleware] : []),
 			...(copilotRetryMiddleware ? [copilotRetryMiddleware] : []),
 			...(tokenBudgetMiddleware ? [tokenBudgetMiddleware] : []),
 		],
@@ -575,12 +527,13 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	// window on demand. The callback is bound to the agent instance and accepts
 	// a LangGraph runnable config (with `thread_id`), an optional session state
 	// manager to sync, plus optional options.
-	agent.onCompacted = (listener) => {
-		compactionListeners.add(listener);
-		return () => compactionListeners.delete(listener);
-	};
 	agent.compactContext = async (config, sessionState, options) =>
-		compactAgentContext(agent, config, sessionState, { ...options, backend, model });
+		compactAgentContext(agent, config, sessionState, {
+			keepRecent: config.summarization?.keepMessages,
+			...options,
+			backend,
+			model,
+		});
 
 	// Wire the middleware's 400 context-window handler to the agent's compaction
 	// path. The middleware is created before the agent, so this closure is set

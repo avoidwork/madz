@@ -256,13 +256,7 @@ The active provider is selected by the `enabled` flag, not by config position or
 
 ### Summarization
 
-| Variable                      | Default    | Description                                     |
-| ----------------------------- | ---------- | ----------------------------------------------- |
-| `SUMMARIZATION_ENABLED`       | `false`    | Enable proactive context compaction             |
-| `SUMMARIZATION_TRIGGER_TYPE`  | `tokens`   | Trigger type (`tokens`, `messages`, `fraction`) |
-| `SUMMARIZATION_TRIGGER_VALUE` | `100000`   | Trigger threshold value                         |
-| `SUMMARIZATION_KEEP_TYPE`     | `messages` | Keep type (`tokens`, `messages`, `fraction`)    |
-| `SUMMARIZATION_KEEP_VALUE`    | `10`       | Messages/tokens to keep after compaction        |
+Context compaction is configured in `config.yaml` (`summarization.keepMessages`, `summarization.contextFraction`); see [CONFIGURATION.md](CONFIGURATION.md#summarization).
 
 ### Vector Search
 
