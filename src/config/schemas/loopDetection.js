@@ -1,29 +1,46 @@
 import { z } from "zod";
 
 /**
- * Configuration for the `LoopDetection` middleware.
+ * Configuration for streaming loop detection.
  *
- * When `enabled` is false (or the section is absent), madz does not register
- * the loop-detection middleware and no loop detection occurs. When enabled,
- * the middleware hashes the most recent model message text and reasoning
- * content independently per thread, and injects a "You're looping" nudge when
- * a hash repeats more than `threshold` times within a rolling `windowSize`
- * window. If `escalationCount` nudges occur within `escalationWindowMs`, the
- * middleware invokes the agent's compaction path instead of nudging again.
+ * When `enabled` is false, no loop detection occurs. When enabled, each
+ * streamed delta is split once, as it arrives, into completed sentences and
+ * words per kind (reasoning, message), and only the last `windowSize` sentences
+ * and `wordWindowSize` words are kept. A loop is a sentence repeated more than
+ * `threshold` times within the sentence window, or a run of words repeated
+ * back-to-back more than `threshold` times (loops with no punctuation). State
+ * is kept per stream (a kind plus an id), at most `maxStreams` at once. The
+ * stream is then abandoned and the TUI sends a silent "You're looping" nudge.
+ * If `escalationCount` nudges occur within `escalationWindowMs`, the context is
+ * compacted instead of nudging again.
  */
 export const LoopDetectionSchema = z
 	.object({
 		enabled: z.boolean().default(true),
-		// Number of recent content hashes retained per thread for loop detection.
-		windowSize: z.number().int().positive().default(10),
-		// A hash older than this many ms is pruned from the window, so past
+		// Number of recent completed sentences compared for duplicates.
+		windowSize: z.number().int().positive().default(20),
+		// Number of recent completed words compared for a back-to-back repeat (loops
+		// with no sentence terminator, such as "ok ok ok"). Must hold `threshold + 1`
+		// copies of the longest repeating unit: the two-paragraph capture is 190
+		// words, so 3 copies need 570.
+		wordWindowSize: z.number().int().positive().default(1000),
+		// Maximum number of streams (a kind plus an id) tracked at once. Two live at
+		// the same moment is the realistic edge case; 4 leaves headroom. Streams that
+		// are done are released, so a long turn with hundreds of sequential messages
+		// never holds more than this. When more are live, the least recently updated
+		// is evicted; a looping stream is always receiving deltas, so it is never the
+		// one evicted. A stream with both windows full holds about 30-40 KB (measured).
+		maxStreams: z.number().int().positive().default(4),
+		// Accumulated stream text older than this many ms is dropped, so past
 		// content cannot cause false positives as new content streams in.
 		ttlMs: z.number().int().positive().default(60000),
-		// A hash must appear more than this many times within the window to flag a loop.
+		// A sentence (or word run) must repeat more than this many times to flag a loop.
 		threshold: z.number().int().positive().default(2),
-		// Number of loop nudges within the escalation window before compacting.
+		// Strike, within the escalation window, that compacts the context instead of
+		// nudging: three strikes and you're out, so strikes 1 and 2 nudge and strike 3
+		// compacts.
 		escalationCount: z.number().int().positive().default(3),
-		// Rolling window (ms) for counting loop nudges before escalation.
+		// Rolling window (ms) for counting loop strikes before escalation.
 		escalationWindowMs: z.number().int().positive().default(60000),
 	})
 	.strict()

@@ -13,14 +13,54 @@ import { isSubagentNamespace } from "./namespace.js";
  * @param {Function} [streamingCallback] - Callback for streamed chunks
  * @param {Object} [options] - Options
  * @param {boolean} [options.showToolResults=true] - Whether to emit `tool` events
- * @returns {Promise<{content: string, reasoning: string, interrupted: boolean, lastEventType: string | null}>}
+ * @param {{push: Function, settle?: Function, reset: Function}} [options.loopDetector] - Loop
+ *   detector. Each non-subagent message/reasoning delta is pushed to it together with
+ *   the stream block's id (the content-block index for messages, `block.id` for
+ *   Responses API reasoning), so detection is restricted to one block and concurrent
+ *   blocks never mix. Chat Completions `reasoning_content` carries no id. When it
+ *   flags a loop the stream is abandoned (closing the underlying iterator) and
+ *   `loopDetected` is returned true. Checks run in a worker, so a loop can be
+ *   flagged after the stream ends; `settle()` is awaited to collect it. When a
+ *   message turn ends (its last chunk carries a `finish_reason`, a different message
+ *   id arrives, or a tool result follows) `end()` collects the verdict and releases
+ *   the detector's word and sentence lists. The detector is also reset when the
+ *   stream itself ends, however it ends.
+ * @returns {Promise<{content: string, reasoning: string, interrupted: boolean, lastEventType: string | null, loopDetected: boolean}>}
  */
 export async function consumeStream(stream, streamingCallback, options = {}) {
+	try {
+		return await drainStream(stream, streamingCallback, options);
+	} finally {
+		// The turn is over (finished, interrupted, abandoned on a loop, or thrown):
+		// release the detector's lists so nothing from this turn is retained.
+		options.loopDetector?.reset();
+	}
+}
+
+/**
+ * Drain the agent stream. See `consumeStream`.
+ * @param {AsyncIterable} stream - The agent stream (subgraphs mode)
+ * @param {Function} [streamingCallback] - Callback for streamed chunks
+ * @param {Object} options - Options
+ * @returns {Promise<{content: string, reasoning: string, interrupted: boolean, lastEventType: string | null, loopDetected: boolean}>}
+ */
+async function drainStream(stream, streamingCallback, options) {
 	const showToolResults = options.showToolResults;
 	let content = "";
 	let reasoning = "";
 	let interrupted = false;
 	let lastEventType = null;
+	let loopDetected = false;
+	const loopDetector = options.loopDetector;
+	/** The id shared by the chunks of the message currently streaming. */
+	let currentMsgId = null;
+
+	// A message turn is start, stream, end. When it ends, collect the verdict of
+	// any worker check still running and release the detector's lists.
+	const endMessage = async () => {
+		currentMsgId = null;
+		if (loopDetector?.end && (await loopDetector.end())) loopDetected = true;
+	};
 
 	for await (const [namespace, mode, payload] of stream) {
 		// Subagent runs are nested under a `tools:<id>` namespace segment. Their
@@ -44,6 +84,14 @@ export async function consumeStream(stream, streamingCallback, options = {}) {
 			// never rendered into the assistant's streaming bubble.
 			if (msgType === "human") continue;
 
+			if (!isSubagent) {
+				// A different message id means the previous message's turn has ended.
+				if (msg?.id != null && currentMsgId != null && msg.id !== currentMsgId) await endMessage();
+				if (msg?.id != null) currentMsgId = msg.id;
+				// A tool result means the AI message that called the tool has ended.
+				if (msgType === "tool") await endMessage();
+			}
+
 			if (text) {
 				// ToolMessage text is emitted as a distinct `tool` event, never
 				// folded into the message segment.
@@ -62,6 +110,8 @@ export async function consumeStream(stream, streamingCallback, options = {}) {
 
 				if (!isSubagent) {
 					content += text;
+					const blockIndex = msg?.content?.[0]?.index;
+					if (loopDetector?.push("message", text, blockIndex)) loopDetected = true;
 				}
 
 				if (streamingCallback) {
@@ -83,6 +133,7 @@ export async function consumeStream(stream, streamingCallback, options = {}) {
 			if (reasoningContent) {
 				if (!isSubagent) {
 					reasoning += reasoningContent;
+					if (loopDetector?.push("reasoning", reasoningContent)) loopDetected = true;
 				}
 				if (streamingCallback) {
 					streamingCallback({
@@ -99,6 +150,7 @@ export async function consumeStream(stream, streamingCallback, options = {}) {
 					if (block?.type === "reasoning" && block.reasoning) {
 						if (!isSubagent) {
 							reasoning += block.reasoning;
+							if (loopDetector?.push("reasoning", block.reasoning, block.id)) loopDetected = true;
 						}
 						if (streamingCallback) {
 							streamingCallback({
@@ -112,6 +164,8 @@ export async function consumeStream(stream, streamingCallback, options = {}) {
 					}
 				}
 			}
+			// The chunk that carries a finish reason is the last of its message.
+			if (!isSubagent && msg?.response_metadata?.finish_reason) await endMessage();
 		} else if (mode === "tools" && streamingCallback) {
 			if (payload?.event === "on_tool_start") {
 				streamingCallback({
@@ -132,7 +186,14 @@ export async function consumeStream(stream, streamingCallback, options = {}) {
 				if (!isSubagent) lastEventType = "on_tool_end";
 			}
 		}
+
+		// Abandon the stream; leaving the for-await closes the iterator.
+		if (loopDetected) break;
 	}
 
-	return { content, reasoning, interrupted, lastEventType };
+	// Worker checks may still be in flight when the stream ends; collect them so
+	// a loop in the final deltas is not missed.
+	if (!loopDetected && loopDetector?.settle) loopDetected = await loopDetector.settle();
+
+	return { content, reasoning, interrupted, lastEventType, loopDetected };
 }

@@ -78,6 +78,66 @@ export function shouldAutoContinue({
 }
 
 /**
+ * Decide whether to send a silent "Continue" after a loop-triggered compaction.
+ *
+ * The model is resumed only when the compaction succeeded (a failed one leaves
+ * the looping context in place, so continuing would loop again) and the shared
+ * auto-continue guard is not exhausted, so a model that keeps looping cannot
+ * cycle through nudge, compact, continue forever.
+ *
+ * @param {Object} params - Decision inputs
+ * @param {boolean} params.compacted - Whether the compaction succeeded
+ * @param {number} params.autoContinueCount - Current auto-continue count
+ * @param {number} params.autoContinueLimit - Max auto-continue count
+ * @returns {boolean} True when a silent "Continue" should be dispatched
+ */
+export function shouldContinueAfterCompact({ compacted, autoContinueCount, autoContinueLimit }) {
+	return compacted === true && autoContinueCount < autoContinueLimit;
+}
+
+/**
+ * Decide what to do after a turn when the loop detector may have abandoned the stream.
+ *
+ * Mirrors `shouldAutoContinue`: it acts only when the streaming bubble is the
+ * last in the message list AND the stream was abandoned because the loop
+ * detector flagged it. Each detected loop is a strike. Strikes within
+ * `escalationWindowMs` are counted, this one included, and the `escalationCount`th
+ * strike compacts the context instead of nudging (three strikes and you're out:
+ * strikes 1 and 2 nudge, strike 3 compacts).
+ *
+ * @param {Object} params - Decision inputs
+ * @param {boolean | undefined} params.loopDetected - Whether the loop detector flagged the stream
+ * @param {boolean} [params.interrupted] - True when the turn paused on an interrupt; a paused
+ *   turn is waiting for the user's answer, so it is never nudged or compacted
+ * @param {string | undefined} params.streamingMsgId - The streaming bubble's message ID
+ * @param {string | undefined} params.lastMessageId - The last message ID in the list
+ * @param {number[]} params.nudges - Timestamps (ms) of previous strikes that were nudged
+ * @param {number} params.now - Current time in ms
+ * @param {number} params.escalationCount - The strike, within the window, that compacts
+ * @param {number} params.escalationWindowMs - Rolling window (ms) for counting strikes
+ * @returns {{ action: "none" | "nudge" | "compact", nudges: number[] }} The action and the
+ *   updated strike timestamps (pruned to the window)
+ */
+export function decideLoopAction({
+	loopDetected,
+	interrupted = false,
+	streamingMsgId,
+	lastMessageId,
+	nudges,
+	now,
+	escalationCount,
+	escalationWindowMs,
+}) {
+	if (loopDetected !== true || interrupted || streamingMsgId !== lastMessageId) {
+		return { action: "none", nudges };
+	}
+	const recent = nudges.filter((ts) => now - ts <= escalationWindowMs);
+	// This loop is itself a strike, so it is counted before deciding.
+	if (recent.length + 1 >= escalationCount) return { action: "compact", nudges: [] };
+	return { action: "nudge", nudges: [...recent, now] };
+}
+
+/**
  * ConversationArea — owns all conversation and streaming state.
  * Communicates with InputArea exclusively via stable App-provided callbacks.
  * @type {React.ForwardRefRenderFunction}
@@ -134,6 +194,12 @@ const ConversationArea = forwardRef(function ConversationArea(
 	// Counts silent "Continue" nudges dispatched when a turn ends on reasoning.
 	// Bounded by config.agent.autoContinueLimit to prevent an infinite loop.
 	const autoContinueCountRef = useRef(0);
+	const autoContinueLimit = config?.agent?.autoContinueLimit;
+	// Timestamps of loop strikes that were nudged. The `escalationCount`th strike
+	// within `escalationWindowMs` compacts the context instead of nudging.
+	const loopNudgesRef = useRef([]);
+	const escalationCount = config?.loopDetection?.escalationCount;
+	const escalationWindowMs = config?.loopDetection?.escalationWindowMs;
 	const toolMessageTokensRef = useRef(0);
 	const contextUpdateTimerRef = useRef(null);
 	const pendingContextRef = useRef({ content: "" });
@@ -266,11 +332,12 @@ const ConversationArea = forwardRef(function ConversationArea(
 	 * Compact the context window on demand.
 	 * Invokes the agent's compaction routine, syncs the TUI conversation view,
 	 * recomputes the context size.
+	 * @returns {Promise<boolean>} True when the context was compacted
 	 */
 	const handleCompact = async () => {
 		if (!compactContext) {
 			addMessage({ role: "system", content: "Compaction is not available." });
-			return;
+			return false;
 		}
 		const compactMsgId = addMessage({ role: "system", content: "Compacting context window..." });
 		try {
@@ -288,13 +355,15 @@ const ConversationArea = forwardRef(function ConversationArea(
 				messageListRef.current?.updateMessage(compactMsgId, { content: msg });
 				// Recompute the context size so the status bar reflects the reduced window.
 				await updateContextSize(sessionState, config);
-			} else {
-				const msg = `Compaction failed: ${result?.error || "unknown error"}`;
-				messageListRef.current?.updateMessage(compactMsgId, { content: msg });
+				return true;
 			}
+			const msg = `Compaction failed: ${result?.error || "unknown error"}`;
+			messageListRef.current?.updateMessage(compactMsgId, { content: msg });
+			return false;
 		} catch (err) {
 			const msg = `Compaction failed: ${err.message}`;
 			messageListRef.current?.updateMessage(compactMsgId, { content: msg });
+			return false;
 		}
 	};
 
@@ -501,13 +570,49 @@ const ConversationArea = forwardRef(function ConversationArea(
 				completedToolCalls,
 			);
 
+			// Loop nudge: when the loop detector abandoned the stream, nudge the model
+			// with a silent "You're looping", the same way the reasoning-only
+			// "Continue" below is dispatched. Scoped to the LAST bubble. After
+			// `escalationCount`th strike within `escalationWindowMs`, compact the
+			// context instead of nudging.
+			const loop = decideLoopAction({
+				loopDetected: response?.loopDetected,
+				interrupted: response?.interrupted,
+				streamingMsgId: streamingMsgIdRef.current,
+				lastMessageId: messageListRef.current?.getLastMessageId(),
+				nudges: loopNudgesRef.current,
+				now: Date.now(),
+				escalationCount,
+				escalationWindowMs,
+			});
+			loopNudgesRef.current = loop.nudges;
+			if (loop.action === "compact") {
+				const compacted = await handleCompact();
+				// After a successful compaction, resume the model with a silent
+				// "Continue", counted against the same autoContinueLimit guard.
+				if (
+					shouldContinueAfterCompact({
+						compacted,
+						autoContinueCount: autoContinueCountRef.current,
+						autoContinueLimit,
+					})
+				) {
+					autoContinueCountRef.current += 1;
+					await handleChat("Continue", { silentUser: true });
+				}
+				return;
+			}
+			if (loop.action === "nudge") {
+				await handleChat("You're looping", { silentUser: true });
+				return;
+			}
+
 			// Auto-continue: when the last bubble ends on reasoning or a tool
 			// message (the model produced no final message content), nudge it with
 			// a silent "Continue" so it produces an actual response. Skipped for
 			// interrupted turns. Scoped to the LAST bubble only — earlier
 			// incomplete bubbles must not trigger it. Bounded
 			// by config.agent.autoContinueLimit to prevent an infinite loop.
-			const autoContinueLimit = config?.agent?.autoContinueLimit ?? 1000;
 			if (
 				shouldAutoContinue({
 					lastEventType: response?.lastEventType,
@@ -584,6 +689,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 		// not per-process. A reasoning loop is a per-thread phenomenon; a fresh
 		// session must not inherit a counter exhausted by a prior thread.
 		autoContinueCountRef.current = 0;
+		loopNudgesRef.current = [];
 		messageListRef.current?.clear();
 		// Recompute the context size for the fresh thread rather than hard-setting
 		// 0. The system prompt (SYSTEM_PROMPT.md + AGENTS.md + memory context) is
