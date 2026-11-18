@@ -233,23 +233,38 @@ The message list SHALL expose a method returning the ID of the last message in t
 - **WHEN** the message list is empty
 - **THEN** the method returns `undefined`
 
-### Requirement: TUI SHALL auto-continue only when the last bubble ends on reasoning
+### Requirement: TUI SHALL auto-continue only when the last bubble ends on reasoning or a tool message
 
-The TUI SHALL dispatch a silent "Continue" user message only when the streaming assistant bubble is the last in the message list AND it ended with reasoning as its last event AND the auto-continue loop guard is not exhausted.
+The TUI SHALL dispatch a silent "Continue" user message only when the streaming assistant bubble is the last in the message list AND its last event was reasoning or a tool message (`reasoning`, `tool`, or `on_tool_end`) AND the turn was not interrupted AND the auto-continue loop guard is not exhausted.
 
 #### Scenario: Last bubble ends on reasoning
 
 - **WHEN** the streaming bubble is the last in the list and its last event type is `reasoning` and the loop guard is not exhausted
 - **THEN** the TUI dispatches a silent "Continue" user message
 
+#### Scenario: Last bubble ends on a tool message
+
+- **WHEN** the streaming bubble is the last in the list and its last event type is `tool` or `on_tool_end` and the loop guard is not exhausted
+- **THEN** the TUI dispatches a silent "Continue" user message
+
 #### Scenario: Earlier incomplete bubble does not trigger
 
-- **WHEN** an earlier bubble is still streaming while a later bubble ends on reasoning
+- **WHEN** an earlier bubble is still streaming while a later bubble ends on reasoning or a tool message
 - **THEN** the TUI does not dispatch a "Continue" for the earlier bubble
 
-#### Scenario: Reasoning followed by a tool call does not trigger
+#### Scenario: Interrupted turn does not trigger
 
-- **WHEN** the last event type is a tool event rather than `reasoning`
+- **WHEN** the turn paused on an interrupt (e.g. `clarify`)
+- **THEN** the TUI does not dispatch a "Continue"
+
+#### Scenario: Tool start does not trigger
+
+- **WHEN** the last event type is `on_tool_start`
+- **THEN** the TUI does not dispatch a "Continue"
+
+#### Scenario: Turn ends on a message does not trigger
+
+- **WHEN** the last event type is `message`
 - **THEN** the TUI does not dispatch a "Continue"
 
 #### Scenario: Loop guard exhausted
