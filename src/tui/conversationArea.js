@@ -899,6 +899,9 @@ const ConversationArea = forwardRef(function ConversationArea(
 			onContextUpdate,
 			completedToolCalls = {},
 		) => {
+			// Reasoning text streamed this turn. It is sent back to the provider as
+			// context, so it counts toward the live window like message text.
+			let streamedReasoning = "";
 			// Debounced context size update — coalesces rapid chunks into a single
 			// token calculation every ~200ms so the status bar stays responsive.
 			const debouncedContextUpdate = (content) => {
@@ -908,7 +911,9 @@ const ConversationArea = forwardRef(function ConversationArea(
 				pendingContextRef.current.content = content;
 				contextUpdateTimerRef.current = setTimeout(async () => {
 					contextUpdateTimerRef.current = null;
-					const text = pendingContextRef.current.content;
+					const text = [streamedReasoning, pendingContextRef.current.content]
+						.filter(Boolean)
+						.join("\n");
 					const cached = tokenCacheRef.current;
 					if (text && cached.content !== text) {
 						cached.content = text;
@@ -987,6 +992,8 @@ const ConversationArea = forwardRef(function ConversationArea(
 					if (event.type === "reasoning") {
 						const reasoningText = event.data?.text || event.text || "";
 						if (reasoningText) {
+							streamedReasoning += reasoningText;
+							debouncedContextUpdate(committedContentRef.current);
 							if (
 								!(
 									committedReasoningRef.current.endsWith(".") ||
@@ -1026,6 +1033,8 @@ const ConversationArea = forwardRef(function ConversationArea(
 						}
 						if (event.data?.chunk?.reasoning) {
 							const reasoningChunk = event.data.chunk.reasoning;
+							streamedReasoning += reasoningChunk;
+							debouncedContextUpdate(committedContentRef.current);
 							if (
 								!(
 									committedReasoningRef.current.endsWith(".") ||
