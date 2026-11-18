@@ -60,7 +60,7 @@ loopDetection:
   escalationCount: 3
   escalationWindowMs: 60000
   maxStreams: 4
-  threshold: 2
+  threshold: 10
   ttlMs: 60000
   windowSize: 20
   wordWindowSize: 1000
