@@ -1,5 +1,5 @@
 agent:
-  autoContinueLimit: 1000 # max silent "Continue" nudges when a turn ends on reasoning
+  autoContinueLimit: 1000 # max silent "Continue" nudges when a turn ends on reasoning or a tool message
   bundledSkills: true     # false = only 'reflection' loaded from .skills/
   decision:
     baseUrl: ""           # empty = tool not registered

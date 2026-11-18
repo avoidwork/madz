@@ -98,6 +98,51 @@ describe("shouldAutoContinue", () => {
 		);
 	});
 
+	it("returns true when the turn ends on a tool message", async () => {
+		const mod = await import("../../../src/tui/conversationArea.js");
+		for (const lastEventType of ["tool", "on_tool_end"]) {
+			assert.strictEqual(
+				mod.shouldAutoContinue({
+					lastEventType,
+					streamingMsgId: "3",
+					lastMessageId: "3",
+					autoContinueCount: 0,
+					autoContinueLimit: 1000,
+				}),
+				true,
+			);
+		}
+	});
+
+	it("returns false when the turn ends on a tool start", async () => {
+		const mod = await import("../../../src/tui/conversationArea.js");
+		assert.strictEqual(
+			mod.shouldAutoContinue({
+				lastEventType: "on_tool_start",
+				streamingMsgId: "3",
+				lastMessageId: "3",
+				autoContinueCount: 0,
+				autoContinueLimit: 1000,
+			}),
+			false,
+		);
+	});
+
+	it("returns false when the turn was interrupted", async () => {
+		const mod = await import("../../../src/tui/conversationArea.js");
+		assert.strictEqual(
+			mod.shouldAutoContinue({
+				lastEventType: "tool",
+				interrupted: true,
+				streamingMsgId: "3",
+				lastMessageId: "3",
+				autoContinueCount: 0,
+				autoContinueLimit: 1000,
+			}),
+			false,
+		);
+	});
+
 	it("returns false when lastEventType is undefined", async () => {
 		const mod = await import("../../../src/tui/conversationArea.js");
 		assert.strictEqual(

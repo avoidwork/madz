@@ -6,8 +6,8 @@ import { isSubagentNamespace } from "./namespace.js";
  * collecting the orchestrator's own text and reasoning.
  *
  * Tracks the last non-subagent event type forwarded to the callback so the
- * TUI can detect a turn that ended on reasoning (the model produced no
- * message content) and nudge it with a silent "Continue".
+ * TUI can detect a turn that ended on reasoning or a tool message (the model
+ * produced no final message content) and nudge it with a silent "Continue".
  *
  * @param {AsyncIterable} stream - The agent stream (subgraphs mode)
  * @param {Function} [streamingCallback] - Callback for streamed chunks
