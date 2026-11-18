@@ -69,20 +69,27 @@ describe("getContextUtilizationColor", () => {
 		assert.strictEqual(getContextUtilizationColor(76800, 128000), "cyan");
 	});
 
-	it("returns orange for 61-80% utilization", () => {
+	it("returns orange from just above 60% until the compaction fraction", () => {
 		// Boundary: just above 60% flips to orange
 		assert.strictEqual(getContextUtilizationColor(76801, 128000), "orange");
 		assert.strictEqual(getContextUtilizationColor(100000, 128000), "orange");
-		// Boundary: exactly 80% is still orange
-		assert.strictEqual(getContextUtilizationColor(102400, 128000), "orange");
+		// Boundary: just below the default compaction fraction (0.8) is still orange
+		assert.strictEqual(getContextUtilizationColor(102399, 128000), "orange");
 	});
 
-	it("returns red for 81-100% utilization", () => {
-		// Boundary: just above 80% flips to red
-		assert.strictEqual(getContextUtilizationColor(102401, 128000), "red");
+	it("returns red from the compaction fraction upward", () => {
+		// Boundary: exactly the default fraction (0.8) is red, where auto-compact fires
+		assert.strictEqual(getContextUtilizationColor(102400, 128000), "red");
 		assert.strictEqual(getContextUtilizationColor(128000, 128000), "red");
 		// Over 100% is still red
 		assert.strictEqual(getContextUtilizationColor(200000, 128000), "red");
+	});
+
+	it("follows the configured compaction fraction instead of a fixed 80%", () => {
+		// 1 is the schema maximum for contextFraction, so red starts only at 100%.
+		// At 80% the default would be red; with 1 it must be orange.
+		assert.strictEqual(getContextUtilizationColor(102400, 128000, 1), "orange");
+		assert.strictEqual(getContextUtilizationColor(128000, 128000, 1), "red");
 	});
 });
 

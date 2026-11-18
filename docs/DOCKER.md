@@ -256,13 +256,10 @@ The active provider is selected by the `enabled` flag, not by config position or
 
 ### Summarization
 
-| Variable                      | Default    | Description                                     |
-| ----------------------------- | ---------- | ----------------------------------------------- |
-| `SUMMARIZATION_ENABLED`       | `false`    | Enable proactive context compaction             |
-| `SUMMARIZATION_TRIGGER_TYPE`  | `tokens`   | Trigger type (`tokens`, `messages`, `fraction`) |
-| `SUMMARIZATION_TRIGGER_VALUE` | `100000`   | Trigger threshold value                         |
-| `SUMMARIZATION_KEEP_TYPE`     | `messages` | Keep type (`tokens`, `messages`, `fraction`)    |
-| `SUMMARIZATION_KEEP_VALUE`    | `10`       | Messages/tokens to keep after compaction        |
+| Variable                         | Default | Description                                                   |
+| -------------------------------- | ------- | ------------------------------------------------------------- |
+| `SUMMARIZATION_CONTEXT_FRACTION` | `0.8`   | Fraction of the context window at which the TUI auto-compacts |
+| `SUMMARIZATION_KEEP_MESSAGES`    | `5`     | Recent messages kept verbatim after compaction                |
 
 ### Vector Search
 

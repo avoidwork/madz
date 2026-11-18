@@ -5,6 +5,7 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert";
+import { SummarizationSchema } from "../../../src/config/schemas/summarization.js";
 
 describe("ConversationArea module", () => {
 	it("should have a default export", async () => {
@@ -124,9 +125,12 @@ describe("shouldAutoCompact", () => {
 		assert.strictEqual(mod.shouldAutoCompact({ contextSize: undefined, contextWindow: 1 }), false);
 	});
 
-	it("defaults to 80%", async () => {
+	it("defaults to the config schema's contextFraction", async () => {
 		const mod = await import("../../../src/tui/conversationArea.js");
-		assert.strictEqual(mod.DEFAULT_AUTO_COMPACT_FRACTION, 0.8);
+		assert.strictEqual(
+			mod.DEFAULT_AUTO_COMPACT_FRACTION,
+			SummarizationSchema.parse({}).contextFraction,
+		);
 	});
 });
 

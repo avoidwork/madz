@@ -2,6 +2,11 @@ import React from "react";
 import { Box, Text } from "ink";
 import Spinner from "ink-spinner";
 import { basename } from "node:path";
+import { SummarizationSchema } from "../config/schemas/summarization.js";
+
+// Single source of the default: the config schema, so the status bar can never
+// drift from the value auto-compaction uses.
+const DEFAULT_COMPACT_FRACTION = SummarizationSchema.parse({}).contextFraction;
 
 // Resolve the user's locale once at module load. `Intl.NumberFormat` is the
 // correct formatter for numeric output; `Intl.DateTimeFormat` was used before
@@ -49,18 +54,25 @@ export function formatSize(num) {
 
 /**
  * Determine the spinner color from context-window utilization.
- * 0-60% → cyan, 61-80% → orange, 81-100% → red. Falls back to cyan when no
- * context window is configured (contextWindow is 0/unset).
+ * 0-60% → cyan, 60% up to `compactFraction` → orange, `compactFraction` and
+ * above → red. `compactFraction` is `summarization.contextFraction` from
+ * config, so red marks exactly where auto-compaction fires. Falls back to cyan
+ * when no context window is configured (contextWindow is 0/unset).
  * @param {number} contextSize - Current context size in tokens
  * @param {number} contextWindow - Configured context window in tokens (0 = unset)
+ * @param {number} [compactFraction] - Fraction of the window at which auto-compaction fires
  * @returns {string} The color name for the streaming spinner
  */
-export function getContextUtilizationColor(contextSize, contextWindow) {
+export function getContextUtilizationColor(
+	contextSize,
+	contextWindow,
+	compactFraction = DEFAULT_COMPACT_FRACTION,
+) {
 	if (!contextWindow || contextWindow <= 0) return "cyan";
-	const utilization = (contextSize / contextWindow) * 100;
-	if (utilization <= 60) return "cyan";
-	if (utilization <= 80) return "orange";
-	return "red";
+	const ratio = contextSize / contextWindow;
+	if (ratio >= compactFraction) return "red";
+	if (ratio * 100 <= 60) return "cyan";
+	return "orange";
 }
 
 /**
@@ -112,11 +124,12 @@ export const StatusBar = React.memo(function StatusBar({
 	tokenCount = 0,
 	tokenBudget = 0,
 	contextWindow = 0,
+	compactFraction,
 	statusBar = {},
 	project = "",
 }) {
 	const contextColor = isCompacting ? "red" : "gray";
-	const spinnerColor = getContextUtilizationColor(contextSize, contextWindow);
+	const spinnerColor = getContextUtilizationColor(contextSize, contextWindow, compactFraction);
 	const showModel = statusBar.model !== false && model;
 	const showSkills = statusBar.skills !== false;
 	const showMessages = statusBar.messages !== false;

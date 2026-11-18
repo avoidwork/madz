@@ -221,11 +221,8 @@ subAgentsTemperature:
   textEditor: 0.4
   translator: 0.3
 summarization:
-  enabled: true
   keepMessages: 5
-  trigger:
-    type: tokens
-    value: 100000
+  contextFraction: 0.8
 telemetry:
   enabled: false
   exporter:

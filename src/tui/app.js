@@ -792,6 +792,7 @@ function App({
 						appInfo,
 						tokenBudget,
 						contextWindow,
+						compactFraction: config?.summarization?.contextFraction,
 						statusBar: config?.tui?.statusBar,
 						cwd: activeProject || config?.cwd || process.cwd(),
 						activeProject,

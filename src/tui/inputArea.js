@@ -65,6 +65,7 @@ const InputArea = forwardRef(function InputArea(
 		appInfo,
 		tokenBudget = 0,
 		contextWindow = 0,
+		compactFraction,
 		statusBar = {},
 		cwd,
 		activeProject,
@@ -281,6 +282,7 @@ const InputArea = forwardRef(function InputArea(
 					tokenCount,
 					tokenBudget,
 					contextWindow,
+					compactFraction,
 					statusBar,
 					project: activeProject,
 				})
