@@ -159,7 +159,7 @@ summarization:
 When compaction runs, madz summarizes the history and **rewrites the checkpointer** to `[summary, ...last keepMessages messages]`. The system prompt is injected on every call rather than stored in state, so it is unaffected.
 
 - **`keepMessages`** — how many recent messages stay verbatim (default `5`). The tail never starts on a tool result: if the boundary lands on one, the whole tool call and result are summarized and the tail shrinks (possibly to zero).
-- **`contextFraction`** (default `0.8`) — fraction of the context window at which auto-compaction fires. The window is the model's real context length when it can be resolved at startup, otherwise the configured `contextWindow`.
+- **`contextFraction`** (default `0.8`) — fraction of the context window at which auto-compaction fires. The status bar's context meter and streaming spinner turn red at the same point. The window is the model's real context length when it can be resolved at startup, otherwise the configured `contextWindow`.
 
 The summary is stored as a user message (some providers reject mid-conversation system messages). If summarization fails, the legacy trim-only fallback is used.
 

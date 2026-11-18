@@ -16,6 +16,7 @@ import { ConversationPanel } from "./conversationPanel.js";
 import { CommandParser } from "./commandParser.js";
 import { createSession } from "../session/factory.js";
 import { setConfigValue } from "../config/loader.js";
+import { SummarizationSchema } from "../config/schemas/summarization.js";
 import { isAvailable, getGcCalls } from "../memory/gc.js";
 import { logger } from "../shared/logger.js";
 import { formatClarifyPrompt } from "../shared/clarifyPrompt.js";
@@ -95,8 +96,11 @@ export function shouldContinueAfterCompact({ compacted, autoContinueCount, autoC
 	return compacted === true && autoContinueCount < autoContinueLimit;
 }
 
-/** Default fraction of the context window at which the TUI compacts automatically. */
-export const DEFAULT_AUTO_COMPACT_FRACTION = 0.8;
+/**
+ * Default fraction of the context window at which the TUI compacts
+ * automatically. Taken from the config schema so there is one source for it.
+ */
+export const DEFAULT_AUTO_COMPACT_FRACTION = SummarizationSchema.parse({}).contextFraction;
 
 /**
  * Decide whether the context has reached the auto-compaction threshold.
