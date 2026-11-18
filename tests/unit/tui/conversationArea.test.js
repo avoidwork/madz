@@ -90,6 +90,46 @@ describe("shouldContinueAfterCompact", () => {
 	});
 });
 
+describe("shouldAutoCompact", () => {
+	it("fires at exactly 80% of the context window", async () => {
+		const mod = await import("../../../src/tui/conversationArea.js");
+		assert.strictEqual(mod.shouldAutoCompact({ contextSize: 80000, contextWindow: 100000 }), true);
+	});
+
+	it("fires above the threshold", async () => {
+		const mod = await import("../../../src/tui/conversationArea.js");
+		assert.strictEqual(mod.shouldAutoCompact({ contextSize: 95000, contextWindow: 100000 }), true);
+	});
+
+	it("does not fire below the threshold", async () => {
+		const mod = await import("../../../src/tui/conversationArea.js");
+		assert.strictEqual(mod.shouldAutoCompact({ contextSize: 79999, contextWindow: 100000 }), false);
+	});
+
+	it("honors a custom fraction", async () => {
+		const mod = await import("../../../src/tui/conversationArea.js");
+		const params = { contextSize: 60000, contextWindow: 100000 };
+		assert.strictEqual(mod.shouldAutoCompact({ ...params, fraction: 0.5 }), true);
+		assert.strictEqual(mod.shouldAutoCompact({ ...params, fraction: 0.7 }), false);
+	});
+
+	it("never fires without a context window or size", async () => {
+		const mod = await import("../../../src/tui/conversationArea.js");
+		assert.strictEqual(mod.shouldAutoCompact({ contextSize: 5000, contextWindow: 0 }), false);
+		assert.strictEqual(
+			mod.shouldAutoCompact({ contextSize: 5000, contextWindow: undefined }),
+			false,
+		);
+		assert.strictEqual(mod.shouldAutoCompact({ contextSize: 0, contextWindow: 100000 }), false);
+		assert.strictEqual(mod.shouldAutoCompact({ contextSize: undefined, contextWindow: 1 }), false);
+	});
+
+	it("defaults to 80%", async () => {
+		const mod = await import("../../../src/tui/conversationArea.js");
+		assert.strictEqual(mod.DEFAULT_AUTO_COMPACT_FRACTION, 0.8);
+	});
+});
+
 describe("decideLoopAction", () => {
 	const base = {
 		loopDetected: true,

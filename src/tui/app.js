@@ -760,6 +760,7 @@ function App({
 								onViewChange: handleViewChange,
 								messageCountRef,
 								compactContext,
+								contextWindow,
 								getContextMessages,
 								model,
 								systemPrompt,
