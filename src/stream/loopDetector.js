@@ -56,17 +56,17 @@ export async function destroyPool() {
  * @param {number} [options.windowSize=20] - Recent completed sentences kept and compared
  * @param {number} [options.wordWindowSize=1000] - Recent completed words kept and compared
  * @param {number} [options.threshold=2] - Repeats above which a loop is flagged
- * @param {number} [options.maxStreams=1000] - Streams tracked at once; the least recently updated is evicted
+ * @param {number} [options.maxStreams=4] - Streams tracked at once; the least recently updated is evicted
  * @param {number} [options.ttlMs] - State older than this is dropped (no expiry when unset)
  * @param {Function} [options.now] - Clock returning ms (injectable for tests)
  * @param {{ run: Function }} [options.runner] - Runs a check; defaults to the shared pool, injectable for tests
- * @returns {{ push: (kind: string, delta: string, id?: string | number) => boolean, settle: () => Promise<boolean>, reset: () => void }} Detector
+ * @returns {{ push: (kind: string, delta: string, id?: string | number) => boolean, settle: () => Promise<boolean>, reset: () => void, size: () => number }} Detector
  */
 export function createSegmentLoopDetector(options = {}) {
 	const windowSize = options.windowSize ?? 20;
 	const wordWindowSize = options.wordWindowSize ?? 1000;
 	const threshold = options.threshold ?? 2;
-	const maxStreams = options.maxStreams ?? 1000;
+	const maxStreams = options.maxStreams ?? 4;
 	const ttlMs = options.ttlMs;
 	const now = options.now ?? (() => Date.now());
 	const runner = options.runner ?? { run: (task) => getPool().run(task) };
@@ -75,8 +75,8 @@ export function createSegmentLoopDetector(options = {}) {
 	 * @typedef {Object} KindState
 	 * @property {string} pending - Unfinished sentence text
 	 * @property {string} partialWord - Unfinished word
-	 * @property {string[]} sentences - Last `windowSize` completed sentences
-	 * @property {string[]} words - Last `wordWindowSize` completed words
+	 * @property {string[] | null} sentences - Last `windowSize` completed sentences (null once released)
+	 * @property {string[] | null} words - Last `wordWindowSize` completed words (null once released)
 	 * @property {number} ts - Time of the last delta
 	 * @property {boolean} flagged - A check has flagged a loop
 	 * @property {Promise<void> | null} inflight - The running check, if any
@@ -101,6 +101,23 @@ export function createSegmentLoopDetector(options = {}) {
 	}
 
 	/**
+	 * Release a stream's state: clear its word and sentence lists and null them so
+	 * the memory is freed even while a closure (an in-flight check) still holds the
+	 * state object. A released state is dead, so any in-flight answer is ignored.
+	 * @param {KindState} state - State to release
+	 * @returns {void}
+	 */
+	function release(state) {
+		state.dead = true;
+		state.pending = "";
+		state.partialWord = "";
+		if (state.sentences) state.sentences.length = 0;
+		if (state.words) state.words.length = 0;
+		state.sentences = null;
+		state.words = null;
+	}
+
+	/**
 	 * Get (or create) the state for a stream and mark it most recently used. The
 	 * least recently used stream is evicted once more than `maxStreams` are tracked.
 	 * @param {string} key - Stream key (kind, or kind plus id)
@@ -110,12 +127,12 @@ export function createSegmentLoopDetector(options = {}) {
 	function touch(key, replacement) {
 		const existing = kinds.get(key);
 		const state = replacement ?? existing ?? freshState();
-		if (existing && existing !== state) existing.dead = true;
+		if (existing && existing !== state) release(existing);
 		kinds.delete(key);
 		kinds.set(key, state);
 		if (kinds.size > maxStreams) {
 			const oldest = kinds.keys().next().value;
-			kinds.get(oldest).dead = true;
+			release(kinds.get(oldest));
 			kinds.delete(oldest);
 		}
 		return state;
@@ -212,10 +229,18 @@ export function createSegmentLoopDetector(options = {}) {
 			return [...kinds.values()].some((s) => s.flagged);
 		},
 
-		/** Clear all state (call after a nudge so the next attempt starts fresh). */
+		/** Release every stream's state (called when a turn ends, and after a nudge). */
 		reset() {
-			for (const state of kinds.values()) state.dead = true;
+			for (const state of kinds.values()) release(state);
 			kinds.clear();
+		},
+
+		/**
+		 * Number of streams currently tracked.
+		 * @returns {number} Tracked stream count
+		 */
+		size() {
+			return kinds.size;
 		},
 	};
 }

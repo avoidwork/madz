@@ -24,13 +24,13 @@ export const LoopDetectionSchema = z
 		// copies of the longest repeating unit: the two-paragraph capture is 190
 		// words, so 3 copies need 570.
 		wordWindowSize: z.number().int().positive().default(1000),
-		// Maximum number of streams (a kind plus an id) tracked at once. A long turn
-		// can produce hundreds to thousands of reasoning and message streams, but only
-		// the ones still receiving deltas matter; when more than this many are live,
-		// the least recently updated is evicted. A looping stream is always actively
-		// receiving deltas, so it is never the one evicted. Each full stream holds
-		// about 30-40 KB (measured), so 1000 is on the order of 30-40 MB worst case.
-		maxStreams: z.number().int().positive().default(1000),
+		// Maximum number of streams (a kind plus an id) tracked at once. Two live at
+		// the same moment is the realistic edge case; 4 leaves headroom. Streams that
+		// are done are released, so a long turn with hundreds of sequential messages
+		// never holds more than this. When more are live, the least recently updated
+		// is evicted; a looping stream is always receiving deltas, so it is never the
+		// one evicted. A stream with both windows full holds about 30-40 KB (measured).
+		maxStreams: z.number().int().positive().default(4),
 		// Accumulated stream text older than this many ms is dropped, so past
 		// content cannot cause false positives as new content streams in.
 		ttlMs: z.number().int().positive().default(60000),

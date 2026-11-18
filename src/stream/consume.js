@@ -20,10 +20,29 @@ import { isSubagentNamespace } from "./namespace.js";
  *   blocks never mix. Chat Completions `reasoning_content` carries no id. When it
  *   flags a loop the stream is abandoned (closing the underlying iterator) and
  *   `loopDetected` is returned true. Checks run in a worker, so a loop can be
- *   flagged after the stream ends; `settle()` is awaited to collect it.
+ *   flagged after the stream ends; `settle()` is awaited to collect it. When the
+ *   turn ends, however it ends, the detector is reset so its word and sentence
+ *   lists are cleared and released.
  * @returns {Promise<{content: string, reasoning: string, interrupted: boolean, lastEventType: string | null, loopDetected: boolean}>}
  */
 export async function consumeStream(stream, streamingCallback, options = {}) {
+	try {
+		return await drainStream(stream, streamingCallback, options);
+	} finally {
+		// The turn is over (finished, interrupted, abandoned on a loop, or thrown):
+		// release the detector's lists so nothing from this turn is retained.
+		options.loopDetector?.reset();
+	}
+}
+
+/**
+ * Drain the agent stream. See `consumeStream`.
+ * @param {AsyncIterable} stream - The agent stream (subgraphs mode)
+ * @param {Function} [streamingCallback] - Callback for streamed chunks
+ * @param {Object} options - Options
+ * @returns {Promise<{content: string, reasoning: string, interrupted: boolean, lastEventType: string | null, loopDetected: boolean}>}
+ */
+async function drainStream(stream, streamingCallback, options) {
 	const showToolResults = options.showToolResults;
 	let content = "";
 	let reasoning = "";

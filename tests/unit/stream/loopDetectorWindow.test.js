@@ -56,7 +56,7 @@ describe("loopDetection config schema", () => {
 
 	it("keeps the other defaults", () => {
 		const cfg = LoopDetectionSchema.parse({});
-		assert.strictEqual(cfg.maxStreams, 1000);
+		assert.strictEqual(cfg.maxStreams, 4);
 		assert.strictEqual(cfg.windowSize, 20);
 		assert.strictEqual(cfg.threshold, 2);
 		assert.strictEqual(cfg.ttlMs, 60000);
@@ -66,8 +66,8 @@ describe("loopDetection config schema", () => {
 });
 
 describe("loopDetection maxStreams", () => {
-	it("defaults to 1000", () => {
-		assert.strictEqual(LoopDetectionSchema.parse({}).maxStreams, 1000);
+	it("defaults to 4", () => {
+		assert.strictEqual(LoopDetectionSchema.parse({}).maxStreams, 4);
 	});
 
 	it("accepts a configured value", () => {
@@ -85,7 +85,7 @@ describe("loopDetection maxStreams", () => {
 			fileURLToPath(new URL("../../../config.yaml", import.meta.url)),
 			"utf8",
 		);
-		assert.match(yaml, /^\s+maxStreams: 1000$/m);
+		assert.match(yaml, /^\s+maxStreams: 4$/m);
 	});
 });
 
