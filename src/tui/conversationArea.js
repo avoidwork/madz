@@ -63,11 +63,11 @@ const AUTO_CONTINUE_EVENT_TYPES = new Set(["reasoning", "tool", "on_tool_end"]);
  */
 export function shouldAutoContinue({
 	lastEventType,
-	interrupted = false,
 	streamingMsgId,
 	lastMessageId,
 	autoContinueCount,
 	autoContinueLimit,
+	interrupted = false,
 }) {
 	return (
 		!interrupted &&
@@ -511,11 +511,11 @@ const ConversationArea = forwardRef(function ConversationArea(
 			if (
 				shouldAutoContinue({
 					lastEventType: response?.lastEventType,
-					interrupted: response?.interrupted,
 					streamingMsgId: streamingMsgIdRef.current,
 					lastMessageId: messageListRef.current?.getLastMessageId(),
 					autoContinueCount: autoContinueCountRef.current,
 					autoContinueLimit,
+					interrupted: response?.interrupted,
 				})
 			) {
 				autoContinueCountRef.current += 1;
