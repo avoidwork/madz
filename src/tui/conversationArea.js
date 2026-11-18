@@ -187,7 +187,6 @@ const ConversationArea = forwardRef(function ConversationArea(
 		onViewChange,
 		messageCountRef,
 		compactContext,
-		contextWindow = 0,
 		getContextMessages,
 		model,
 		systemPrompt,
@@ -197,6 +196,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 		reasoningCollapsed,
 		toolCallCollapsed,
 		hidden = false,
+		contextWindow = 0,
 	},
 	ref,
 ) {
