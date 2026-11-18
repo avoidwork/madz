@@ -1055,6 +1055,16 @@ const ConversationArea = forwardRef(function ConversationArea(
 					}
 
 					if (event.type === "on_tool_start") {
+						// The call's name and arguments live in the AI message and are
+						// sent back as context, so count them like the tool result.
+						let callText = "";
+						try {
+							callText = `${event.name || ""} ${JSON.stringify(event.data?.input ?? "")}`.trim();
+						} catch {
+							callText = event.name || "";
+						}
+						toolMessageTokensRef.current += await countToolMessageTokens(model, callText);
+						debouncedContextUpdate(committedContentRef.current);
 						messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
 							activeToolCall: {
 								name: event.name,
