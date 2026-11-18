@@ -306,6 +306,7 @@ async function runAgent(input, threadExtras, streamingCallback, signal) {
 			? undefined
 			: createSegmentLoopDetector({
 					windowSize: loopConfig.windowSize,
+					wordWindowSize: loopConfig.wordWindowSize,
 					threshold: loopConfig.threshold,
 					ttlMs: loopConfig.ttlMs,
 				});

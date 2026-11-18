@@ -47,7 +47,7 @@ export async function destroyPool() {
  *
  * @param {Object} [options] - Options
  * @param {number} [options.windowSize=20] - Recent completed sentences kept and compared
- * @param {number} [options.wordWindowSize=200] - Recent completed words kept and compared
+ * @param {number} [options.wordWindowSize=1000] - Recent completed words kept and compared
  * @param {number} [options.threshold=2] - Repeats above which a loop is flagged
  * @param {number} [options.ttlMs] - State older than this is dropped (no expiry when unset)
  * @param {Function} [options.now] - Clock returning ms (injectable for tests)
@@ -56,7 +56,7 @@ export async function destroyPool() {
  */
 export function createSegmentLoopDetector(options = {}) {
 	const windowSize = options.windowSize ?? 20;
-	const wordWindowSize = options.wordWindowSize ?? 200;
+	const wordWindowSize = options.wordWindowSize ?? 1000;
 	const threshold = options.threshold ?? 2;
 	const ttlMs = options.ttlMs;
 	const now = options.now ?? (() => Date.now());

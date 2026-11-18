@@ -62,6 +62,7 @@ loopDetection:
   threshold: 2
   ttlMs: 60000
   windowSize: 20
+  wordWindowSize: 1000
 memory:
   checkpointsDir: memory/checkpoints/
   contextDir: memory/context/

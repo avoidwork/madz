@@ -3,19 +3,26 @@ import { z } from "zod";
 /**
  * Configuration for streaming loop detection.
  *
- * When `enabled` is false, no loop detection occurs. When enabled, every
- * streamed delta (a segment: a small group of characters as it arrives) is
- * hashed into a bounded per-kind list of `windowSize` hashes. A loop is flagged
- * when the tail of that list is one unit repeated back-to-back more than
- * `threshold` times. The stream is then abandoned and the TUI sends a silent
- * "You're looping" nudge. If `escalationCount` nudges occur within
- * `escalationWindowMs`, the context is compacted instead of nudging again.
+ * When `enabled` is false, no loop detection occurs. When enabled, each
+ * streamed delta is split once, as it arrives, into completed sentences and
+ * words per kind (reasoning, message), and only the last `windowSize` sentences
+ * and `wordWindowSize` words are kept. A loop is a sentence repeated more than
+ * `threshold` times within the sentence window, or a run of words repeated
+ * back-to-back more than `threshold` times (loops with no punctuation). The
+ * stream is then abandoned and the TUI sends a silent "You're looping" nudge.
+ * If `escalationCount` nudges occur within `escalationWindowMs`, the context is
+ * compacted instead of nudging again.
  */
 export const LoopDetectionSchema = z
 	.object({
 		enabled: z.boolean().default(true),
 		// Number of recent completed sentences compared for duplicates.
 		windowSize: z.number().int().positive().default(20),
+		// Number of recent completed words compared for a back-to-back repeat (loops
+		// with no sentence terminator, such as "ok ok ok"). Must hold `threshold + 1`
+		// copies of the longest repeating unit: the two-paragraph capture is 190
+		// words, so 3 copies need 570.
+		wordWindowSize: z.number().int().positive().default(1000),
 		// Accumulated stream text older than this many ms is dropped, so past
 		// content cannot cause false positives as new content streams in.
 		ttlMs: z.number().int().positive().default(60000),
