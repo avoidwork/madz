@@ -19,7 +19,10 @@ import {
 import { resumeSession } from "./src/session/resume.js";
 import { logger, flush as flushLogger } from "./src/shared/logger.js";
 import { consumeStream } from "./src/stream/consume.js";
-import { createSegmentLoopDetector } from "./src/stream/loopDetector.js";
+import {
+	createSegmentLoopDetector,
+	destroyPool as destroyLoopPool,
+} from "./src/stream/loopDetector.js";
 
 // ---------------------------------------------------------------------------
 // CLI arguments
@@ -314,8 +317,8 @@ async function runAgent(input, threadExtras, streamingCallback, signal) {
 		streamMode: ["messages", "tools", "values"],
 		subgraphs: true,
 	});
-	// A detected loop abandons the stream; the caller (the TUI) sends the silent
-	// nudge, the same way it sends the reasoning-only "Continue".
+	// A detected loop abandons the stream; the caller (the TUI) sends the nudge,
+	// the same way it sends the reasoning-only "Continue".
 	const { content, reasoning, interrupted, lastEventType, loopDetected } = await consumeStream(
 		stream,
 		streamingCallback,
@@ -424,6 +427,7 @@ async function runShutdown() {
 			await handleShutdown({
 				onShutdown: async () => {
 					if (gcManager) gcManager.stop();
+					await destroyLoopPool();
 					if (mcpAdapter) await mcpAdapter.close();
 					if (shutdownFn) await shutdownFn();
 				},

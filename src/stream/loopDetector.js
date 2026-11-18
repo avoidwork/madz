@@ -1,83 +1,140 @@
-import { createHash } from "node:crypto";
+import { Piscina } from "piscina";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+/** @type {Piscina | null} */
+let pool = null;
 
 /**
- * Create a streaming loop detector that hashes stream segments.
+ * Piscina worker pool for loop detection. Created lazily on first use and then
+ * reused, like the indexCode pool, so threads are not spawned per call and
+ * nothing is spawned at import time.
+ * @returns {Piscina} The shared pool
+ */
+export function getPool() {
+	if (!pool) pool = new Piscina({ filename: join(__dirname, "loopDetectorWorker.js") });
+	return pool;
+}
+
+/**
+ * Destroy the shared pool (shutdown and tests). A later `getPool()` makes a new one.
+ * @returns {Promise<void>}
+ */
+export async function destroyPool() {
+	const current = pool;
+	pool = null;
+	if (current) await current.destroy();
+}
+
+/**
+ * Create a streaming loop detector.
  *
- * A segment is one streamed delta: a small group of characters exactly as it
- * arrives (not a sentence or paragraph). Each delta is hashed and appended to
- * a bounded list, per stream kind (reasoning, message). A looping model
- * re-emits the same sequence of segments, so a loop is a trailing run of the
- * hash list that repeats back-to-back more than `threshold` times, whatever
- * the length of the repeating unit (a word, a sentence, a paragraph).
+ * Streamed deltas are accumulated into text per kind (reasoning, message). The
+ * text, not the deltas, is checked, so it does not matter how the provider
+ * chunks the stream. A loop is either a sentence that repeats within the last
+ * `windowSize` completed sentences, or a run of words repeated back-to-back
+ * (for loops with no sentence terminator, such as "ok ok ok").
  *
- * `windowSize` must be large enough to hold `threshold + 1` copies of the
- * longest unit to be caught: a paragraph is on the order of 100 deltas.
- * Hashes older than `ttlMs` are pruned so past content cannot form a false
- * positive with new content.
+ * The check runs in a worker thread so it never blocks the main loop. `push`
+ * returns immediately with the latest known result and starts a check in the
+ * background when none is in flight, so a loop is reported on the first `push`
+ * after its check completes. At most one check per kind is in flight.
  *
  * @param {Object} [options] - Options
- * @param {number} [options.windowSize=1000] - Segment hashes retained per kind
- * @param {number} [options.threshold=2] - Back-to-back repeats above which a loop is flagged
- * @param {number} [options.ttlMs] - Hashes older than this are pruned (no expiry when unset)
+ * @param {number} [options.windowSize=20] - Recent completed sentences compared
+ * @param {number} [options.threshold=2] - Repeats above which a loop is flagged
+ * @param {number} [options.ttlMs] - Accumulated text older than this is dropped (no expiry when unset)
  * @param {Function} [options.now] - Clock returning ms (injectable for tests)
- * @returns {{ push: (kind: string, delta: string) => boolean, reset: () => void }} Detector
+ * @param {{ run: Function }} [options.runner] - Runs a check; defaults to the shared pool, injectable for tests
+ * @returns {{ push: (kind: string, delta: string) => boolean, settle: () => Promise<boolean>, reset: () => void }} Detector
  */
 export function createSegmentLoopDetector(options = {}) {
-	const windowSize = options.windowSize ?? 1000;
+	const windowSize = options.windowSize ?? 20;
 	const threshold = options.threshold ?? 2;
 	const ttlMs = options.ttlMs;
 	const now = options.now ?? (() => Date.now());
-	const needed = threshold + 1;
+	const runner = options.runner ?? { run: (task) => getPool().run(task) };
 
-	/** @type {Map<string, {hash: string, ts: number}[]>} */
-	const lists = new Map();
+	/** @type {Map<string, {text: string, ts: number, flagged: boolean, inflight: Promise<void> | null, version: number}>} */
+	const kinds = new Map();
+	let generation = 0;
+
+	function getKind(kind) {
+		let state = kinds.get(kind);
+		if (!state) {
+			state = { text: "", ts: now(), flagged: false, inflight: null, version: 0 };
+			kinds.set(kind, state);
+		}
+		return state;
+	}
 
 	/**
-	 * Check whether the tail of the list is one unit repeated `needed` times.
-	 * @param {{hash: string, ts: number}[]} list - Segment hashes, oldest first
-	 * @returns {boolean} True when a repeating unit is found
+	 * Start a worker check for a kind's current text, unless one is running.
+	 * @param {{text: string, flagged: boolean, inflight: Promise<void> | null, version: number}} state - Kind state
+	 * @returns {void}
 	 */
-	function isLooping(list) {
-		const n = list.length;
-		const last = list[n - 1].hash;
-		for (let period = 1; period * needed <= n; period++) {
-			// Cheap reject: the unit's last segment must recur exactly one period back.
-			if (list[n - 1 - period].hash !== last) continue;
-			let match = true;
-			for (let i = 1; i < period * (needed - 1) && match; i++) {
-				if (list[n - 1 - i].hash !== list[n - 1 - i - period].hash) match = false;
-			}
-			if (match) return true;
-		}
-		return false;
+	function startCheck(state) {
+		if (state.inflight) return;
+		const forGeneration = generation;
+		const checkedVersion = state.version;
+		state.inflight = Promise.resolve(runner.run({ text: state.text, windowSize, threshold }))
+			.then((looping) => {
+				// A reset since this check started makes its answer stale.
+				if (forGeneration === generation && looping) state.flagged = true;
+			})
+			.catch(() => {
+				// A failed check must never break streaming: treat as "not looping".
+			})
+			.finally(() => {
+				state.inflight = null;
+				// Text arrived while checking: check again so the tail is covered.
+				if (forGeneration === generation && !state.flagged && state.version !== checkedVersion) {
+					startCheck(state);
+				}
+			});
 	}
 
 	return {
 		/**
-		 * Record a streamed segment.
+		 * Record a streamed delta.
 		 * @param {string} kind - Stream kind, e.g. "reasoning" or "message"
-		 * @param {string} delta - The segment exactly as streamed
-		 * @returns {boolean} True when the stream is looping
+		 * @param {string} delta - The delta exactly as streamed
+		 * @returns {boolean} True when a completed check has flagged a loop
 		 */
 		push(kind, delta) {
 			if (typeof delta !== "string" || delta.length === 0) return false;
-			let list = lists.get(kind);
-			if (!list) {
-				list = [];
-				lists.set(kind, list);
-			}
+			const state = getKind(kind);
 			const nowMs = now();
-			if (ttlMs !== undefined) {
-				while (list.length > 0 && nowMs - list[0].ts > ttlMs) list.shift();
+			if (ttlMs !== undefined && nowMs - state.ts > ttlMs) {
+				state.text = "";
+				state.flagged = false;
 			}
-			list.push({ hash: createHash("sha256").update(delta).digest("hex"), ts: nowMs });
-			while (list.length > windowSize) list.shift();
-			return isLooping(list);
+			state.ts = nowMs;
+			state.text += delta;
+			state.version++;
+			if (!state.flagged) startCheck(state);
+			return state.flagged;
+		},
+
+		/**
+		 * Wait for in-flight checks and report whether any kind is flagged.
+		 * @returns {Promise<boolean>} True when a loop has been flagged
+		 */
+		async settle() {
+			let pending = [...kinds.values()].map((s) => s.inflight).filter(Boolean);
+			while (pending.length > 0) {
+				await Promise.all(pending);
+				pending = [...kinds.values()].map((s) => s.inflight).filter(Boolean);
+			}
+			return [...kinds.values()].some((s) => s.flagged);
 		},
 
 		/** Clear all state (call after a nudge so the next attempt starts fresh). */
 		reset() {
-			lists.clear();
+			generation++;
+			kinds.clear();
 		},
 	};
 }

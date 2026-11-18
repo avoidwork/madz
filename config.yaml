@@ -61,7 +61,7 @@ loopDetection:
   escalationWindowMs: 60000
   threshold: 2
   ttlMs: 60000
-  windowSize: 1000
+  windowSize: 20
 memory:
   checkpointsDir: memory/checkpoints/
   contextDir: memory/context/

@@ -13,10 +13,11 @@ import { isSubagentNamespace } from "./namespace.js";
  * @param {Function} [streamingCallback] - Callback for streamed chunks
  * @param {Object} [options] - Options
  * @param {boolean} [options.showToolResults=true] - Whether to emit `tool` events
- * @param {{push: Function, reset: Function}} [options.loopDetector] - Segment loop
- *   detector. Each non-subagent message/reasoning delta is pushed as a segment.
- *   When it flags a loop the stream is abandoned (closing the underlying iterator)
- *   and `loopDetected` is returned true.
+ * @param {{push: Function, settle?: Function, reset: Function}} [options.loopDetector] - Loop
+ *   detector. Each non-subagent message/reasoning delta is pushed to it. When it
+ *   flags a loop the stream is abandoned (closing the underlying iterator) and
+ *   `loopDetected` is returned true. Checks run in a worker, so a loop can be
+ *   flagged after the stream ends; `settle()` is awaited to collect it.
  * @returns {Promise<{content: string, reasoning: string, interrupted: boolean, lastEventType: string | null, loopDetected: boolean}>}
  */
 export async function consumeStream(stream, streamingCallback, options = {}) {
@@ -145,6 +146,10 @@ export async function consumeStream(stream, streamingCallback, options = {}) {
 		// Abandon the stream; leaving the for-await closes the iterator.
 		if (loopDetected) break;
 	}
+
+	// Worker checks may still be in flight when the stream ends; collect them so
+	// a loop in the final deltas is not missed.
+	if (!loopDetected && loopDetector?.settle) loopDetected = await loopDetector.settle();
 
 	return { content, reasoning, interrupted, lastEventType, loopDetected };
 }

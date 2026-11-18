@@ -14,14 +14,12 @@ import { z } from "zod";
 export const LoopDetectionSchema = z
 	.object({
 		enabled: z.boolean().default(true),
-		// Number of recent segment (delta) hashes retained. Must hold
-		// `threshold + 1` copies of the longest repeating unit; a paragraph is on
-		// the order of 100 deltas.
-		windowSize: z.number().int().positive().default(1000),
-		// A hash older than this many ms is pruned from the window, so past
+		// Number of recent completed sentences compared for duplicates.
+		windowSize: z.number().int().positive().default(20),
+		// Accumulated stream text older than this many ms is dropped, so past
 		// content cannot cause false positives as new content streams in.
 		ttlMs: z.number().int().positive().default(60000),
-		// A unit must repeat back-to-back more than this many times to flag a loop.
+		// A sentence (or word run) must repeat more than this many times to flag a loop.
 		threshold: z.number().int().positive().default(2),
 		// Number of loop nudges within the escalation window before compacting.
 		escalationCount: z.number().int().positive().default(3),
