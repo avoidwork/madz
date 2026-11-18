@@ -81,8 +81,6 @@ describe("shouldNudgeSilent", () => {
 		silentViolation: true,
 		streamingMsgId: "m1",
 		lastMessageId: "m1",
-		autoContinueCount: 0,
-		autoContinueLimit: 10,
 	};
 
 	it("uses the agreed nudge text", () => {
@@ -105,7 +103,10 @@ describe("shouldNudgeSilent", () => {
 		assert.strictEqual(shouldNudgeSilent({ ...base, lastMessageId: "m2" }), false);
 	});
 
-	it("does not nudge once the limit is reached", () => {
-		assert.strictEqual(shouldNudgeSilent({ ...base, autoContinueCount: 10 }), false);
+	it("is not bound by the auto-continue limit", () => {
+		assert.strictEqual(
+			shouldNudgeSilent({ ...base, autoContinueCount: 1000, autoContinueLimit: 1000 }),
+			true,
+		);
 	});
 });

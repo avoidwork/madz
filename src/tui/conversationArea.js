@@ -86,16 +86,14 @@ export const SILENT_MODE_NUDGE = "Stay quiet, silent mode is enabled";
  *
  * Fires only when the stream was abandoned for a silent-mode violation (a second
  * message streaming in the same turn), the streaming bubble is the last in the
- * list, the turn was not paused by an interrupt, and the nudge guard is not
- * exhausted.
+ * list, and the turn was not paused by an interrupt. The nudge corrects behavior
+ * rather than continuing a turn, so it is not counted against `autoContinueLimit`.
  *
  * @param {Object} params - Decision inputs
  * @param {boolean | undefined} params.silentViolation - Whether the stream was abandoned
  * @param {boolean} [params.interrupted] - True when the turn paused on an interrupt
  * @param {string | undefined} params.streamingMsgId - The streaming bubble's message ID
  * @param {string | undefined} params.lastMessageId - The last message ID in the list
- * @param {number} params.autoContinueCount - Current auto-continue count
- * @param {number} params.autoContinueLimit - Max auto-continue count
  * @returns {boolean} True when the silent-mode nudge should be dispatched
  */
 export function shouldNudgeSilent({
@@ -103,15 +101,8 @@ export function shouldNudgeSilent({
 	interrupted = false,
 	streamingMsgId,
 	lastMessageId,
-	autoContinueCount,
-	autoContinueLimit,
 }) {
-	return (
-		silentViolation === true &&
-		!interrupted &&
-		streamingMsgId === lastMessageId &&
-		autoContinueCount < autoContinueLimit
-	);
+	return silentViolation === true && !interrupted && streamingMsgId === lastMessageId;
 }
 
 /**
@@ -654,19 +645,16 @@ const ConversationArea = forwardRef(function ConversationArea(
 			);
 
 			// Silent mode: the stream was abandoned because a second message started
-			// streaming. Nudge the assistant to stay quiet, counted against the same
-			// autoContinueLimit guard.
+			// streaming. Nudge the assistant to stay quiet. This is not a continuation,
+			// so it does not count against autoContinueLimit.
 			if (
 				shouldNudgeSilent({
 					silentViolation: response?.silentViolation,
 					interrupted: response?.interrupted,
 					streamingMsgId: streamingMsgIdRef.current,
 					lastMessageId: messageListRef.current?.getLastMessageId(),
-					autoContinueCount: autoContinueCountRef.current,
-					autoContinueLimit,
 				})
 			) {
-				autoContinueCountRef.current += 1;
 				await handleChat(SILENT_MODE_NUDGE, { silentUser: true });
 				return;
 			}
