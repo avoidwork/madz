@@ -769,6 +769,7 @@ function App({
 								reasoningCollapsed,
 								toolCallCollapsed,
 								hidden: currentView !== PANELS.CONVERSATION,
+								contextWindow,
 							}),
 							currentView !== PANELS.CONVERSATION ? panelComponent : null,
 						),
