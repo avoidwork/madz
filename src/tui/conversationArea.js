@@ -156,6 +156,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 	// Counts silent loop nudges dispatched when the loop detector abandons a
 	// stream. Bounded by config.loopDetection.streamMaxNudges.
 	const loopNudgeCountRef = useRef(0);
+	const loopNudgeLimit = config?.loopDetection?.streamMaxNudges;
 	const toolMessageTokensRef = useRef(0);
 	const contextUpdateTimerRef = useRef(null);
 	const pendingContextRef = useRef({ content: "" });
@@ -527,7 +528,6 @@ const ConversationArea = forwardRef(function ConversationArea(
 			// with a silent "You're looping", the same way the reasoning-only
 			// "Continue" below is dispatched. Scoped to the LAST bubble and bounded by
 			// config.loopDetection.streamMaxNudges.
-			const loopNudgeLimit = config?.loopDetection?.streamMaxNudges ?? 2;
 			if (
 				shouldNudgeLoop({
 					loopDetected: response?.loopDetected,
