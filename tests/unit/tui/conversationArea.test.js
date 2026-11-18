@@ -41,40 +41,68 @@ describe("countToolMessageTokens", () => {
 	});
 });
 
-describe("shouldNudgeLoop", () => {
+describe("decideLoopAction", () => {
 	const base = {
 		loopDetected: true,
 		streamingMsgId: "3",
 		lastMessageId: "3",
-		loopNudgeCount: 0,
-		loopNudgeLimit: 2,
+		nudges: [],
+		now: 100000,
+		escalationCount: 3,
+		escalationWindowMs: 60000,
 	};
 
-	it("returns true when the detector flagged the last bubble and the limit is not exhausted", async () => {
+	it("nudges when the detector flagged the last bubble and there are no recent nudges", async () => {
 		const mod = await import("../../../src/tui/conversationArea.js");
-		assert.strictEqual(mod.shouldNudgeLoop(base), true);
+		assert.deepStrictEqual(mod.decideLoopAction(base), { action: "nudge", nudges: [100000] });
 	});
 
-	it("returns false when no loop was detected", async () => {
+	it("does nothing when no loop was detected", async () => {
 		const mod = await import("../../../src/tui/conversationArea.js");
-		assert.strictEqual(mod.shouldNudgeLoop({ ...base, loopDetected: false }), false);
-		assert.strictEqual(mod.shouldNudgeLoop({ ...base, loopDetected: undefined }), false);
+		assert.strictEqual(mod.decideLoopAction({ ...base, loopDetected: false }).action, "none");
+		assert.strictEqual(mod.decideLoopAction({ ...base, loopDetected: undefined }).action, "none");
 	});
 
-	it("returns false when the streaming bubble is not the last message", async () => {
+	it("does nothing when the streaming bubble is not the last message", async () => {
 		const mod = await import("../../../src/tui/conversationArea.js");
-		assert.strictEqual(mod.shouldNudgeLoop({ ...base, lastMessageId: "4" }), false);
+		assert.strictEqual(mod.decideLoopAction({ ...base, lastMessageId: "4" }).action, "none");
 	});
 
-	it("returns false once the nudge limit is exhausted", async () => {
+	it("records each nudge and keeps nudging below the escalation count", async () => {
 		const mod = await import("../../../src/tui/conversationArea.js");
-		assert.strictEqual(mod.shouldNudgeLoop({ ...base, loopNudgeCount: 2 }), false);
-		assert.strictEqual(mod.shouldNudgeLoop({ ...base, loopNudgeCount: 1 }), true);
+		const out = mod.decideLoopAction({ ...base, nudges: [90000, 95000] });
+		assert.strictEqual(out.action, "nudge");
+		assert.deepStrictEqual(out.nudges, [90000, 95000, 100000]);
 	});
 
-	it("never nudges when the limit is 0", async () => {
+	it("compacts instead of nudging once escalationCount nudges fall within the window", async () => {
 		const mod = await import("../../../src/tui/conversationArea.js");
-		assert.strictEqual(mod.shouldNudgeLoop({ ...base, loopNudgeLimit: 0 }), false);
+		const out = mod.decideLoopAction({ ...base, nudges: [80000, 90000, 95000] });
+		assert.strictEqual(out.action, "compact");
+		assert.deepStrictEqual(out.nudges, [], "counter resets after escalation");
+	});
+
+	it("drops nudges older than the window so a slow loop does not escalate", async () => {
+		const mod = await import("../../../src/tui/conversationArea.js");
+		// Two of the three are outside the 60s window.
+		const out = mod.decideLoopAction({ ...base, nudges: [10000, 20000, 95000] });
+		assert.strictEqual(out.action, "nudge");
+		assert.deepStrictEqual(out.nudges, [95000, 100000]);
+	});
+
+	it("treats a nudge exactly at the window edge as still inside it", async () => {
+		const mod = await import("../../../src/tui/conversationArea.js");
+		const out = mod.decideLoopAction({ ...base, nudges: [40000, 41000, 42000] });
+		assert.strictEqual(out.action, "compact");
+	});
+
+	it("leaves the nudge timestamps untouched when it does nothing", async () => {
+		const mod = await import("../../../src/tui/conversationArea.js");
+		const nudges = [90000];
+		assert.strictEqual(
+			mod.decideLoopAction({ ...base, loopDetected: false, nudges }).nudges,
+			nudges,
+		);
 	});
 });
 

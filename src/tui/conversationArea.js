@@ -70,30 +70,39 @@ export function shouldAutoContinue({
 }
 
 /**
- * Decide whether to dispatch a silent loop nudge after a turn ends.
+ * Decide what to do after a turn when the loop detector may have abandoned the stream.
  *
- * Mirrors `shouldAutoContinue`: it fires only when the streaming bubble is the
+ * Mirrors `shouldAutoContinue`: it acts only when the streaming bubble is the
  * last in the message list AND the stream was abandoned because the loop
- * detector flagged it AND the nudge limit is not exhausted.
+ * detector flagged it. If `escalationCount` nudges already happened within
+ * `escalationWindowMs`, the context is compacted instead of nudging again.
  *
  * @param {Object} params - Decision inputs
  * @param {boolean | undefined} params.loopDetected - Whether the loop detector flagged the stream
  * @param {string | undefined} params.streamingMsgId - The streaming bubble's message ID
  * @param {string | undefined} params.lastMessageId - The last message ID in the list
- * @param {number} params.loopNudgeCount - Current loop nudge count
- * @param {number} params.loopNudgeLimit - Max loop nudge count
- * @returns {boolean} True when a silent loop nudge should be dispatched
+ * @param {number[]} params.nudges - Timestamps (ms) of previous loop nudges
+ * @param {number} params.now - Current time in ms
+ * @param {number} params.escalationCount - Nudges within the window before compacting
+ * @param {number} params.escalationWindowMs - Rolling window (ms) for counting nudges
+ * @returns {{ action: "none" | "nudge" | "compact", nudges: number[] }} The action and the
+ *   updated nudge timestamps (pruned to the window)
  */
-export function shouldNudgeLoop({
+export function decideLoopAction({
 	loopDetected,
 	streamingMsgId,
 	lastMessageId,
-	loopNudgeCount,
-	loopNudgeLimit,
+	nudges,
+	now,
+	escalationCount,
+	escalationWindowMs,
 }) {
-	return (
-		loopDetected === true && streamingMsgId === lastMessageId && loopNudgeCount < loopNudgeLimit
-	);
+	if (loopDetected !== true || streamingMsgId !== lastMessageId) {
+		return { action: "none", nudges };
+	}
+	const recent = nudges.filter((ts) => now - ts <= escalationWindowMs);
+	if (recent.length >= escalationCount) return { action: "compact", nudges: [] };
+	return { action: "nudge", nudges: [...recent, now] };
 }
 
 /**
@@ -154,10 +163,12 @@ const ConversationArea = forwardRef(function ConversationArea(
 	// Bounded by config.agent.autoContinueLimit to prevent an infinite loop.
 	const autoContinueCountRef = useRef(0);
 	const autoContinueLimit = config?.agent?.autoContinueLimit;
-	// Counts silent loop nudges dispatched when the loop detector abandons a
-	// stream. Bounded by config.loopDetection.streamMaxNudges.
-	const loopNudgeCountRef = useRef(0);
-	const loopNudgeLimit = config?.loopDetection?.streamMaxNudges;
+	// Timestamps of silent loop nudges dispatched when the loop detector abandons
+	// a stream. `escalationCount` nudges within `escalationWindowMs` compact the
+	// context instead of nudging again.
+	const loopNudgesRef = useRef([]);
+	const escalationCount = config?.loopDetection?.escalationCount;
+	const escalationWindowMs = config?.loopDetection?.escalationWindowMs;
 	const toolMessageTokensRef = useRef(0);
 	const contextUpdateTimerRef = useRef(null);
 	const pendingContextRef = useRef({ content: "" });
@@ -527,18 +538,24 @@ const ConversationArea = forwardRef(function ConversationArea(
 
 			// Loop nudge: when the loop detector abandoned the stream, nudge the model
 			// with a silent "You're looping", the same way the reasoning-only
-			// "Continue" below is dispatched. Scoped to the LAST bubble and bounded by
-			// config.loopDetection.streamMaxNudges.
-			if (
-				shouldNudgeLoop({
-					loopDetected: response?.loopDetected,
-					streamingMsgId: streamingMsgIdRef.current,
-					lastMessageId: messageListRef.current?.getLastMessageId(),
-					loopNudgeCount: loopNudgeCountRef.current,
-					loopNudgeLimit,
-				})
-			) {
-				loopNudgeCountRef.current += 1;
+			// "Continue" below is dispatched. Scoped to the LAST bubble. After
+			// `escalationCount` nudges within `escalationWindowMs`, compact the
+			// context instead of nudging again.
+			const loop = decideLoopAction({
+				loopDetected: response?.loopDetected,
+				streamingMsgId: streamingMsgIdRef.current,
+				lastMessageId: messageListRef.current?.getLastMessageId(),
+				nudges: loopNudgesRef.current,
+				now: Date.now(),
+				escalationCount,
+				escalationWindowMs,
+			});
+			loopNudgesRef.current = loop.nudges;
+			if (loop.action === "compact") {
+				await handleCompact();
+				return;
+			}
+			if (loop.action === "nudge") {
 				await handleChat("You're looping", { silentUser: true });
 				return;
 			}
@@ -623,7 +640,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 		// not per-process. A reasoning loop is a per-thread phenomenon; a fresh
 		// session must not inherit a counter exhausted by a prior thread.
 		autoContinueCountRef.current = 0;
-		loopNudgeCountRef.current = 0;
+		loopNudgesRef.current = [];
 		messageListRef.current?.clear();
 		// Recompute the context size for the fresh thread rather than hard-setting
 		// 0. The system prompt (SYSTEM_PROMPT.md + AGENTS.md + memory context) is

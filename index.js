@@ -304,6 +304,7 @@ async function runAgent(input, threadExtras, streamingCallback, signal) {
 			: createSegmentLoopDetector({
 					windowSize: loopConfig.windowSize,
 					threshold: loopConfig.threshold,
+					ttlMs: loopConfig.ttlMs,
 				});
 	const stream = await agent.stream(input, {
 		configurable: { thread_id: sessionState.getSessionId(), ...threadExtras },

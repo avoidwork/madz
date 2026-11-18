@@ -57,8 +57,10 @@ jira:
   token: ""     # personal access token, sent as Bearer (JIRA_TOKEN)
 loopDetection:
   enabled: true
-  streamMaxNudges: 2
+  escalationCount: 3
+  escalationWindowMs: 60000
   threshold: 2
+  ttlMs: 60000
   windowSize: 1000
 memory:
   checkpointsDir: memory/checkpoints/

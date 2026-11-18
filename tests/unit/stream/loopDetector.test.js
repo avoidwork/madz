@@ -98,6 +98,25 @@ describe("createSegmentLoopDetector", () => {
 		assert.strictEqual(feed(createSegmentLoopDetector({ threshold: 4 }), repeat(unit, 5)), true);
 	});
 
+	it("prunes hashes older than ttlMs", () => {
+		let clock = 0;
+		const d = createSegmentLoopDetector({ threshold: 2, ttlMs: 100, now: () => clock });
+		const unit = ["a1", "b2"];
+		for (const s of [...unit, ...unit]) d.push("reasoning", s);
+		clock = 500;
+		// The earlier copies expired, so the third copy alone is not a loop.
+		assert.strictEqual(feed(d, unit), false);
+	});
+
+	it("does not expire hashes when ttlMs is unset", () => {
+		let clock = 0;
+		const d = createSegmentLoopDetector({ threshold: 2, now: () => clock });
+		const unit = ["a1", "b2"];
+		for (const s of [...unit, ...unit]) d.push("reasoning", s);
+		clock = 10_000_000;
+		assert.strictEqual(feed(d, unit), true);
+	});
+
 	it("reset clears state", () => {
 		const d = createSegmentLoopDetector({ threshold: 2 });
 		const unit = ["a1", "b2"];

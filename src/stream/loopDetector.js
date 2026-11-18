@@ -12,34 +12,40 @@ import { createHash } from "node:crypto";
  *
  * `windowSize` must be large enough to hold `threshold + 1` copies of the
  * longest unit to be caught: a paragraph is on the order of 100 deltas.
+ * Hashes older than `ttlMs` are pruned so past content cannot form a false
+ * positive with new content.
  *
  * @param {Object} [options] - Options
  * @param {number} [options.windowSize=1000] - Segment hashes retained per kind
  * @param {number} [options.threshold=2] - Back-to-back repeats above which a loop is flagged
+ * @param {number} [options.ttlMs] - Hashes older than this are pruned (no expiry when unset)
+ * @param {Function} [options.now] - Clock returning ms (injectable for tests)
  * @returns {{ push: (kind: string, delta: string) => boolean, reset: () => void }} Detector
  */
 export function createSegmentLoopDetector(options = {}) {
 	const windowSize = options.windowSize ?? 1000;
 	const threshold = options.threshold ?? 2;
+	const ttlMs = options.ttlMs;
+	const now = options.now ?? (() => Date.now());
 	const needed = threshold + 1;
 
-	/** @type {Map<string, string[]>} */
+	/** @type {Map<string, {hash: string, ts: number}[]>} */
 	const lists = new Map();
 
 	/**
 	 * Check whether the tail of the list is one unit repeated `needed` times.
-	 * @param {string[]} list - Segment hashes, oldest first
+	 * @param {{hash: string, ts: number}[]} list - Segment hashes, oldest first
 	 * @returns {boolean} True when a repeating unit is found
 	 */
 	function isLooping(list) {
 		const n = list.length;
-		const last = list[n - 1];
+		const last = list[n - 1].hash;
 		for (let period = 1; period * needed <= n; period++) {
 			// Cheap reject: the unit's last segment must recur exactly one period back.
-			if (list[n - 1 - period] !== last) continue;
+			if (list[n - 1 - period].hash !== last) continue;
 			let match = true;
 			for (let i = 1; i < period * (needed - 1) && match; i++) {
-				if (list[n - 1 - i] !== list[n - 1 - i - period]) match = false;
+				if (list[n - 1 - i].hash !== list[n - 1 - i - period].hash) match = false;
 			}
 			if (match) return true;
 		}
@@ -60,7 +66,11 @@ export function createSegmentLoopDetector(options = {}) {
 				list = [];
 				lists.set(kind, list);
 			}
-			list.push(createHash("sha256").update(delta).digest("hex"));
+			const nowMs = now();
+			if (ttlMs !== undefined) {
+				while (list.length > 0 && nowMs - list[0].ts > ttlMs) list.shift();
+			}
+			list.push({ hash: createHash("sha256").update(delta).digest("hex"), ts: nowMs });
 			while (list.length > windowSize) list.shift();
 			return isLooping(list);
 		},
