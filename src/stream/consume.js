@@ -20,9 +20,11 @@ import { isSubagentNamespace } from "./namespace.js";
  *   blocks never mix. Chat Completions `reasoning_content` carries no id. When it
  *   flags a loop the stream is abandoned (closing the underlying iterator) and
  *   `loopDetected` is returned true. Checks run in a worker, so a loop can be
- *   flagged after the stream ends; `settle()` is awaited to collect it. When the
- *   turn ends, however it ends, the detector is reset so its word and sentence
- *   lists are cleared and released.
+ *   flagged after the stream ends; `settle()` is awaited to collect it. When a
+ *   message turn ends (its last chunk carries a `finish_reason`, a different message
+ *   id arrives, or a tool result follows) `end()` collects the verdict and releases
+ *   the detector's word and sentence lists. The detector is also reset when the
+ *   stream itself ends, however it ends.
  * @returns {Promise<{content: string, reasoning: string, interrupted: boolean, lastEventType: string | null, loopDetected: boolean}>}
  */
 export async function consumeStream(stream, streamingCallback, options = {}) {
@@ -50,6 +52,15 @@ async function drainStream(stream, streamingCallback, options) {
 	let lastEventType = null;
 	let loopDetected = false;
 	const loopDetector = options.loopDetector;
+	/** The id shared by the chunks of the message currently streaming. */
+	let currentMsgId = null;
+
+	// A message turn is start, stream, end. When it ends, collect the verdict of
+	// any worker check still running and release the detector's lists.
+	const endMessage = async () => {
+		currentMsgId = null;
+		if (loopDetector?.end && (await loopDetector.end())) loopDetected = true;
+	};
 
 	for await (const [namespace, mode, payload] of stream) {
 		// Subagent runs are nested under a `tools:<id>` namespace segment. Their
@@ -72,6 +83,14 @@ async function drainStream(stream, streamingCallback, options) {
 			// "You're looping" nudge), not assistant output. Skip them so they are
 			// never rendered into the assistant's streaming bubble.
 			if (msgType === "human") continue;
+
+			if (!isSubagent) {
+				// A different message id means the previous message's turn has ended.
+				if (msg?.id != null && currentMsgId != null && msg.id !== currentMsgId) await endMessage();
+				if (msg?.id != null) currentMsgId = msg.id;
+				// A tool result means the AI message that called the tool has ended.
+				if (msgType === "tool") await endMessage();
+			}
 
 			if (text) {
 				// ToolMessage text is emitted as a distinct `tool` event, never
@@ -145,6 +164,8 @@ async function drainStream(stream, streamingCallback, options) {
 					}
 				}
 			}
+			// The chunk that carries a finish reason is the last of its message.
+			if (!isSubagent && msg?.response_metadata?.finish_reason) await endMessage();
 		} else if (mode === "tools" && streamingCallback) {
 			if (payload?.event === "on_tool_start") {
 				streamingCallback({

@@ -60,7 +60,7 @@ export async function destroyPool() {
  * @param {number} [options.ttlMs] - State older than this is dropped (no expiry when unset)
  * @param {Function} [options.now] - Clock returning ms (injectable for tests)
  * @param {{ run: Function }} [options.runner] - Runs a check; defaults to the shared pool, injectable for tests
- * @returns {{ push: (kind: string, delta: string, id?: string | number) => boolean, settle: () => Promise<boolean>, reset: () => void, size: () => number }} Detector
+ * @returns {{ push: (kind: string, delta: string, id?: string | number) => boolean, settle: () => Promise<boolean>, end: () => Promise<boolean>, reset: () => void, size: () => number }} Detector
  */
 export function createSegmentLoopDetector(options = {}) {
 	const windowSize = options.windowSize ?? 20;
@@ -229,10 +229,23 @@ export function createSegmentLoopDetector(options = {}) {
 			return [...kinds.values()].some((s) => s.flagged);
 		},
 
-		/** Release every stream's state (called when a turn ends, and after a nudge). */
+		/** Release every stream's state (called when a message turn ends, and after a nudge). */
 		reset() {
 			for (const state of kinds.values()) release(state);
 			kinds.clear();
+		},
+
+		/**
+		 * End a message turn: collect the verdict of any check still running (the
+		 * last deltas may have started one), then release every stream's lists. The
+		 * verdict is read before the release, so a loop in the final deltas of the
+		 * message is not lost.
+		 * @returns {Promise<boolean>} True when a loop was flagged during the message
+		 */
+		async end() {
+			const flagged = await this.settle();
+			this.reset();
+			return flagged;
 		},
 
 		/**
