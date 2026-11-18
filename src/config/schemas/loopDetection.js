@@ -36,9 +36,11 @@ export const LoopDetectionSchema = z
 		ttlMs: z.number().int().positive().default(60000),
 		// A sentence (or word run) must repeat more than this many times to flag a loop.
 		threshold: z.number().int().positive().default(2),
-		// Number of loop nudges within the escalation window before compacting.
+		// Strike, within the escalation window, that compacts the context instead of
+		// nudging: three strikes and you're out, so strikes 1 and 2 nudge and strike 3
+		// compacts.
 		escalationCount: z.number().int().positive().default(3),
-		// Rolling window (ms) for counting loop nudges before escalation.
+		// Rolling window (ms) for counting loop strikes before escalation.
 		escalationWindowMs: z.number().int().positive().default(60000),
 	})
 	.strict()

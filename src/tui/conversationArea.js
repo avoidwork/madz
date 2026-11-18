@@ -74,19 +74,21 @@ export function shouldAutoContinue({
  *
  * Mirrors `shouldAutoContinue`: it acts only when the streaming bubble is the
  * last in the message list AND the stream was abandoned because the loop
- * detector flagged it. If `escalationCount` nudges already happened within
- * `escalationWindowMs`, the context is compacted instead of nudging again.
+ * detector flagged it. Each detected loop is a strike. Strikes within
+ * `escalationWindowMs` are counted, this one included, and the `escalationCount`th
+ * strike compacts the context instead of nudging (three strikes and you're out:
+ * strikes 1 and 2 nudge, strike 3 compacts).
  *
  * @param {Object} params - Decision inputs
  * @param {boolean | undefined} params.loopDetected - Whether the loop detector flagged the stream
  * @param {string | undefined} params.streamingMsgId - The streaming bubble's message ID
  * @param {string | undefined} params.lastMessageId - The last message ID in the list
- * @param {number[]} params.nudges - Timestamps (ms) of previous loop nudges
+ * @param {number[]} params.nudges - Timestamps (ms) of previous strikes that were nudged
  * @param {number} params.now - Current time in ms
- * @param {number} params.escalationCount - Nudges within the window before compacting
- * @param {number} params.escalationWindowMs - Rolling window (ms) for counting nudges
+ * @param {number} params.escalationCount - The strike, within the window, that compacts
+ * @param {number} params.escalationWindowMs - Rolling window (ms) for counting strikes
  * @returns {{ action: "none" | "nudge" | "compact", nudges: number[] }} The action and the
- *   updated nudge timestamps (pruned to the window)
+ *   updated strike timestamps (pruned to the window)
  */
 export function decideLoopAction({
 	loopDetected,
@@ -101,7 +103,8 @@ export function decideLoopAction({
 		return { action: "none", nudges };
 	}
 	const recent = nudges.filter((ts) => now - ts <= escalationWindowMs);
-	if (recent.length >= escalationCount) return { action: "compact", nudges: [] };
+	// This loop is itself a strike, so it is counted before deciding.
+	if (recent.length + 1 >= escalationCount) return { action: "compact", nudges: [] };
 	return { action: "nudge", nudges: [...recent, now] };
 }
 
@@ -163,9 +166,8 @@ const ConversationArea = forwardRef(function ConversationArea(
 	// Bounded by config.agent.autoContinueLimit to prevent an infinite loop.
 	const autoContinueCountRef = useRef(0);
 	const autoContinueLimit = config?.agent?.autoContinueLimit;
-	// Timestamps of silent loop nudges dispatched when the loop detector abandons
-	// a stream. `escalationCount` nudges within `escalationWindowMs` compact the
-	// context instead of nudging again.
+	// Timestamps of loop strikes that were nudged. The `escalationCount`th strike
+	// within `escalationWindowMs` compacts the context instead of nudging.
 	const loopNudgesRef = useRef([]);
 	const escalationCount = config?.loopDetection?.escalationCount;
 	const escalationWindowMs = config?.loopDetection?.escalationWindowMs;
@@ -539,8 +541,8 @@ const ConversationArea = forwardRef(function ConversationArea(
 			// Loop nudge: when the loop detector abandoned the stream, nudge the model
 			// with a silent "You're looping", the same way the reasoning-only
 			// "Continue" below is dispatched. Scoped to the LAST bubble. After
-			// `escalationCount` nudges within `escalationWindowMs`, compact the
-			// context instead of nudging again.
+			// `escalationCount`th strike within `escalationWindowMs`, compact the
+			// context instead of nudging.
 			const loop = decideLoopAction({
 				loopDetected: response?.loopDetected,
 				streamingMsgId: streamingMsgIdRef.current,

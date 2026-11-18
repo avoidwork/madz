@@ -68,32 +68,79 @@ describe("decideLoopAction", () => {
 		assert.strictEqual(mod.decideLoopAction({ ...base, lastMessageId: "4" }).action, "none");
 	});
 
-	it("records each nudge and keeps nudging below the escalation count", async () => {
+	it("strike 1 nudges", async () => {
 		const mod = await import("../../../src/tui/conversationArea.js");
-		const out = mod.decideLoopAction({ ...base, nudges: [90000, 95000] });
+		const out = mod.decideLoopAction({ ...base, nudges: [] });
 		assert.strictEqual(out.action, "nudge");
-		assert.deepStrictEqual(out.nudges, [90000, 95000, 100000]);
+		assert.deepStrictEqual(out.nudges, [100000]);
 	});
 
-	it("compacts instead of nudging once escalationCount nudges fall within the window", async () => {
+	it("strike 2 nudges and records both strikes", async () => {
 		const mod = await import("../../../src/tui/conversationArea.js");
-		const out = mod.decideLoopAction({ ...base, nudges: [80000, 90000, 95000] });
-		assert.strictEqual(out.action, "compact");
-		assert.deepStrictEqual(out.nudges, [], "counter resets after escalation");
-	});
-
-	it("drops nudges older than the window so a slow loop does not escalate", async () => {
-		const mod = await import("../../../src/tui/conversationArea.js");
-		// Two of the three are outside the 60s window.
-		const out = mod.decideLoopAction({ ...base, nudges: [10000, 20000, 95000] });
+		const out = mod.decideLoopAction({ ...base, nudges: [95000] });
 		assert.strictEqual(out.action, "nudge");
 		assert.deepStrictEqual(out.nudges, [95000, 100000]);
 	});
 
-	it("treats a nudge exactly at the window edge as still inside it", async () => {
+	it("strike 3 compacts instead of nudging: three strikes and you're out", async () => {
 		const mod = await import("../../../src/tui/conversationArea.js");
-		const out = mod.decideLoopAction({ ...base, nudges: [40000, 41000, 42000] });
+		const out = mod.decideLoopAction({ ...base, nudges: [90000, 95000] });
 		assert.strictEqual(out.action, "compact");
+		assert.deepStrictEqual(out.nudges, [], "the counter resets after compaction");
+	});
+
+	it("plays out strikes 1 to 3 in order", async () => {
+		const mod = await import("../../../src/tui/conversationArea.js");
+		let nudges = [];
+		const actions = [];
+		for (const now of [100000, 110000, 120000]) {
+			const out = mod.decideLoopAction({ ...base, nudges, now });
+			actions.push(out.action);
+			nudges = out.nudges;
+		}
+		assert.deepStrictEqual(actions, ["nudge", "nudge", "compact"]);
+	});
+
+	it("starts counting again after a compaction", async () => {
+		const mod = await import("../../../src/tui/conversationArea.js");
+		const afterCompact = mod.decideLoopAction({ ...base, nudges: [90000, 95000] }).nudges;
+		const next = mod.decideLoopAction({ ...base, nudges: afterCompact, now: 130000 });
+		assert.strictEqual(next.action, "nudge", "the next loop is strike 1 again");
+	});
+
+	it("drops strikes older than the window so a slow loop does not escalate", async () => {
+		const mod = await import("../../../src/tui/conversationArea.js");
+		// Two earlier strikes are outside the 60s window, so this is strike 1 again.
+		const out = mod.decideLoopAction({ ...base, nudges: [10000, 20000] });
+		assert.strictEqual(out.action, "nudge");
+		assert.deepStrictEqual(out.nudges, [100000]);
+	});
+
+	it("counts only the strikes inside the window", async () => {
+		const mod = await import("../../../src/tui/conversationArea.js");
+		// One old strike, one recent: this loop is only strike 2.
+		const out = mod.decideLoopAction({ ...base, nudges: [10000, 95000] });
+		assert.strictEqual(out.action, "nudge");
+		assert.deepStrictEqual(out.nudges, [95000, 100000]);
+	});
+
+	it("treats a strike exactly at the window edge as still inside it", async () => {
+		const mod = await import("../../../src/tui/conversationArea.js");
+		const out = mod.decideLoopAction({ ...base, nudges: [40000, 41000] });
+		assert.strictEqual(out.action, "compact");
+	});
+
+	it("honours a different escalationCount", async () => {
+		const mod = await import("../../../src/tui/conversationArea.js");
+		assert.strictEqual(mod.decideLoopAction({ ...base, escalationCount: 1 }).action, "compact");
+		assert.strictEqual(
+			mod.decideLoopAction({ ...base, escalationCount: 2, nudges: [95000] }).action,
+			"compact",
+		);
+		assert.strictEqual(
+			mod.decideLoopAction({ ...base, escalationCount: 5, nudges: [91000, 92000, 93000] }).action,
+			"nudge",
+		);
 	});
 
 	it("leaves the nudge timestamps untouched when it does nothing", async () => {
