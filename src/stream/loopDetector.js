@@ -33,7 +33,12 @@ export async function destroyPool() {
  * Create a streaming loop detector.
  *
  * Each streamed delta is split once, as it arrives, into completed sentences
- * and words per kind (reasoning, message). Only the last `windowSize` sentences
+ * and words. State is kept per block: the key is the kind (reasoning, message)
+ * plus the stream block's id, so concurrent blocks never mix and detection is
+ * restricted to the one block a delta belongs to. A delta with no id (Chat
+ * Completions `reasoning_content`) is keyed by kind alone. At most `maxBlocks`
+ * blocks are tracked; the least recently updated is evicted. Only the last
+ * `windowSize` sentences
  * and `wordWindowSize` words are kept, so memory and the cost of a check stay
  * bounded however long the stream runs, and the provider's delta boundaries do
  * not matter. A loop is a sentence repeated within the sentence window, or a
@@ -42,22 +47,24 @@ export async function destroyPool() {
  *
  * The check runs in a worker thread so it never blocks the main loop. `push`
  * returns immediately with the latest known result. A check starts only when a
- * delta completed a new sentence or word, and at most one check per kind is in
+ * delta completed a new sentence or word, and at most one check per block is in
  * flight.
  *
  * @param {Object} [options] - Options
  * @param {number} [options.windowSize=20] - Recent completed sentences kept and compared
  * @param {number} [options.wordWindowSize=1000] - Recent completed words kept and compared
  * @param {number} [options.threshold=2] - Repeats above which a loop is flagged
+ * @param {number} [options.maxBlocks=16] - Concurrent blocks tracked; the least recently updated is evicted
  * @param {number} [options.ttlMs] - State older than this is dropped (no expiry when unset)
  * @param {Function} [options.now] - Clock returning ms (injectable for tests)
  * @param {{ run: Function }} [options.runner] - Runs a check; defaults to the shared pool, injectable for tests
- * @returns {{ push: (kind: string, delta: string) => boolean, settle: () => Promise<boolean>, reset: () => void }} Detector
+ * @returns {{ push: (kind: string, delta: string, id?: string | number) => boolean, settle: () => Promise<boolean>, reset: () => void }} Detector
  */
 export function createSegmentLoopDetector(options = {}) {
 	const windowSize = options.windowSize ?? 20;
 	const wordWindowSize = options.wordWindowSize ?? 1000;
 	const threshold = options.threshold ?? 2;
+	const maxBlocks = options.maxBlocks ?? 16;
 	const ttlMs = options.ttlMs;
 	const now = options.now ?? (() => Date.now());
 	const runner = options.runner ?? { run: (task) => getPool().run(task) };
@@ -72,10 +79,10 @@ export function createSegmentLoopDetector(options = {}) {
 	 * @property {boolean} flagged - A check has flagged a loop
 	 * @property {Promise<void> | null} inflight - The running check, if any
 	 * @property {number} version - Bumped when a sentence or word completes
+	 * @property {boolean} dead - The state was replaced, evicted or reset; in-flight answers are stale
 	 */
-	/** @type {Map<string, KindState>} */
+	/** @type {Map<string, KindState>} Insertion order is recency order, oldest first. */
 	const kinds = new Map();
-	let generation = 0;
 
 	function freshState() {
 		return {
@@ -87,14 +94,27 @@ export function createSegmentLoopDetector(options = {}) {
 			flagged: false,
 			inflight: null,
 			version: 0,
+			dead: false,
 		};
 	}
 
-	function getKind(kind) {
-		let state = kinds.get(kind);
-		if (!state) {
-			state = freshState();
-			kinds.set(kind, state);
+	/**
+	 * Get (or create) the state for a block and mark it most recently used. The
+	 * least recently used block is evicted once more than `maxBlocks` are tracked.
+	 * @param {string} key - Block key (kind, or kind plus id)
+	 * @param {KindState} [replacement] - State to install in place of the existing one
+	 * @returns {KindState} The block's state
+	 */
+	function touch(key, replacement) {
+		const existing = kinds.get(key);
+		const state = replacement ?? existing ?? freshState();
+		if (existing && existing !== state) existing.dead = true;
+		kinds.delete(key);
+		kinds.set(key, state);
+		if (kinds.size > maxBlocks) {
+			const oldest = kinds.keys().next().value;
+			kinds.get(oldest).dead = true;
+			kinds.delete(oldest);
 		}
 		return state;
 	}
@@ -116,13 +136,12 @@ export function createSegmentLoopDetector(options = {}) {
 	 */
 	function startCheck(state) {
 		if (state.inflight) return;
-		const forGeneration = generation;
 		const checkedVersion = state.version;
 		const task = { sentences: state.sentences.slice(), words: state.words.slice(), threshold };
 		state.inflight = Promise.resolve(runner.run(task))
 			.then((looping) => {
-				// A reset since this check started makes its answer stale.
-				if (forGeneration === generation && looping) state.flagged = true;
+				// A state that was replaced, evicted or reset makes its answer stale.
+				if (!state.dead && looping) state.flagged = true;
 			})
 			.catch(() => {
 				// A failed check must never break streaming: treat as "not looping".
@@ -130,7 +149,7 @@ export function createSegmentLoopDetector(options = {}) {
 			.finally(() => {
 				state.inflight = null;
 				// Sentences or words completed while checking: check again so the tail is covered.
-				if (forGeneration === generation && !state.flagged && state.version !== checkedVersion) {
+				if (!state.dead && !state.flagged && state.version !== checkedVersion) {
 					startCheck(state);
 				}
 			});
@@ -141,17 +160,18 @@ export function createSegmentLoopDetector(options = {}) {
 		 * Record a streamed delta.
 		 * @param {string} kind - Stream kind, e.g. "reasoning" or "message"
 		 * @param {string} delta - The delta exactly as streamed
-		 * @returns {boolean} True when a completed check has flagged a loop
+		 * @param {string | number} [id] - The stream block's id; a delta with no id is keyed by kind alone
+		 * @returns {boolean} True when a completed check has flagged a loop for this block
 		 */
-		push(kind, delta) {
+		push(kind, delta, id) {
 			if (typeof delta !== "string" || delta.length === 0) return false;
-			let state = getKind(kind);
+			const key = id == null ? kind : `${kind}\0${id}`;
+			let state = touch(key);
 			const nowMs = now();
 			if (ttlMs !== undefined && nowMs - state.ts > ttlMs) {
-				// Expired: start this kind over. Bumping the generation drops any stale in-flight answer.
-				generation++;
-				state = freshState();
-				kinds.set(kind, state);
+				// Expired: start this block over. touch() marks the old state dead, so
+				// its in-flight answer is dropped without affecting any other block.
+				state = touch(key, freshState());
 			}
 			state.ts = nowMs;
 
@@ -192,7 +212,7 @@ export function createSegmentLoopDetector(options = {}) {
 
 		/** Clear all state (call after a nudge so the next attempt starts fresh). */
 		reset() {
-			generation++;
+			for (const state of kinds.values()) state.dead = true;
 			kinds.clear();
 		},
 	};

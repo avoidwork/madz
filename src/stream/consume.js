@@ -14,7 +14,10 @@ import { isSubagentNamespace } from "./namespace.js";
  * @param {Object} [options] - Options
  * @param {boolean} [options.showToolResults=true] - Whether to emit `tool` events
  * @param {{push: Function, settle?: Function, reset: Function}} [options.loopDetector] - Loop
- *   detector. Each non-subagent message/reasoning delta is pushed to it. When it
+ *   detector. Each non-subagent message/reasoning delta is pushed to it together with
+ *   the stream block's id (the content-block index for messages, `block.id` for
+ *   Responses API reasoning), so detection is restricted to one block and concurrent
+ *   blocks never mix. Chat Completions `reasoning_content` carries no id. When it
  *   flags a loop the stream is abandoned (closing the underlying iterator) and
  *   `loopDetected` is returned true. Checks run in a worker, so a loop can be
  *   flagged after the stream ends; `settle()` is awaited to collect it.
@@ -69,7 +72,8 @@ export async function consumeStream(stream, streamingCallback, options = {}) {
 
 				if (!isSubagent) {
 					content += text;
-					if (loopDetector?.push("message", text)) loopDetected = true;
+					const blockIndex = msg?.content?.[0]?.index;
+					if (loopDetector?.push("message", text, blockIndex)) loopDetected = true;
 				}
 
 				if (streamingCallback) {
@@ -108,7 +112,7 @@ export async function consumeStream(stream, streamingCallback, options = {}) {
 					if (block?.type === "reasoning" && block.reasoning) {
 						if (!isSubagent) {
 							reasoning += block.reasoning;
-							if (loopDetector?.push("reasoning", block.reasoning)) loopDetected = true;
+							if (loopDetector?.push("reasoning", block.reasoning, block.id)) loopDetected = true;
 						}
 						if (streamingCallback) {
 							streamingCallback({
