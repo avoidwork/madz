@@ -97,14 +97,15 @@ export function getContextUtilization(contextSize, contextWindow) {
  * letting the user count the steps at a glance.
  * @param {number} contextSize - Current context size in tokens
  * @param {number} contextWindow - Configured context window in tokens (0 = unset)
+ * @param {boolean} [showPercent] - Whether to append the percentage label (default true)
  * @returns {string} The rendered meter string
  */
-export function renderContextMeter(contextSize, contextWindow) {
+export function renderContextMeter(contextSize, contextWindow, showPercent = true) {
 	const utilization = getContextUtilization(contextSize, contextWindow);
 	const segments = 10;
 	const filled = Math.round((utilization / 100) * segments);
 	const bar = "▋".repeat(filled) + "░".repeat(Math.max(0, segments - filled));
-	return `${bar} ${utilization}%`;
+	return showPercent ? `${bar} ${utilization}%` : bar;
 }
 
 /**
@@ -134,6 +135,7 @@ export const StatusBar = React.memo(function StatusBar({
 	const showSkills = statusBar.skills !== false;
 	const showMessages = statusBar.messages !== false;
 	const showContext = statusBar.context !== false;
+	const showContextPercent = statusBar.contextPercent !== false;
 	const showTokens = statusBar.tokens !== false && tokenBudget > 0;
 	const showQuote = statusBar.quote !== false && quote;
 	const showVersion = statusBar.version !== false && version;
@@ -186,7 +188,7 @@ export const StatusBar = React.memo(function StatusBar({
 						{ key: "context", color: contextColor },
 						" \u2219 " +
 							(contextWindow > 0
-								? renderContextMeter(contextSize, contextWindow)
+								? renderContextMeter(contextSize, contextWindow, showContextPercent)
 								: formatSize(contextSize)),
 					)
 				: null,

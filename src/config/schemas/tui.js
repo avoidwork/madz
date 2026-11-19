@@ -13,6 +13,7 @@ export const TuiSchema = z.object({
 			skills: z.boolean().default(true),
 			messages: z.boolean().default(true),
 			context: z.boolean().default(true),
+			contextPercent: z.boolean().default(true),
 			tokens: z.boolean().default(true),
 			quote: z.boolean().default(true),
 			version: z.boolean().default(true),

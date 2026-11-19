@@ -147,6 +147,11 @@ describe("renderContextMeter", () => {
 		const result = renderContextMeter(12200, 0);
 		assert.strictEqual(result, "░░░░░░░░░░ 0%");
 	});
+
+	it("omits the percentage label when showPercent is false", () => {
+		const result = renderContextMeter(38400, 128000, false);
+		assert.strictEqual(result, "▋▋▋░░░░░░░");
+	});
 });
 
 describe("QUOTES", () => {
