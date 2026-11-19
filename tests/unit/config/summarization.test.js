@@ -6,7 +6,7 @@ describe("SummarizationSchema", () => {
 	describe("defaults", () => {
 		test("absent section parses to documented defaults", () => {
 			const result = SummarizationSchema.parse({});
-			assert.strictEqual(result.keepMessages, undefined);
+			assert.strictEqual(result.keepMessages, 10);
 			assert.strictEqual(result.contextFraction, 0.8);
 		});
 	});
@@ -42,8 +42,8 @@ describe("SummarizationSchema", () => {
 	});
 
 	describe("keepMessages", () => {
-		test("is optional and unset by default", () => {
-			assert.strictEqual(SummarizationSchema.parse({}).keepMessages, undefined);
+		test("defaults to 10 when unset", () => {
+			assert.strictEqual(SummarizationSchema.parse({}).keepMessages, 10);
 		});
 
 		test("accepts zero and positive integers", () => {

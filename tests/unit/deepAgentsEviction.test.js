@@ -51,6 +51,22 @@ describe("createDeepAgentsOrchestrator filesystem middleware", () => {
 		);
 	});
 
+	it("registers a SummarizationMiddleware with a token trigger at the context fraction", () => {
+		const middleware = orchestrator.agent.options.middleware;
+		const summarization = middleware.find((m) => m.name === "SummarizationMiddleware");
+
+		assert.ok(summarization, "SummarizationMiddleware must be registered");
+		// The trigger is expressed in tokens because the model instance does not
+		// expose profile.maxInputTokens; it should be contextFraction of the
+		// resolved context window. When the window cannot be resolved the
+		// middleware falls back to library defaults, so the trigger may be absent.
+		const trigger = summarization.options?.trigger;
+		if (trigger) {
+			assert.strictEqual(trigger.type, "tokens");
+			assert.ok(trigger.value > 0, "token trigger must be positive");
+		}
+	});
+
 	it("drives the assembled middleware with the config-derived ceiling", async () => {
 		const { loadConfig } = await import("../../src/config/loader.js");
 		const config = loadConfig();

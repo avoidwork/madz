@@ -221,7 +221,7 @@ subAgentsTemperature:
   textEditor: 0.4
   translator: 0.3
 summarization:
-  keepMessages: 5
+  keepMessages: 10
   contextFraction: 0.8
 telemetry:
   enabled: false
