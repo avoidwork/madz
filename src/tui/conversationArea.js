@@ -78,7 +78,7 @@ export function shouldAutoContinue({
 }
 
 /** Silent nudge sent when the assistant narrates while `agent.silent` is enabled. */
-export const SILENT_MODE_NUDGE = "Stay quiet, silent mode is enabled";
+export const SILENT_MODE_NUDGE = "Stay quiet, silent mode is enabled. Please continue.";
 
 /**
  * Decide whether to send the silent-mode nudge after a turn ends.

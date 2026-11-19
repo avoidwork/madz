@@ -84,7 +84,7 @@ describe("shouldNudgeSilent", () => {
 	};
 
 	it("uses the agreed nudge text", () => {
-		assert.strictEqual(SILENT_MODE_NUDGE, "Stay quiet, silent mode is enabled");
+		assert.strictEqual(SILENT_MODE_NUDGE, "Stay quiet, silent mode is enabled. Please continue.");
 	});
 
 	it("nudges on a violation in the last bubble", () => {
