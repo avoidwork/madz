@@ -33,6 +33,7 @@ import { getAllAgents } from "./agentDefinitions.js";
 import { logger } from "../shared/logger.js";
 import { createCodeInterpreterMiddleware } from "@langchain/quickjs";
 import { compactMessages } from "./compaction.js";
+import { getEffectiveMessages } from "./effectiveMessages.js";
 import { createTurnTransformer } from "../stream/transformers/index.js";
 
 /**
@@ -266,7 +267,10 @@ export async function compactAgentContext(agent, config, sessionState, options =
 		return { ok: false, removedVision: 0, trimmed: 0, remaining: 0, error: err.message };
 	}
 
-	const messages = state?.values?.messages || [];
+	// Compact what the model currently sees, not the raw checkpointer history
+	// (the summarization middleware leaves `messages` untouched and tracks its
+	// cutoff in `_summarizationEvent`).
+	const messages = getEffectiveMessages(state?.values);
 	if (messages.length === 0) {
 		return { ok: true, removedVision: 0, trimmed: 0, remaining: 0 };
 	}
@@ -305,13 +309,30 @@ export async function compactAgentContext(agent, config, sessionState, options =
 		finalMessages = filtered.slice(-keepRecent);
 	}
 
-	// Replace the checkpointer state with the compacted message set.
-	// The `model_request` node is the graph node that owns the `messages`
-	// channel — targeting it lets updateState replace the message history.
+	// Replace the checkpointer state with the compacted message set. A leading
+	// summary is stored the way the summarization middleware expects it
+	// (`_summarizationEvent` with cutoff 0) so the effective window is exactly
+	// `finalMessages` and nothing is applied twice. The event channel cannot be
+	// cleared, so a previous summary is carried over when one existed.
+	const previousEvent = state?.values?._summarizationEvent;
+	const isSummary = (m) =>
+		m?.additional_kwargs?.madz_summary === true || m === previousEvent?.summaryMessage;
+	const hasSummary = finalMessages.length > 0 && isSummary(finalMessages[0]);
+	const summaryMessage = hasSummary ? finalMessages[0] : previousEvent?.summaryMessage;
+	const rest = hasSummary ? finalMessages.slice(1) : finalMessages;
 	try {
 		await agent.updateState(
 			config,
-			{ messages: [new RemoveMessage({ id: "__remove_all__" }), ...finalMessages] },
+			{
+				messages: [new RemoveMessage({ id: "__remove_all__" }), ...rest],
+				...(summaryMessage && {
+					_summarizationEvent: {
+						cutoffIndex: 0,
+						summaryMessage,
+						filePath: previousEvent?.filePath ?? null,
+					},
+				}),
+			},
 			"model_request",
 		);
 	} catch (err) {
