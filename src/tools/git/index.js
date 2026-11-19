@@ -545,6 +545,28 @@ function sequencerFlag(input) {
 	return null;
 }
 
+/**
+ * Run a checkout/switch-style command, retrying once after pruning stale
+ * worktrees when the target branch is reported as already in use by a worktree
+ * whose directory no longer exists. A stale worktree (directory removed) keeps
+ * the branch "checked out" until `worktree prune` runs, which makes checkout
+ * fail intermittently; pruning and retrying resolves it without user action.
+ * @param {string[]} args
+ * @param {string} cwd
+ * @param {(res: { stdout: string, stderr: string }) => object} onOk
+ * @returns {Promise<object>}
+ */
+async function checkoutWithRetry(args, cwd, onOk) {
+	let res = await runGit(args, cwd);
+	if (res.code === 0) return onOk(res);
+	if (/already used by worktree/.test(res.stderr)) {
+		await runGit(["worktree", "prune"], cwd);
+		res = await runGit(args, cwd);
+		if (res.code === 0) return onOk(res);
+	}
+	return fail(res, cwd);
+}
+
 const handlers = {
 	status(input, cwd) {
 		const args = ["status", "--porcelain=v1", "-z", "--branch"];
@@ -621,14 +643,21 @@ const handlers = {
 					error: `Refusing to force-delete protected branch '${input.branch}'. Pass allowProtected: true to override.`,
 				};
 			}
-			const res = await runGit(["branch", input.force ? "-D" : "-d", input.branch], cwd);
+			let res = await runGit(["branch", input.force ? "-D" : "-d", input.branch], cwd);
 			if (res.code !== 0) {
 				const stderr = res.stderr.trim() || res.stdout.trim();
 				const worktreeMatch = stderr.match(/cannot delete branch .* used by worktree at '([^']+)'/);
 				if (worktreeMatch) {
+					// If the worktree is stale (its directory is gone), prune it and
+					// retry once before reporting the branch as undeletable.
+					if (!fs.existsSync(worktreeMatch[1])) {
+						await runGit(["worktree", "prune"], cwd);
+						res = await runGit(["branch", input.force ? "-D" : "-d", input.branch], cwd);
+						if (res.code === 0) return { ok: true, branch: input.branch, deleted: true };
+					}
 					return {
 						ok: false,
-						error: stderr,
+						error: res.stderr.trim() || res.stdout.trim(),
 						hint: `Branch '${input.branch}' is checked out in worktree at '${worktreeMatch[1]}'. Remove the worktree first (git worktree remove '${worktreeMatch[1]}') before deleting the branch.`,
 					};
 				}
@@ -832,7 +861,7 @@ const handlers = {
 		if (!input.branch) return { ok: false, error: "checkout requires a branch" };
 		const args = input.create ? ["checkout", "-b", input.branch] : ["checkout", input.branch];
 		if (input.create && input.ref) args.push(input.ref);
-		return run(args, cwd, () => ({ ok: true, branch: input.branch }));
+		return checkoutWithRetry(args, cwd, () => ({ ok: true, branch: input.branch }));
 	},
 
 	switch(input, cwd) {
@@ -846,7 +875,7 @@ const handlers = {
 		if (input.create) args.push("-c");
 		args.push(input.branch);
 		if (input.create && input.ref) args.push(input.ref);
-		return run(args, cwd, () => ({ ok: true, branch: input.branch }));
+		return checkoutWithRetry(args, cwd, () => ({ ok: true, branch: input.branch }));
 	},
 
 	merge(input, cwd) {

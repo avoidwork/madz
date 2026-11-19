@@ -293,6 +293,30 @@ describe("tools - git actions (real repo)", () => {
 		assert.equal(rm.ok, true);
 	});
 
+	it("checkout and branch delete recover from a stale worktree", async () => {
+		const wtPath = path.join(os.tmpdir(), `madz stale ${Date.now()}`);
+		const add = await g({ action: "worktree", sub: "add", path: wtPath, branch: "stale-branch" });
+		assert.equal(add.ok, true, add.error);
+		// Simulate a stale worktree: the directory is removed but git metadata remains.
+		fs.rmSync(wtPath, { recursive: true, force: true });
+		// Checkout of the branch should now succeed after pruning the stale worktree.
+		const co = await g({ action: "checkout", branch: "stale-branch" });
+		assert.equal(co.ok, true, co.error);
+		// Return to main, then verify branch delete also recovers from a stale worktree.
+		await g({ action: "checkout", branch: "main" });
+		const wtPath2 = path.join(os.tmpdir(), `madz stale2 ${Date.now()}`);
+		const add2 = await g({
+			action: "worktree",
+			sub: "add",
+			path: wtPath2,
+			branch: "stale-branch2",
+		});
+		assert.equal(add2.ok, true, add2.error);
+		fs.rmSync(wtPath2, { recursive: true, force: true });
+		const del = await g({ action: "branch", delete: true, branch: "stale-branch2" });
+		assert.equal(del.ok, true, del.error);
+	});
+
 	it("apply a patch via stdin", async () => {
 		write("a.txt", "patched\n");
 		const patch = sh("diff");
