@@ -733,7 +733,13 @@ describe("flattenSystemContent", () => {
 		const body = {
 			model: "m",
 			messages: [
-				{ role: "system", content: [{ type: "text", text: "one" }, { type: "text", text: "two" }] },
+				{
+					role: "system",
+					content: [
+						{ type: "text", text: "one" },
+						{ type: "text", text: "two" },
+					],
+				},
 				{ role: "user", content: "hi" },
 			],
 		};
