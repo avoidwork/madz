@@ -409,14 +409,15 @@ StatusBar({ isStreaming, skillCount, messageCount, contextSize, isCompacting,
     │   ├── ∙ ⚡skillCount (if statusBar.skills)
     │   ├── ∙ 💬 messageCount (if statusBar.messages)
     │   ├── ∙ context meter (if statusBar.context; red when compacting)
-    │   │   └── renderContextMeter → "▋▋▋░░░░░░░ 30%" when contextWindow > 0,
+    │   │   └── renderContextMeter → "▋▋▋░░░░░░░" (with " 30%" appended when
+    │   │       statusBar.contextPercent) when contextWindow > 0,
     │   │       else formatSize(contextSize) → "1.2k"
     │   ├── ∙ 💎 tokenCount/tokenBudget (if statusBar.tokens && tokenBudget > 0)
     │   └── ∙ projectName (if statusBar.project && project set; shows subdir under projects/)
     └── <right> (marginLeft: auto): quote + version (if statusBar.version)
 ```
 
-> **Note:** The status bar has no separate `statusMessage` text field in the current implementation — the streaming state is shown via the spinner/indicator, and the model/skill/message/context/token/project counts are rendered as `∙`-separated segments. The context element renders a block-character utilization meter (`▋▋▋░░░░░░░ 30%`) when a context window is configured, or a human-readable size (`1.2k`) when it is not. See [TUI.md](./TUI.md) §9 for the full element table.
+> **Note:** The status bar has no separate `statusMessage` text field in the current implementation — the streaming state is shown via the spinner/indicator, and the model/skill/message/context/token/project counts are rendered as `∙`-separated segments. The context element renders a block-character utilization meter (`▋▋▋░░░░░░░`) when a context window is configured, or a human-readable size (`1.2k`) when it is not. The numeric percentage label is opt-in via `statusBar.contextPercent` (default `false`). See [TUI.md](./TUI.md) §9 for the full element table.
 
 ---
 

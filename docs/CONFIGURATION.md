@@ -84,6 +84,7 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 |                 | `statusBar.skills`                  | `true`                           | Show the skills count in the status bar                                                                                                                     |
 |                 | `statusBar.messages`                | `true`                           | Show the message count in the status bar                                                                                                                    |
 |                 | `statusBar.context`                 | `true`                           | Show the context utilization meter in the status bar                                                                                                       |
+|                 | `statusBar.contextPercent`         | `false`                          | Show the numeric percentage label on the context meter (opt-in; the block render already conveys utilization)                                              |
 |                 | `statusBar.tokens`                  | `true`                           | Show the rolling token budget in the status bar                                                                                                             |
 |                 | `statusBar.quote`                   | `true`                           | Show the rotating quote in the status bar                                                                                                                   |
 |                 | `statusBar.version`                 | `true`                           | Show the version in the status bar                                                                                                                          |
@@ -124,7 +125,7 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 
 ### Status Bar
 
-The `tui.statusBar` section controls which elements appear in the bottom status bar. Each element is independently gated by a boolean; the bar itself always renders, and the streaming indicator (spinner) is not configurable. All values default to `true`, so an existing config (or a bare `statusBar: {}`) resolves to today's behavior exactly.
+The `tui.statusBar` section controls which elements appear in the bottom status bar. Each element is independently gated by a boolean; the bar itself always renders, and the streaming indicator (spinner) is not configurable. Most values default to `true`, so an existing config (or a bare `statusBar: {}`) resolves to today's behavior exactly. The exception is `contextPercent`, which defaults to `false` — the numeric percentage is opt-in because the block render already conveys utilization.
 
 ```yaml
 tui:
@@ -133,6 +134,7 @@ tui:
     skills: true
     messages: true
     context: true
+    contextPercent: false
     tokens: true
     quote: true
     version: true
@@ -141,7 +143,8 @@ tui:
 - **`model`** — show the active model name (`[🧠 model]`).
 - **`skills`** — show the skills count (`[⚡N]`).
 - **`messages`** — show the message count (`[💬 N]`).
-- **`context`** — show the context utilization meter (`[▋▋▋░░░░░░░ 30%]`), or the context size (`[▦ N]`) when no window is configured.
+- **`context`** — show the context utilization meter (`[▋▋▋░░░░░░░]`), or the context size (`[▦ N]`) when no window is configured.
+- **`contextPercent`** — append the numeric percentage label to the context meter (`[▋▋▋░░░░░░░ 30%]`). Defaults to `false`; opt-in since the block render already conveys utilization.
 - **`tokens`** — show the rolling token budget (`[💎 count/budget]`); only renders when a budget is configured.
 - **`quote`** — show the rotating quote on the right side.
 - **`version`** — show the version on the right side.

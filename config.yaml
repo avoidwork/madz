@@ -240,6 +240,7 @@ tui:
   showToolResults: true
   statusBar:
     context: true
+    contextPercent: false
     messages: true
     model: true
     project: true

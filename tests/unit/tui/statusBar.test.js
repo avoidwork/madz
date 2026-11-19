@@ -147,6 +147,11 @@ describe("renderContextMeter", () => {
 		const result = renderContextMeter(12200, 0);
 		assert.strictEqual(result, "░░░░░░░░░░ 0%");
 	});
+
+	it("omits the percentage label when showPercent is false", () => {
+		const result = renderContextMeter(38400, 128000, false);
+		assert.strictEqual(result, "▋▋▋░░░░░░░");
+	});
 });
 
 describe("QUOTES", () => {
@@ -554,6 +559,24 @@ describe("StatusBar context meter", () => {
 		assert.ok(typeof result === "string");
 		assert.ok(result.includes("▋"), "should render filled block characters");
 		assert.ok(result.includes("░"), "should render empty block characters");
+		assert.ok(!result.includes("%"), "should not render the percentage by default");
+	});
+
+	it("renders the utilization percentage when contextPercent is enabled", () => {
+		const result = renderToString(
+			React.createElement(StatusBar, {
+				statusMessage: "Ready",
+				skillCount: 1,
+				messageCount: 2,
+				contextSize: 64000,
+				contextWindow: 128000,
+				version: "1.0.0",
+				statusBar: { contextPercent: true },
+			}),
+		);
+		assert.ok(typeof result === "string");
+		assert.ok(result.includes("▋"), "should render filled block characters");
+		assert.ok(result.includes("░"), "should render empty block characters");
 		assert.ok(result.includes("50%"), "should render the utilization percentage");
 	});
 
@@ -582,6 +605,7 @@ describe("StatusBar context meter", () => {
 				contextSize: 0,
 				contextWindow: 128000,
 				version: "1.0.0",
+				statusBar: { contextPercent: true },
 			}),
 		);
 		assert.ok(typeof result === "string");
@@ -597,6 +621,7 @@ describe("StatusBar context meter", () => {
 				contextSize: 128000,
 				contextWindow: 128000,
 				version: "1.0.0",
+				statusBar: { contextPercent: true },
 			}),
 		);
 		assert.ok(typeof result === "string");

@@ -40,7 +40,7 @@ The IRC layout is borrowed for its elegance: messages accumulate above, input si
 │  [14:25] Mads:  Here's the diff...                          │
 │  ... (scrollable conversation) ...                          │
 ├─────────────────────────────────────────────────────────────┤
-│  ∙∙∙ [model] ∙ ⚡12 ∙ 💬42 ∙ ▋▋▋░░░░░░░ 30%                │
+│  ∙∙∙ [model] ∙ ⚡12 ∙ 💬42 ∙ ▋▋▋░░░░░░░                    │
 ├─────────────────────────────────────────────────────────────┤
 │  > _                                                        │
 └─────────────────────────────────────────────────────────────┘
@@ -239,6 +239,7 @@ tui:
     skills: true
     messages: true
     context: true
+    contextPercent: false
     tokens: true
     quote: true
     version: true
@@ -429,7 +430,7 @@ The status bar displays connection status, system metrics, and contextual inform
 The status bar is a single row with a left-aligned cluster of indicators and a right-aligned version/quote area. Each element can be toggled via the `tui.statusBar` config section (e.g., `statusBar.model: false` hides the model). Elements are separated by `∙` (middle dot) characters, and the context element renders a block-character utilization meter.
 
 ```
-∙∙∙ [gpt-4o] ∙ ⚡12 ∙ 💬42 ∙ ▋▋▋░░░░░░░ 30% ∙ 💎 120/4.1k ∙ backend-api      quote text   v1.154.2
+∙∙∙ [gpt-4o] ∙ ⚡12 ∙ 💬42 ∙ ▋▋▋░░░░░░░ ∙ 💎 120/4.1k ∙ backend-api      quote text   v1.154.2
 ```
 
 | Element          | Config toggle        | Content                                                                 |
@@ -438,13 +439,13 @@ The status bar is a single row with a left-aligned cluster of indicators and a r
 | Model            | `statusBar.model`    | The active model name, e.g. `[gpt-4o]`                                  |
 | Skill count      | `statusBar.skills`   | Number of registered skills, `⚡12`                                     |
 | Message count    | `statusBar.messages` | Total messages in conversation, `💬42`                                  |
-| Context size     | `statusBar.context`  | Context utilization meter, `▋▋▋░░░░░░░ 30%` (or `1.2k` when no window)  |
+| Context size     | `statusBar.context`  | Context utilization meter, `▋▋▋░░░░░░░` (or `1.2k` when no window)     |
 | Token budget     | `statusBar.tokens`   | Rolling budget usage, `💎 120/4.1k` (only when `maxTokensMinute > 0`)   |
 | Active project   | `statusBar.project`  | The active project name, `backend-api` (only when a project is set)     |
 | Quote            | `statusBar.quote`    | A rotating quote line (right-aligned)                                   |
 | Version          | `statusBar.version`  | App version (right-aligned)                                             |
 
-> **Note:** The context element renders a block-character utilization meter (`▋▋▋░░░░░░░ 30%`) when a context window is configured, or a human-readable size (`1.2k`) when it is not. The `isStreaming` state is passed as a **direct prop** to `StatusBar`, not derived from a status message string. The `project` element is gated by `statusBar.project` and shows only the subdirectory name within `projects/`.
+> **Note:** The context element renders a block-character utilization meter (`▋▋▋░░░░░░░`) when a context window is configured, or a human-readable size (`1.2k`) when it is not. The numeric percentage label is opt-in via `statusBar.contextPercent` (default `false`). The `isStreaming` state is passed as a **direct prop** to `StatusBar`, not derived from a status message string. The `project` element is gated by `statusBar.project` and shows only the subdirectory name within `projects/`.
 
 ### 🔶 Proposed Enhancement
 
