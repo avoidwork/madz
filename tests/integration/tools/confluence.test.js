@@ -31,7 +31,16 @@ function createConfluenceMock() {
 		const method = options.method || "GET";
 		const body = options.body ? JSON.parse(options.body) : undefined;
 
-		// GET /wiki/api/v2/pages (search / list)
+		// GET /wiki/rest/api/search (cloud search)
+		if (path.endsWith("/wiki/rest/api/search") && method === "GET") {
+			const all = [...pages.values()];
+			const start = Number(u.searchParams.get("start") ?? 0);
+			const limit = Number(u.searchParams.get("limit") ?? 50);
+			const page = all.slice(start, start + limit);
+			return json(200, { results: page, _links: {} });
+		}
+
+		// GET /wiki/api/v2/pages (list)
 		if (path.endsWith("/wiki/api/v2/pages") && method === "GET") {
 			const all = [...pages.values()];
 			const start = Number(u.searchParams.get("start") ?? 0);
@@ -46,6 +55,45 @@ function createConfluenceMock() {
 			const page = { id, title: body.title, spaceId: body.spaceId, body };
 			pages.set(id, page);
 			return json(201, page);
+		}
+
+		// DC v1: GET /rest/api/search
+		if (path.endsWith("/rest/api/search") && method === "GET") {
+			const all = [...pages.values()];
+			const start = Number(u.searchParams.get("start") ?? 0);
+			const limit = Number(u.searchParams.get("limit") ?? 50);
+			const page = all.slice(start, start + limit);
+			return json(200, { results: page, _links: {} });
+		}
+
+		// DC v1: POST /rest/api/content
+		if (path.endsWith("/rest/api/content") && method === "POST") {
+			const id = String(nextId++);
+			const page = { id, title: body.title, space: body.space, body };
+			pages.set(id, page);
+			return json(201, page);
+		}
+
+		// DC v1: /rest/api/content/:id
+		const dm = path.match(/\/rest\/api\/content\/([^/]+)$/);
+		if (dm) {
+			const id = decodeURIComponent(dm[1]);
+			const page = pages.get(id);
+			if (method === "GET") {
+				return page ? json(200, page) : json(404, { message: "Page does not exist" });
+			}
+			if (method === "PUT") {
+				if (!page) return json(404, { message: "Page does not exist" });
+				if (body.title !== undefined) page.title = body.title;
+				if (body.body !== undefined) page.body = body.body;
+				pages.set(id, page);
+				return json(200, page);
+			}
+			if (method === "DELETE") {
+				if (!page) return json(404, { message: "Page does not exist" });
+				pages.delete(id);
+				return json(204);
+			}
 		}
 
 		// /wiki/api/v2/pages/:id
@@ -166,6 +214,42 @@ describe("confluence integration", () => {
 		assert.strictEqual(page1.data.results.length, 2);
 		assert.strictEqual(page2.ok, true);
 		assert.strictEqual(page2.data.results.length, 2);
+	});
+
+	it("runs the lifecycle in dc mode against the v1 API", async () => {
+		const mock = createConfluenceMock();
+		const opts = {
+			sleep: noSleep,
+			policy: {
+				rateLimit: 0,
+				timeout: 30000,
+				baseUrl: "https://wiki.example.com",
+				api: "dc",
+			},
+			fetch: mock.fetch,
+		};
+
+		// create
+		const created = await confluenceImpl(
+			{ action: "create", spaceKey: "SPACE", title: "Home", body: "hello" },
+			opts,
+		);
+		assert.strictEqual(created.ok, true);
+		const id = created.data.id;
+
+		// get
+		const got = await confluenceImpl({ action: "get", id }, opts);
+		assert.strictEqual(got.ok, true);
+		assert.strictEqual(got.data.title, "Home");
+
+		// search
+		const searched = await confluenceImpl({ action: "search", cql: "space = SPACE" }, opts);
+		assert.strictEqual(searched.ok, true);
+		assert.strictEqual(searched.data.results.length, 1);
+
+		// delete
+		const deleted = await confluenceImpl({ action: "delete", id }, opts);
+		assert.strictEqual(deleted.ok, true);
 	});
 
 	it("rejects a create missing required fields", async () => {
