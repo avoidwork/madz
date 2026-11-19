@@ -16,6 +16,7 @@ import {
 	SessionStateManager,
 	saveSession,
 } from "./src/session/index.js";
+import { getEffectiveMessages } from "./src/agent/effectiveMessages.js";
 import { resumeSession } from "./src/session/resume.js";
 import { logger, flush as flushLogger } from "./src/shared/logger.js";
 import { consumeStream } from "./src/stream/consume.js";
@@ -270,7 +271,9 @@ async function doBootstrap() {
 	getContextMessages = async () => {
 		try {
 			const state = await agent.getState(currentSessionConfig());
-			return state?.values?.messages ?? null;
+			// The checkpointer keeps the full history; the model sees the
+			// summarization-adjusted window, so report that one.
+			return state?.values ? getEffectiveMessages(state.values) : null;
 		} catch (_err) {
 			return null;
 		}

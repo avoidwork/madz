@@ -322,12 +322,13 @@ describe("compactAgentContext", () => {
 	 * @returns {{ agent: Object, updated: Object }} Mock agent and captured update
 	 */
 	function makeMockAgent(messages) {
-		const updated = { messages: null };
+		const updated = { messages: null, event: undefined };
 		return {
 			agent: {
 				getState: async () => ({ values: { messages } }),
 				updateState: async (_config, values) => {
 					updated.messages = values.messages;
+					updated.event = values._summarizationEvent;
 				},
 			},
 			updated,
@@ -404,11 +405,16 @@ describe("compactAgentContext", () => {
 		});
 
 		assert.strictEqual(result.ok, true);
-		assert.strictEqual(updated.messages.length, 4);
-		assert.match(updated.messages[1].content, /^Here is a summary of the conversation to date:/);
-		assert.match(updated.messages[1].content, /This is a summary\./);
-		assert.strictEqual(updated.messages[2].content, "three");
-		assert.strictEqual(updated.messages[3].content, "four");
+		// Summary lives in the middleware event (cutoff 0); messages hold the tail.
+		assert.strictEqual(updated.messages.length, 3);
+		assert.strictEqual(updated.event.cutoffIndex, 0);
+		assert.match(
+			updated.event.summaryMessage.content,
+			/^Here is a summary of the conversation to date:/,
+		);
+		assert.match(updated.event.summaryMessage.content, /This is a summary\./);
+		assert.strictEqual(updated.messages[1].content, "three");
+		assert.strictEqual(updated.messages[2].content, "four");
 	});
 
 	it("falls back to trimming when summarization fails", async () => {
