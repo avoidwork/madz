@@ -113,15 +113,23 @@ The algorithm that merges vector and full-text search results. Each result's ran
 
 ### Panel
 
-A full-screen view in the TUI. The conversation view is the default; `skills`, `memory`, `settings`, `sessions`, and `projects` are separate panels toggled via commands or Tab.
+A full-screen view in the TUI. The conversation view is the default; `skills`, `memory`, `settings`, `sessions`, `projects`, and `subagents` are separate panels toggled via commands or Tab.
 
 ### File Picker
 
 The `@`-triggered file autocomplete in the input area. Typing `@` opens a fast-glob file list scoped to the active project (or the container root). Owns all keystrokes while open.
 
+### Command Picker
+
+The `/`-triggered command autocomplete in the input area. Typing `/` opens a list of registered commands and skill names. Owns all keystrokes while open.
+
 ### Active Project
 
 The currently-selected project directory, set via `/projects`. When set, the file picker and the agent's file operations resolve relative to it instead of the container root.
+
+### VirtualScrollView
+
+The homegrown virtualized scroll container in `src/tui/scrollView.js`. It renders only the visible window of items plus an overscan buffer, using Ink's `useBoxMetrics` to measure rendered item heights. There is no `ink-scroll-view` dependency.
 
 ### Streaming Segment
 

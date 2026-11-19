@@ -349,10 +349,14 @@ The `reflection-daily` job (`30 23 * * *`) is seeded by `Cron._ensureReflectionJ
 | File                                       | Purpose                                                        |
 | ------------------------------------------ | -------------------------------------------------------------- |
 | `app.js`                                   | Main layout: Banner / ConversationPanel, StatusBar, InputPanel |
-| `commandParser.js`                         | `CommandParser` class — dispatches `:` commands                |
-| `conversationPanel.js`                     | Virtualized message display via `ink-scroll-view`              |
+| `commandParser.js`                         | `CommandParser` class — dispatches `/` commands                |
+| `conversationPanel.js`                     | Virtualized message display via `VirtualScrollView`            |
 | `inputPanel.js`                            | Text entry via `ink-text-input` component                      |
-| `markdownText.js`                          | Renders markdown via `marked.parse()` + `marked-terminal`      |
+| `markdownText.js`                          | Renders markdown via `marked.parse()`                          |
+| `scrollView.js`                            | Homegrown `VirtualScrollView` (Ink `useBoxMetrics`)            |
+| `useMouseScroll.js`                        | SGR mouse sequence parsing (wheel, drag, click)                |
+| `headerClick.js` / `linkHit.js` / `selectionLayout.js` / `openUrl.js` | Mouse click/selection/link layer |
+| `subagentStore.js` / `subagentsPanel.js`   | Subagent activity store and panel                              |
 | `banner.js` / `statusBar.js` / `panels.js` | Startup banner, status indicator, panel definitions            |
 
 ---

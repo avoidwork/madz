@@ -218,19 +218,20 @@ The active provider is selected by the `enabled` flag, not by config position or
 
 | Variable                  | Default | Description                                                       |
 | ------------------------- | ------- | ----------------------------------------------------------------- |
-| `TUI_CURSOR_CHAR`         | `█`     | Cursor character                                                  |
 | `TUI_MOUSE_SCROLL_LINES`  | `1`     | Lines to scroll per mouse wheel event                             |
 | `TUI_NAME`                | `madz`  | TUI identifier in banner                                          |
-| `TUI_SHOW_TOOL_RESULTS`   | `true`  | Show tool call result lines in assistant messages                 |
+| `TUI_OVERSCAN`            | `10`    | Extra items to mount on each side of the virtualized scroll view  |
+| `TUI_SHOW_TOOL_RESULTS`   | `false` | Show tool call result lines in assistant messages                 |
 | `TUI_REASONING_COLLAPSED` | `true`  | Start with reasoning blocks collapsed (`Ctrl+R` to toggle)        |
 | `TUI_TOOL_CALL_COLLAPSED` | `true`  | Start with tool-call result blocks collapsed (`Ctrl+T` to toggle) |
 | `TUI_STATUS_BAR_MODEL`    | `true`  | Show the active model in the status bar                           |
 | `TUI_STATUS_BAR_SKILLS`   | `true`  | Show the skills count in the status bar                           |
 | `TUI_STATUS_BAR_MESSAGES` | `true`  | Show the message count in the status bar                          |
-| `TUI_STATUS_BAR_CONTEXT`  | `true`  | Show the context size in the status bar                           |
+| `TUI_STATUS_BAR_CONTEXT`  | `true`  | Show the context utilization meter in the status bar              |
 | `TUI_STATUS_BAR_TOKENS`   | `true`  | Show the rolling token budget in the status bar                   |
 | `TUI_STATUS_BAR_QUOTE`    | `true`  | Show the rotating quote in the status bar                         |
 | `TUI_STATUS_BAR_VERSION`  | `true`  | Show the version in the status bar                                |
+| `TUI_STATUS_BAR_PROJECT`  | `true`  | Show the active project in the status bar                         |
 
 ### Timezone
 

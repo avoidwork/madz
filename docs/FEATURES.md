@@ -219,6 +219,10 @@ While typing in the input bar, type `@` followed by a path fragment to open a li
 
 The picker owns all input while open: printable characters refine the filter, backspace deletes, left/right move the cursor, up/down navigate the list, Enter inserts the selected path, and Escape closes without selecting. The filter is always a substring match — never interpolated into a glob pattern — so glob metacharacters are treated literally.
 
+### Command Autocomplete
+
+While typing a `/` command, a `CommandPicker` (`src/tui/commandPicker.js`) opens to suggest registered commands and skill names. It filters by a case-insensitive substring match, shows a rotating window of up to 3 options with a `→` indicator, and owns all keystrokes while open: printable characters insert at the cursor, backspace deletes, left/right move the cursor, up/down navigate the list, Enter inserts the selected command (with a trailing space so the picker closes), and Escape closes without selecting.
+
 ### Active Project
 
 The active project is the directory the file picker globs and the agent treats as its working root. It defaults to the launch directory (`config.cwd`). Use `/projects` to open the projects panel, which lists directories under `./projects/` — select one to set it as the active project, or select `(clear active project)` to reset it to the default. You can also run `/projects clear` directly. The active project is shown in the status bar and can be toggled via the `statusBar.project` config option.

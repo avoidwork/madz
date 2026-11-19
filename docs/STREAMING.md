@@ -46,7 +46,10 @@ rather than by type alone.
 | `message`                                                         | `{ type: "message", content, id? }` — `id` is set from `event.index`                                       |
 | `reasoning`                                                       | `{ type: "reasoning", content, id? }` — `id` is set from `event.id`                                        |
 | `on_chat_model_stream`                                            | `chunk.content` → message segment; `chunk.reasoning` → reasoning segment (no `id` — Chat Completions path) |
-| `on_tool_start` / `on_tool_end` / `tool_result` / `on_tool_error` | tool call display state (not segments)                                                                     |
+| `on_tool_start` / `on_tool_end` / `tool` / `on_tool_error`        | tool call display state (not segments); `tool` renders a collapsible tool result block                      |
+| `clarify`                                                         | surfaces a clarification question, arms pending-clarify state (not a segment)                               |
+| `subagent_message` / `subagent_reasoning` / `subagent_tool`       | folded into the subagent store (message/reasoning/tool segments)                                            |
+| `subagent_tool_start` / `subagent_tool_end`                       | folded into the subagent store (running/completed tool calls)                                               |
 
 The `index` → `id` normalization happens at the segment-construction site: the
 message segment spreads `{ id: event.index }` when `event.index` is present, and
