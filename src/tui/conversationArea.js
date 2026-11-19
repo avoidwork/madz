@@ -218,6 +218,10 @@ const ConversationArea = forwardRef(function ConversationArea(
 	const dispatchPromiseRef = useRef(null);
 	const streamingMsgIdRef = useRef(null);
 	const tokenCacheRef = useRef({ content: "", tokens: 0 });
+	// Separate cache for streaming reasoning text. Reasoning is counted toward
+	// the live context window but is never folded into the assistant's rendered
+	// content, so it needs its own token cache keyed on the reasoning text.
+	const reasoningTokenCacheRef = useRef({ content: "", tokens: 0 });
 	// Counts silent "Continue" nudges dispatched when a turn ends on reasoning.
 	// Bounded by config.agent.autoContinueLimit to prevent an infinite loop.
 	const autoContinueCountRef = useRef(0);
@@ -229,7 +233,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 	const escalationWindowMs = config?.loopDetection?.escalationWindowMs;
 	const toolMessageTokensRef = useRef(0);
 	const contextUpdateTimerRef = useRef(null);
-	const pendingContextRef = useRef({ content: "" });
+	const pendingContextRef = useRef({ content: "", reasoning: "" });
 	// Tracks a pending clarification question surfaced by the `clarify` tool.
 	// When set, the next user input is treated as the answer and routed to
 	// `resumeProvider` instead of dispatching a new message.
@@ -851,15 +855,18 @@ const ConversationArea = forwardRef(function ConversationArea(
 		) => {
 			// Debounced context size update — coalesces rapid chunks into a single
 			// token calculation every ~200ms so the status bar stays responsive.
-			const debouncedContextUpdate = (content) => {
+			const debouncedContextUpdate = (content, reasoning = "") => {
 				if (contextUpdateTimerRef.current) {
 					clearTimeout(contextUpdateTimerRef.current);
 				}
 				pendingContextRef.current.content = content;
+				pendingContextRef.current.reasoning = reasoning;
 				contextUpdateTimerRef.current = setTimeout(async () => {
 					contextUpdateTimerRef.current = null;
 					const text = pendingContextRef.current.content;
+					const reasoningText = pendingContextRef.current.reasoning;
 					const cached = tokenCacheRef.current;
+					const reasoningCached = reasoningTokenCacheRef.current;
 					if (text && cached.content !== text) {
 						cached.content = text;
 						if (model && typeof model.getNumTokensFromMessages === "function") {
@@ -873,7 +880,27 @@ const ConversationArea = forwardRef(function ConversationArea(
 							cached.tokens = 0;
 						}
 					}
-					onContextUpdate(preStreamContextSize + cached.tokens + toolMessageTokensRef.current);
+					if (reasoningText && reasoningCached.content !== reasoningText) {
+						reasoningCached.content = reasoningText;
+						if (model && typeof model.getNumTokensFromMessages === "function") {
+							try {
+								const { totalCount } = await model.getNumTokensFromMessages([
+									new AIMessage(reasoningText),
+								]);
+								reasoningCached.tokens = totalCount;
+							} catch {
+								reasoningCached.tokens = 0;
+							}
+						} else {
+							reasoningCached.tokens = 0;
+						}
+					}
+					onContextUpdate(
+						preStreamContextSize +
+							cached.tokens +
+							reasoningCached.tokens +
+							toolMessageTokensRef.current,
+					);
 				}, 33);
 			};
 
@@ -959,6 +986,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 								streaming: true,
 							});
 							messageListRef.current?._triggerRender();
+							debouncedContextUpdate(committedContentRef.current, committedReasoningRef.current);
 						}
 					}
 
@@ -992,6 +1020,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 								streaming: true,
 							});
 							messageListRef.current?._triggerRender();
+							debouncedContextUpdate(committedContentRef.current, committedReasoningRef.current);
 						}
 					}
 
