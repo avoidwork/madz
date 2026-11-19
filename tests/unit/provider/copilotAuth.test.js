@@ -16,6 +16,8 @@ import {
 	getAuthPrompt,
 	createCopilotFetch,
 	flattenSystemContent,
+	flattenUnionSchema,
+	flattenToolSchemas,
 	setAuthRequiredHandler,
 	setCopilotToken,
 	CLIENT_ID,
@@ -733,7 +735,13 @@ describe("flattenSystemContent", () => {
 		const body = {
 			model: "m",
 			messages: [
-				{ role: "system", content: [{ type: "text", text: "one" }, { type: "text", text: "two" }] },
+				{
+					role: "system",
+					content: [
+						{ type: "text", text: "one" },
+						{ type: "text", text: "two" },
+					],
+				},
 				{ role: "user", content: "hi" },
 			],
 		};
@@ -826,6 +834,121 @@ describe("createCopilotFetch system prompt", () => {
 				body: original,
 			});
 			assert.strictEqual(sent, original);
+		} finally {
+			globalThis.fetch = origFetch;
+		}
+	});
+});
+
+describe("flattenUnionSchema", () => {
+	const union = {
+		$schema: "http://json-schema.org/draft-07/schema#",
+		oneOf: [
+			{
+				type: "object",
+				properties: { action: { const: "get" }, id: { type: "string" } },
+				required: ["action", "id"],
+			},
+			{
+				type: "object",
+				properties: { action: { const: "list" }, limit: { type: "number" } },
+				required: ["action"],
+			},
+		],
+	};
+
+	it("turns a top-level oneOf into one object schema", () => {
+		const flat = flattenUnionSchema(union);
+		assert.strictEqual(flat.type, "object");
+		assert.strictEqual(flat.$schema, union.$schema);
+		assert.deepStrictEqual(Object.keys(flat.properties), ["action", "id", "limit"]);
+		assert.strictEqual(flat.oneOf, undefined);
+	});
+
+	it("turns a const discriminator into an enum of every alternative's value", () => {
+		const flat = flattenUnionSchema(union);
+		assert.deepStrictEqual(flat.properties.action, { enum: ["get", "list"] });
+	});
+
+	it("keeps only properties required by every alternative", () => {
+		assert.deepStrictEqual(flattenUnionSchema(union).required, ["action"]);
+	});
+
+	it("also handles anyOf", () => {
+		const flat = flattenUnionSchema({ anyOf: union.oneOf });
+		assert.strictEqual(flat.type, "object");
+		assert.deepStrictEqual(flat.properties.action.enum, ["get", "list"]);
+	});
+
+	it("returns object schemas, non-unions and bad input unchanged", () => {
+		const obj = { type: "object", properties: { a: { type: "string" } } };
+		assert.strictEqual(flattenUnionSchema(obj), obj);
+		const plain = { description: "no union" };
+		assert.strictEqual(flattenUnionSchema(plain), plain);
+		assert.strictEqual(flattenUnionSchema(undefined), undefined);
+		assert.strictEqual(flattenUnionSchema(null), null);
+		const empty = { oneOf: [] };
+		assert.strictEqual(flattenUnionSchema(empty), empty);
+	});
+});
+
+describe("flattenToolSchemas", () => {
+	it("flattens only the tools that need it and does not mutate the input", () => {
+		const good = { type: "function", function: { name: "ok", parameters: { type: "object" } } };
+		const bad = {
+			type: "function",
+			function: {
+				name: "u",
+				parameters: { oneOf: [{ type: "object", properties: { a: { const: "x" } } }] },
+			},
+		};
+		const body = { tools: [good, bad] };
+		const { body: out, changed } = flattenToolSchemas(body);
+		assert.strictEqual(changed, true);
+		assert.strictEqual(out.tools[0], good);
+		assert.strictEqual(out.tools[1].function.parameters.type, "object");
+		assert.strictEqual(body.tools[1].function.parameters.type, undefined);
+	});
+
+	it("tolerates bodies without tools", () => {
+		assert.strictEqual(flattenToolSchemas(undefined).changed, false);
+		assert.strictEqual(flattenToolSchemas({ messages: [] }).changed, false);
+		assert.strictEqual(flattenToolSchemas({ tools: [{ type: "function" }] }).changed, false);
+	});
+});
+
+describe("createCopilotFetch tool schemas", () => {
+	it("sends a union tool schema as a plain object schema", async () => {
+		await persist("oauth-token", memoryDir);
+		const origFetch = globalThis.fetch;
+		let sent;
+		globalThis.fetch = async (_url, init) => {
+			sent = JSON.parse(init.body);
+			return new Response("ok", { status: 200 });
+		};
+		try {
+			const copilotFetch = createCopilotFetch(memoryDir);
+			await copilotFetch("https://api.githubcopilot.com/v1/chat/completions", {
+				method: "POST",
+				body: JSON.stringify({
+					messages: [{ role: "user", content: "hi" }],
+					tools: [
+						{
+							type: "function",
+							function: {
+								name: "browser",
+								parameters: {
+									oneOf: [{ type: "object", properties: { action: { const: "navigate" } } }],
+								},
+							},
+						},
+					],
+				}),
+			});
+			assert.strictEqual(sent.tools[0].function.parameters.type, "object");
+			assert.deepStrictEqual(sent.tools[0].function.parameters.properties.action.enum, [
+				"navigate",
+			]);
 		} finally {
 			globalThis.fetch = origFetch;
 		}

@@ -566,6 +566,67 @@ export function flattenSystemContent(body) {
 }
 
 /**
+ * Rewrite a tool parameter schema that is a top-level `oneOf`/`anyOf` (a
+ * discriminated union) into one plain object schema.
+ *
+ * GitHub Copilot rejects a tool whose `parameters` have no top-level
+ * `type: "object"` with a body-less `400 Bad Request`, and one rejected tool
+ * fails the whole request. The alternatives' properties are merged, a
+ * discriminator that is a `const` in every alternative becomes an `enum`, and
+ * only properties required by every alternative stay required. Schemas that are
+ * already objects, or have no union, are returned unchanged.
+ * @param {Object} [parameters] - A JSON Schema for tool parameters
+ * @returns {Object|undefined} The same schema, or a flattened copy
+ */
+export function flattenUnionSchema(parameters) {
+	if (!parameters || typeof parameters !== "object") return parameters;
+	if (parameters.type === "object") return parameters;
+	const alternatives = parameters.oneOf || parameters.anyOf;
+	if (!Array.isArray(alternatives) || alternatives.length === 0) return parameters;
+
+	const properties = {};
+	const consts = {};
+	for (const alt of alternatives) {
+		for (const [key, schema] of Object.entries(alt?.properties || {})) {
+			if (schema && Object.hasOwn(schema, "const")) {
+				(consts[key] ||= []).push(schema.const);
+			}
+			if (!(key in properties)) properties[key] = schema;
+		}
+	}
+	for (const [key, values] of Object.entries(consts)) {
+		const { const: _const, ...rest } = properties[key] || {};
+		properties[key] = { ...rest, enum: [...new Set(values)] };
+	}
+
+	const requiredSets = alternatives.map((alt) => new Set(alt?.required || []));
+	const required = [...requiredSets[0]].filter((key) => requiredSets.every((set) => set.has(key)));
+
+	const flat = { type: "object", properties, additionalProperties: false };
+	if (parameters.$schema) flat.$schema = parameters.$schema;
+	if (required.length > 0) flat.required = required;
+	return flat;
+}
+
+/**
+ * Apply `flattenUnionSchema` to every function tool in a request body.
+ * @param {Object} [body] - The parsed request body
+ * @returns {{ body: Object|undefined, changed: boolean }} The body (a copy when changed) and whether it changed
+ */
+export function flattenToolSchemas(body) {
+	if (!body || !Array.isArray(body.tools)) return { body, changed: false };
+	let changed = false;
+	const tools = body.tools.map((tool) => {
+		const parameters = tool?.function?.parameters;
+		const flat = flattenUnionSchema(parameters);
+		if (flat === parameters) return tool;
+		changed = true;
+		return { ...tool, function: { ...tool.function, parameters: flat } };
+	});
+	return changed ? { body: { ...body, tools }, changed } : { body, changed };
+}
+
+/**
  * Create a fetch interceptor that injects `Authorization: Bearer <oauth-token>`
  * on every request, matching opencode's approach. The raw OAuth device-flow
  * access token is a valid Copilot bearer — it is sent directly, with no
@@ -634,10 +695,12 @@ export function createCopilotFetch(memoryDir, baseUrl = DEFAULT_BASE_URL) {
 			try {
 				body = JSON.parse(body);
 				// Copilot's Claude models ignore a system prompt sent as an array of
-				// text blocks, so send it as a plain string.
-				const flattened = flattenSystemContent(body);
-				if (flattened.changed) {
-					body = flattened.body;
+				// text blocks, and Copilot rejects (400) a tool whose schema is a
+				// top-level oneOf/anyOf, so normalize both before sending.
+				const system = flattenSystemContent(body);
+				const tools = flattenToolSchemas(system.body);
+				if (system.changed || tools.changed) {
+					body = tools.body;
 					init = { ...init, body: JSON.stringify(body) };
 				}
 			} catch {
