@@ -36,6 +36,15 @@ import { compactMessages } from "./compaction.js";
 import { createTurnTransformer } from "../stream/transformers/index.js";
 
 /**
+ * Cached number of recent messages kept verbatim after compaction. Read once
+ * from `loadConfig().summarization.keepMessages` so `compactAgentContext` does
+ * not re-load the config on every invocation. `loadConfig()` is itself cached,
+ * so this mirrors the same value without the per-call lookup.
+ * @type {number}
+ */
+const KEEP_MESSAGES = loadConfig().summarization?.keepMessages;
+
+/**
  * Build the model-config overrides for a subagent from its per-agent
  * temperature and reasoning-effort settings. Returns an empty object when
  * neither is configured, so callers can skip creating a per-agent model.
@@ -246,7 +255,7 @@ export function toConversationExchange(message) {
  *   Result describing what was removed and trimmed
  */
 export async function compactAgentContext(agent, config, sessionState, options = {}) {
-	const keepRecent = options.keepRecent ?? loadConfig().summarization?.keepMessages;
+	const keepRecent = options.keepRecent ?? KEEP_MESSAGES;
 	const backend = options.backend;
 	const model = options.model;
 
