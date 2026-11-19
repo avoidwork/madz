@@ -536,6 +536,36 @@ function isVisionRequest(body) {
 }
 
 /**
+ * Collapse system/developer messages whose content is an array of text blocks
+ * into a single string.
+ *
+ * LangChain and the deepagents middleware build the system message as
+ * `[{ type: "text", text }, ...]`. GitHub Copilot's Claude models silently
+ * ignore a system message in that array form (the model never sees the system
+ * prompt) but honor the same text as a plain string. Messages with any
+ * non-text part, and every other role, are left untouched.
+ * @param {Object} [body] - The parsed request body
+ * @returns {{ body: Object|undefined, changed: boolean }} The body (a copy when changed) and whether it changed
+ */
+export function flattenSystemContent(body) {
+	if (!body || !Array.isArray(body.messages)) return { body, changed: false };
+	let changed = false;
+	const messages = body.messages.map((message) => {
+		const isSystem = message?.role === "system" || message?.role === "developer";
+		if (!isSystem || !Array.isArray(message.content) || message.content.length === 0) {
+			return message;
+		}
+		const allText = message.content.every(
+			(part) => part && part.type === "text" && typeof part.text === "string",
+		);
+		if (!allText) return message;
+		changed = true;
+		return { ...message, content: message.content.map((part) => part.text).join("\n\n") };
+	});
+	return changed ? { body: { ...body, messages }, changed } : { body, changed };
+}
+
+/**
  * Create a fetch interceptor that injects `Authorization: Bearer <oauth-token>`
  * on every request, matching opencode's approach. The raw OAuth device-flow
  * access token is a valid Copilot bearer — it is sent directly, with no
@@ -603,6 +633,13 @@ export function createCopilotFetch(memoryDir, baseUrl = DEFAULT_BASE_URL) {
 		if (typeof body === "string") {
 			try {
 				body = JSON.parse(body);
+				// Copilot's Claude models ignore a system prompt sent as an array of
+				// text blocks, so send it as a plain string.
+				const flattened = flattenSystemContent(body);
+				if (flattened.changed) {
+					body = flattened.body;
+					init = { ...init, body: JSON.stringify(body) };
+				}
 			} catch {
 				body = undefined;
 			}

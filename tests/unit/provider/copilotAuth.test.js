@@ -15,6 +15,7 @@ import {
 	pollForToken,
 	getAuthPrompt,
 	createCopilotFetch,
+	flattenSystemContent,
 	setAuthRequiredHandler,
 	setCopilotToken,
 	CLIENT_ID,
@@ -721,6 +722,116 @@ describe("copilot token safety", () => {
 				headers: { Authorization: "Bearer copilot" },
 			});
 			assert.strictEqual(captured.get("Authorization"), null);
+		} finally {
+			globalThis.fetch = origFetch;
+		}
+	});
+});
+
+describe("flattenSystemContent", () => {
+	it("collapses a system message made of text blocks into one string", () => {
+		const body = {
+			model: "m",
+			messages: [
+				{
+					role: "system",
+					content: [
+						{ type: "text", text: "one" },
+						{ type: "text", text: "two" },
+					],
+				},
+				{ role: "user", content: "hi" },
+			],
+		};
+		const { body: out, changed } = flattenSystemContent(body);
+		assert.strictEqual(changed, true);
+		assert.strictEqual(out.messages[0].content, "one\n\ntwo");
+		assert.strictEqual(out.messages[1].content, "hi");
+		assert.strictEqual(out.model, "m");
+		// The input is not mutated.
+		assert.ok(Array.isArray(body.messages[0].content));
+	});
+
+	it("also flattens the developer role", () => {
+		const { body, changed } = flattenSystemContent({
+			messages: [{ role: "developer", content: [{ type: "text", text: "rules" }] }],
+		});
+		assert.strictEqual(changed, true);
+		assert.strictEqual(body.messages[0].content, "rules");
+	});
+
+	it("leaves string content, user/assistant arrays and non-text system parts alone", () => {
+		const input = {
+			messages: [
+				{ role: "system", content: "already a string" },
+				{ role: "user", content: [{ type: "text", text: "keep array" }] },
+				{
+					role: "system",
+					content: [
+						{ type: "text", text: "a" },
+						{ type: "image_url", image_url: { url: "data:x" } },
+					],
+				},
+			],
+		};
+		const { body, changed } = flattenSystemContent(input);
+		assert.strictEqual(changed, false);
+		assert.strictEqual(body, input);
+	});
+
+	it("tolerates missing bodies, missing messages and empty content arrays", () => {
+		assert.deepStrictEqual(flattenSystemContent(undefined), { body: undefined, changed: false });
+		assert.strictEqual(flattenSystemContent({}).changed, false);
+		assert.strictEqual(
+			flattenSystemContent({ messages: [{ role: "system", content: [] }] }).changed,
+			false,
+		);
+	});
+});
+
+describe("createCopilotFetch system prompt", () => {
+	it("sends a block-array system prompt as a plain string", async () => {
+		await persist("oauth-token", memoryDir);
+		const origFetch = globalThis.fetch;
+		let sent;
+		globalThis.fetch = async (_url, init) => {
+			sent = JSON.parse(init.body);
+			return new Response("ok", { status: 200 });
+		};
+		try {
+			const copilotFetch = createCopilotFetch(memoryDir);
+			await copilotFetch("https://api.githubcopilot.com/v1/chat/completions", {
+				method: "POST",
+				body: JSON.stringify({
+					messages: [
+						{ role: "system", content: [{ type: "text", text: "be brief" }] },
+						{ role: "user", content: "hi" },
+					],
+				}),
+			});
+			assert.strictEqual(sent.messages[0].content, "be brief");
+			assert.strictEqual(sent.messages[1].content, "hi");
+		} finally {
+			globalThis.fetch = origFetch;
+		}
+	});
+
+	it("leaves a body without block-array system content byte-for-byte unchanged", async () => {
+		await persist("oauth-token", memoryDir);
+		const origFetch = globalThis.fetch;
+		let sent;
+		globalThis.fetch = async (_url, init) => {
+			sent = init.body;
+			return new Response("ok", { status: 200 });
+		};
+		const original = JSON.stringify({ messages: [{ role: "user", content: "hi" }] });
+		try {
+			const copilotFetch = createCopilotFetch(memoryDir);
+			await copilotFetch("https://api.githubcopilot.com/v1/chat/completions", {
+				method: "POST",
+				body: original,
+			});
+			assert.strictEqual(sent, original);
 		} finally {
 			globalThis.fetch = origFetch;
 		}
