@@ -52,17 +52,105 @@ export async function closeAll() {
 	}
 }
 
-const mongodbInputSchema = z.object({
-	engine: z.literal("mongodb"),
-	connection: mongodb.connectionSchema.optional().describe("MongoDB connection config"),
-	operation: mongodb.operationSchema.describe("MongoDB operation"),
+/**
+ * Flat connection schema merging the MongoDB and Redis connection configs so
+ * the serialized tool schema is a plain object (no top-level `oneOf`). Fields
+ * are optional; each engine's `execute` applies its own defaults.
+ */
+const connectionSchema = z.object({
+	connectionString: z.string().optional().describe("MongoDB connection string"),
+	host: z.string().optional().describe("Database host"),
+	port: z.number().int().positive().optional().describe("Database port"),
+	credentials: z
+		.object({
+			username: z.string().optional().describe("Username"),
+			password: z.string().optional().describe("Password"),
+			database: z.string().optional().describe("Database name"),
+		})
+		.optional()
+		.describe("Connection credentials"),
+	db: z.number().int().nonnegative().optional().describe("Redis database index"),
 });
 
-const redisInputSchema = z.object({
-	engine: z.literal("redis"),
-	connection: redis.connectionSchema.optional().describe("Redis connection config"),
-	operation: redis.operationSchema.describe("Redis operation"),
+/**
+ * Flat operation schema merging the MongoDB and Redis operation fields so the
+ * serialized tool schema is a plain object (no top-level `oneOf`). Per-engine
+ * validity is enforced in `superRefine` below.
+ */
+const operationSchema = z.object({
+	op: z
+		.enum([
+			"find",
+			"findOne",
+			"insertOne",
+			"insertMany",
+			"updateOne",
+			"updateMany",
+			"deleteOne",
+			"deleteMany",
+			"aggregate",
+			"countDocuments",
+			"get",
+			"set",
+			"hget",
+			"hset",
+			"hgetall",
+			"lpush",
+			"lrange",
+			"del",
+			"expire",
+			"exists",
+			"keys",
+		])
+		.describe("The operation to execute"),
+	collection: z.string().min(1).optional().describe("MongoDB collection name"),
+	filter: z.record(z.unknown()).optional().describe("MongoDB filter document"),
+	update: z.record(z.unknown()).optional().describe("MongoDB update document"),
+	document: z.record(z.unknown()).optional().describe("MongoDB document to insert"),
+	documents: z.array(z.record(z.unknown())).optional().describe("MongoDB documents to insert"),
+	pipeline: z.array(z.record(z.unknown())).optional().describe("MongoDB aggregation pipeline"),
+	options: z.record(z.unknown()).optional().describe("MongoDB operation options"),
+	key: z.string().optional().describe("Redis key"),
+	field: z.string().optional().describe("Redis hash field"),
+	value: z.union([z.string(), z.number()]).optional().describe("Redis value"),
+	values: z
+		.array(z.union([z.string(), z.number()]))
+		.optional()
+		.describe("Redis values"),
+	start: z.number().int().optional().describe("Redis range start"),
+	stop: z.number().int().optional().describe("Redis range stop"),
+	seconds: z.number().int().optional().describe("Redis expiry seconds"),
+	pattern: z.string().optional().describe("Redis key pattern"),
+	keys: z.array(z.string()).optional().describe("Redis keys"),
 });
+
+/**
+ * Zod schema for the `nosql` tool input.
+ *
+ * A single flat object with an `engine` enum so the serialized JSON schema is
+ * a plain object rather than a top-level `oneOf`. Per-engine operation
+ * validity is enforced in `superRefine` against the engine's own operation
+ * schema. This keeps every provider (including GitHub Copilot, which rejects
+ * top-level `oneOf` tool schemas) happy.
+ */
+export const nosqlSchema = z
+	.object({
+		engine: z.enum(["mongodb", "redis"]).describe("mongodb or redis"),
+		connection: connectionSchema.optional().describe("Connection config"),
+		operation: operationSchema.describe("The operation to execute"),
+	})
+	.superRefine((data, ctx) => {
+		const engineModule = ENGINES[data.engine];
+		if (!engineModule) return;
+		const opResult = engineModule.operationSchema.safeParse(data.operation);
+		if (!opResult.success) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["operation"],
+				message: `Invalid operation for engine '${data.engine}'`,
+			});
+		}
+	});
 
 /**
  * First-class NoSQL tool. Runs operations against MongoDB and Redis databases.
@@ -75,5 +163,5 @@ export const nosql = tool((input, options = {}) => nosqlImpl(input, options), {
 		"NoSQL tool. Runs operations against mongodb or redis databases. " +
 		"engine: mongodb or redis. connection: connection config. operation: the operation to execute. " +
 		"Uses a registry/plugin architecture so new engines can be added without modifying the core dispatch.",
-	schema: z.discriminatedUnion("engine", [mongodbInputSchema, redisInputSchema]),
+	schema: nosqlSchema,
 });
