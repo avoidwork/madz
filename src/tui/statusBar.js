@@ -135,7 +135,7 @@ export const StatusBar = React.memo(function StatusBar({
 	const showSkills = statusBar.skills !== false;
 	const showMessages = statusBar.messages !== false;
 	const showContext = statusBar.context !== false;
-	const showContextPercent = statusBar.contextPercent !== false;
+	const showContextPercent = statusBar.contextPercent === true;
 	const showTokens = statusBar.tokens !== false && tokenBudget > 0;
 	const showQuote = statusBar.quote !== false && quote;
 	const showVersion = statusBar.version !== false && version;
