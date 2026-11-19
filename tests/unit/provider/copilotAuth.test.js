@@ -437,6 +437,60 @@ describe("createCopilotFetch", () => {
 		}
 	});
 
+	it("flattens an array-form system message to a plain string on the wire", async () => {
+		await persist("oauth-token", memoryDir);
+		const origFetch = globalThis.fetch;
+		/** @type {string} */
+		let sentBody;
+		globalThis.fetch = async (_url, init) => {
+			sentBody = init.body;
+			return new Response("ok", { status: 200 });
+		};
+		try {
+			const copilotFetch = createCopilotFetch(memoryDir);
+			await copilotFetch("https://api.githubcopilot.com/v1/chat/completions", {
+				method: "POST",
+				body: JSON.stringify({
+					messages: [
+						{ role: "system", content: [{ type: "text", text: "You are a helper." }] },
+						{ role: "user", content: "hi" },
+					],
+				}),
+			});
+			const parsed = JSON.parse(sentBody);
+			assert.strictEqual(parsed.messages[0].content, "You are a helper.");
+		} finally {
+			globalThis.fetch = origFetch;
+		}
+	});
+
+	it("leaves a plain-string system message untouched", async () => {
+		await persist("oauth-token", memoryDir);
+		const origFetch = globalThis.fetch;
+		/** @type {string} */
+		let sentBody;
+		globalThis.fetch = async (_url, init) => {
+			sentBody = init.body;
+			return new Response("ok", { status: 200 });
+		};
+		try {
+			const copilotFetch = createCopilotFetch(memoryDir);
+			await copilotFetch("https://api.githubcopilot.com/v1/chat/completions", {
+				method: "POST",
+				body: JSON.stringify({
+					messages: [
+						{ role: "system", content: "You are a helper." },
+						{ role: "user", content: "hi" },
+					],
+				}),
+			});
+			const parsed = JSON.parse(sentBody);
+			assert.strictEqual(parsed.messages[0].content, "You are a helper.");
+		} finally {
+			globalThis.fetch = origFetch;
+		}
+	});
+
 	it("omits the Authorization header when no token is present", async () => {
 		const origFetch = globalThis.fetch;
 		let capturedHeaders;

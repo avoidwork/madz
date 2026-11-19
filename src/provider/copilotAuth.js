@@ -536,6 +536,37 @@ function isVisionRequest(body) {
 }
 
 /**
+ * Normalize array-form system/developer message content into a plain string.
+ *
+ * deepagents builds the system message as `[{ type: "text", text: "..." }]`,
+ * which is valid per the Anthropic/OpenAI message spec but is silently ignored
+ * by GitHub Copilot's Claude endpoint. Copilot only honours the same text as a
+ * plain string. This rewrites any `system`/`developer` message whose content is
+ * an array made only of text blocks into a single joined string, leaving
+ * everything else untouched.
+ * @param {Object} [body] - The parsed request body
+ * @returns {Object} The body with array-form system content flattened
+ */
+function flattenSystemContent(body) {
+	if (!body || !Array.isArray(body.messages)) return body;
+	for (const message of body.messages) {
+		if (
+			(message.role === "system" || message.role === "developer") &&
+			Array.isArray(message.content)
+		) {
+			const textBlocks = message.content.filter(
+				(block) => block && typeof block === "object" && block.type === "text",
+			);
+			// Only flatten when every block is a text block; leave mixed content alone.
+			if (textBlocks.length === message.content.length) {
+				message.content = textBlocks.map((block) => block.text).join("");
+			}
+		}
+	}
+	return body;
+}
+
+/**
  * Create a fetch interceptor that injects `Authorization: Bearer <oauth-token>`
  * on every request, matching opencode's approach. The raw OAuth device-flow
  * access token is a valid Copilot bearer — it is sent directly, with no
@@ -616,6 +647,16 @@ export function createCopilotFetch(memoryDir, baseUrl = DEFAULT_BASE_URL) {
 			typeof body.append === "function"
 		) {
 			body = undefined;
+		}
+		// Copilot's Claude endpoint silently ignores array-form system messages.
+		// Flatten them to a plain string so the system prompt actually reaches
+		// the model. When the body was a JSON string, re-serialize it so the
+		// mutation reaches the wire; plain-object bodies are passed by reference.
+		if (body && typeof body === "object") {
+			flattenSystemContent(body);
+			if (typeof init.body === "string") {
+				init = { ...init, body: JSON.stringify(body) };
+			}
 		}
 		headers.set("x-initiator", isAgentInitiated(body) ? "agent" : "user");
 		// GitHub's Copilot API requires this marker on any request whose payload
