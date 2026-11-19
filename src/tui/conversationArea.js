@@ -234,6 +234,11 @@ const ConversationArea = forwardRef(function ConversationArea(
 	const toolMessageTokensRef = useRef(0);
 	const contextUpdateTimerRef = useRef(null);
 	const pendingContextRef = useRef({ content: "", reasoning: "" });
+	// Tracks the last segment id seen per segment type so the live context
+	// count only recalculates when a NEW segment begins (a new block id),
+	// not on every chunk. This keeps the status bar stable during long
+	// streams instead of bouncing on each token.
+	const lastSegmentIdRef = useRef({ message: null, reasoning: null });
 	// Tracks a pending clarification question surfaced by the `clarify` tool.
 	// When set, the next user input is treated as the answer and routed to
 	// `resumeProvider` instead of dispatching a new message.
@@ -493,6 +498,10 @@ const ConversationArea = forwardRef(function ConversationArea(
 		// Reset the tool-message token accumulator at the start of each turn so
 		// tool tokens from a previous turn do not leak into the next.
 		toolMessageTokensRef.current = 0;
+		// Reset the segment-id tracker so the first block of this turn (which
+		// may reuse a block index from the previous turn) triggers a context
+		// recalculation.
+		lastSegmentIdRef.current = { message: null, reasoning: null };
 
 		// If a clarification question is pending, the input is the user's answer.
 		// Route it to `resumeProvider` to continue the paused agent rather than
@@ -855,7 +864,15 @@ const ConversationArea = forwardRef(function ConversationArea(
 		) => {
 			// Debounced context size update — coalesces rapid chunks into a single
 			// token calculation every ~200ms so the status bar stays responsive.
-			const debouncedContextUpdate = (content, reasoning = "") => {
+			// Gated on segment identity: when a segment carries a block id, the
+			// count only recalculates when a NEW block begins (a new id), not on
+			// every chunk that continues an existing block. This keeps the status
+			// bar stable during long streams instead of bouncing on each token.
+			const debouncedContextUpdate = (content, reasoning = "", segmentType, segmentId) => {
+				if (segmentType && hasId(segmentId)) {
+					if (lastSegmentIdRef.current[segmentType] === segmentId) return;
+					lastSegmentIdRef.current[segmentType] = segmentId;
+				}
 				if (contextUpdateTimerRef.current) {
 					clearTimeout(contextUpdateTimerRef.current);
 				}
@@ -958,7 +975,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 						});
 						messageListRef.current?._triggerRender();
 						if (onTextReceived) onTextReceived();
-						debouncedContextUpdate(committedContentRef.current);
+						debouncedContextUpdate(committedContentRef.current, "", "message", event.index);
 					}
 
 					if (event.type === "reasoning") {
@@ -986,7 +1003,12 @@ const ConversationArea = forwardRef(function ConversationArea(
 								streaming: true,
 							});
 							messageListRef.current?._triggerRender();
-							debouncedContextUpdate(committedContentRef.current, committedReasoningRef.current);
+							debouncedContextUpdate(
+								committedContentRef.current,
+								committedReasoningRef.current,
+								"reasoning",
+								event.id,
+							);
 						}
 					}
 
@@ -1000,7 +1022,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 								streaming: true,
 							});
 							messageListRef.current?._triggerRender();
-							debouncedContextUpdate(committedContentRef.current);
+							debouncedContextUpdate(committedContentRef.current, "", "message", undefined);
 						}
 						if (event.data?.chunk?.reasoning) {
 							const reasoningChunk = event.data.chunk.reasoning;
@@ -1020,7 +1042,12 @@ const ConversationArea = forwardRef(function ConversationArea(
 								streaming: true,
 							});
 							messageListRef.current?._triggerRender();
-							debouncedContextUpdate(committedContentRef.current, committedReasoningRef.current);
+							debouncedContextUpdate(
+								committedContentRef.current,
+								committedReasoningRef.current,
+								"reasoning",
+								undefined,
+							);
 						}
 					}
 
@@ -1051,7 +1078,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 							// is never folded into committedContentRef, so it does
 							// not pollute the rendered assistant message.
 							toolMessageTokensRef.current += await countToolMessageTokens(model, toolText);
-							debouncedContextUpdate(committedContentRef.current);
+							debouncedContextUpdate(committedContentRef.current, "", "tool", undefined);
 
 							// Cancelled tool calls (synthetic message) stay in provider
 							// context (counted above) but never render as a tool call.
