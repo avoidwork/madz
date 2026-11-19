@@ -112,6 +112,62 @@ describe("jira actions", () => {
 		assert.deepStrictEqual(sent.fields.issuetype, { name: "Bug" });
 	});
 
+	it("create sends components, labels, and priority", async () => {
+		const { fetch, calls } = stub([res({ body: JSON.stringify({ key: "PROJ-3", id: "10003" }) })]);
+		const r = await jiraImpl(
+			{
+				action: "create",
+				project: "PROJ",
+				issueType: "Bug",
+				summary: "boom",
+				components: ["api", "core"],
+				labels: ["regression"],
+				priority: "High",
+			},
+			withUrl({ fetch }),
+		);
+		assert.strictEqual(r.ok, true);
+		const sent = JSON.parse(calls[0].options.body);
+		assert.deepStrictEqual(sent.fields.components, [{ name: "api" }, { name: "core" }]);
+		assert.deepStrictEqual(sent.fields.labels, ["regression"]);
+		assert.deepStrictEqual(sent.fields.priority, { name: "High" });
+	});
+
+	it("create merges arbitrary fields from the fields record", async () => {
+		const { fetch, calls } = stub([res({ body: JSON.stringify({ key: "PROJ-4", id: "10004" }) })]);
+		const r = await jiraImpl(
+			{
+				action: "create",
+				project: "PROJ",
+				summary: "boom",
+				fields: { customfield_10014: "EPIC-1", environment: "staging" },
+			},
+			withUrl({ fetch }),
+		);
+		assert.strictEqual(r.ok, true);
+		const sent = JSON.parse(calls[0].options.body);
+		assert.strictEqual(sent.fields.customfield_10014, "EPIC-1");
+		assert.strictEqual(sent.fields.environment, "staging");
+	});
+
+	it("typed inputs take precedence over the fields record", async () => {
+		const { fetch, calls } = stub([res({ body: JSON.stringify({ key: "PROJ-5", id: "10005" }) })]);
+		const r = await jiraImpl(
+			{
+				action: "create",
+				project: "PROJ",
+				summary: "boom",
+				priority: "High",
+				fields: { priority: { name: "Low" }, customfield_10014: "EPIC-1" },
+			},
+			withUrl({ fetch }),
+		);
+		assert.strictEqual(r.ok, true);
+		const sent = JSON.parse(calls[0].options.body);
+		assert.deepStrictEqual(sent.fields.priority, { name: "High" });
+		assert.strictEqual(sent.fields.customfield_10014, "EPIC-1");
+	});
+
 	it("update puts fields", async () => {
 		const { fetch, calls } = stub([res({ body: JSON.stringify({ key: "PROJ-1" }) })]);
 		const r = await jiraImpl(
