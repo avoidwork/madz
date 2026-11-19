@@ -555,6 +555,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		model,
 		tools: orchestratorTools,
 		systemPrompt,
+		generalPurposeAgent: false,
 		store: new InMemoryStore(),
 		backend,
 		subagents: subagentDefinitions,
