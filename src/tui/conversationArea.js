@@ -233,9 +233,14 @@ const ConversationArea = forwardRef(function ConversationArea(
 ) {
 	const [contextSize, setContextSize] = useState(0);
 	const [, setIsCompacting] = useState(false);
+	// Monotonic write counter. Every context write (a streaming update or the
+	// start of a full recount) takes a new number; a recount that finishes after
+	// a newer write is stale and must not overwrite it.
+	const contextWriteSeqRef = useRef(0);
 	// Wrapper that updates both local state and the status bar (via InputArea)
 	const updateContextDisplay = useCallback(
 		(size) => {
+			contextWriteSeqRef.current += 1;
 			setContextSize(size);
 			onContextChange?.(size);
 		},
@@ -836,6 +841,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 				contextUpdateTimerRef.current = null;
 			}
 			if (!sessionState) return 0;
+			const writeSeq = ++contextWriteSeqRef.current;
 			// When an explicit message set is provided (e.g. the user's just-sent
 			// message, which isn't in the checkpointer yet on the first turn), use
 			// it directly. Otherwise source the conversation from the real
@@ -869,6 +875,9 @@ const ConversationArea = forwardRef(function ConversationArea(
 				const { totalCount } = await model.getNumTokensFromMessages(counted);
 				totalTokens = totalCount;
 			}
+			// A newer write (streaming update or later recount) landed while this
+			// count was in flight; applying it would move the bar backwards.
+			if (writeSeq !== contextWriteSeqRef.current) return totalTokens;
 			setContextSize(totalTokens);
 			onContextChange?.(totalTokens);
 			return totalTokens;

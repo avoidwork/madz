@@ -60,6 +60,137 @@ async function runTurnWithEvents(events) {
 	return reported;
 }
 
+/**
+ * Mount ConversationArea with an existing conversation (baseline context) and
+ * send one turn; return every value reported to onContextChange, in order.
+ * @param {Array<Object>} events - Stream events the provider emits
+ * @param {number} baselineWords - Words already in the checkpointer conversation
+ * @returns {Promise<number[]>} Context sizes reported, in order
+ */
+async function runTurnWithBaseline(events, baselineWords) {
+	const { SessionStateManager } = await import("../../../src/session/stateManager.js");
+	const sessionState = new SessionStateManager();
+	const history = [{ role: "user", content: words(baselineWords) }];
+	sessionState.loadConversation(history);
+	const reported = [];
+	const ref = React.createRef();
+	const dispatchProvider = async (_text, _provider, handler) => {
+		for (const event of events) {
+			await handler(event);
+			await sleep(60);
+		}
+		await sleep(150);
+		return { content: "", lastEventType: "message" };
+	};
+	const { unmount } = render(
+		React.createElement(ConversationArea, {
+			ref,
+			config: { tui: { name: "madz" } },
+			model,
+			sessionState,
+			dispatchProvider,
+			getContextMessages: async () => history,
+			messageCountRef: { current: 0 },
+			onContextChange: (n) => reported.push(n),
+			onCompactingChange: () => {},
+			onInterruptInput: () => {},
+			onQuit: () => {},
+			onNewSession: () => {},
+			contextWindow: 100000,
+		}),
+	);
+	try {
+		await sleep(150);
+		reported.length = 0;
+		await ref.current.handleChat("hi");
+		await sleep(250);
+	} finally {
+		unmount();
+	}
+	return reported;
+}
+
+describe("ConversationArea context size never drops below the baseline mid-turn", () => {
+	it("keeps the full size while reasoning, tool calls and messages stream", async () => {
+		const reported = await runTurnWithBaseline(
+			[
+				{ type: "reasoning", text: words(20) },
+				{ type: "on_tool_start", name: "readFile", data: { input: { path: "/x" } } },
+				{ type: "tool", text: words(30), name: "readFile" },
+				{ type: "message", text: words(10) },
+			],
+			1000,
+		);
+		assert.ok(reported.length > 0, "no context updates reported");
+		const low = Math.min(...reported);
+		assert.ok(
+			low >= 1000,
+			`context size dropped to ${low} (baseline 1000); reported: ${JSON.stringify(reported)}`,
+		);
+	});
+});
+
+describe("ConversationArea context size is monotonic while the pre-turn recount is slow", () => {
+	it("does not let a slow recount overwrite a newer streaming value", async () => {
+		const { SessionStateManager } = await import("../../../src/session/stateManager.js");
+		const sessionState = new SessionStateManager();
+		const history = [{ role: "user", content: words(1000) }];
+		sessionState.loadConversation(history);
+		// Real tokenizers and checkpointer reads take time. Make the recount that
+		// handleChat starts for the new user message ("hi") finish after streaming.
+		const slowModel = {
+			getNumTokensFromMessages: async (msgs) => {
+				if (msgs.some((m) => m.content === "hi")) await sleep(300);
+				return model.getNumTokensFromMessages(msgs);
+			},
+		};
+		const reported = [];
+		const ref = React.createRef();
+		const dispatchProvider = async (_text, _provider, handler) => {
+			await handler({ type: "reasoning", text: words(50) });
+			await sleep(500);
+			return { content: "", lastEventType: "message" };
+		};
+		const { unmount } = render(
+			React.createElement(ConversationArea, {
+				ref,
+				config: { tui: { name: "madz" } },
+				model: slowModel,
+				sessionState,
+				dispatchProvider,
+				getContextMessages: async () => history,
+				messageCountRef: { current: 0 },
+				onContextChange: (n) => reported.push(n),
+				onCompactingChange: () => {},
+				onInterruptInput: () => {},
+				onQuit: () => {},
+				onNewSession: () => {},
+				contextWindow: 100000,
+			}),
+		);
+		try {
+			await sleep(150);
+			reported.length = 0;
+			await ref.current.handleChat("hi");
+			await sleep(400);
+		} finally {
+			unmount();
+		}
+		assert.ok(reported.length > 0, "no context updates reported");
+		assert.strictEqual(
+			reported.at(-1),
+			1050,
+			`final size should be the streamed total; reported: ${JSON.stringify(reported)}`,
+		);
+		for (let i = 1; i < reported.length; i++) {
+			assert.ok(
+				reported[i] >= reported[i - 1],
+				`context size dropped from ${reported[i - 1]} to ${reported[i]}; reported: ${JSON.stringify(reported)}`,
+			);
+		}
+	});
+});
+
 describe("ConversationArea live context counter", () => {
 	it("counts streamed message text", async () => {
 		const reported = await runTurnWithEvents([{ type: "message", text: words(30) }]);
