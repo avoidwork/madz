@@ -524,6 +524,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 		if (!options.silentUser) {
 			addMessage({ role: "user", content: text });
 		}
+		logger.info({ userPrompt: text }, "Dispatching user prompt");
 
 		if (sessionState) {
 			sessionState.addExchange({ role: "user", content: text });

@@ -112,7 +112,9 @@ export async function loadSystemPrompt(baseDir) {
 		// End the authored prompt with an open-ended header so runtime
 		// augmentations (skills, filesystem, memory, subagents) concat cleanly
 		// beneath it rather than blending into the authored content.
-		return content + "\n\n" + RUNTIME_HEADER;
+		const assembled = content + "\n\n" + RUNTIME_HEADER;
+		logger.info({ systemPrompt: assembled }, "Assembled system prompt");
+		return assembled;
 	} catch (err) {
 		logger.error(`[prompts] Failed to load system prompt ${path}: ${err.message}`);
 		throw err;
