@@ -35,6 +35,7 @@ calendar:
 confluence:
   baseUrl: ""   # e.g. https://example.atlassian.net (CONFLUENCE_BASE_URL)
   enabled: false # false = tool not registered (CONFLUENCE_ENABLED)
+  api: cloud    # cloud (REST v2 /wiki/api/v2) or dc (Data Center REST v1 /rest/api) (CONFLUENCE_API)
   rateLimit: 10
   timeout: 30000
   token: ""     # personal access token, sent as Bearer (CONFLUENCE_TOKEN)

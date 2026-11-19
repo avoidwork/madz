@@ -15,7 +15,8 @@ const noSleep = async () => {};
  * @returns {Response}
  */
 function res({ status = 200, headers = {}, body = "{}" } = {}) {
-	return new Response(status === 204 || status === 304 ? null : body, { status, headers });
+	const h = { "content-type": "application/json", ...headers };
+	return new Response(status === 204 || status === 304 ? null : body, { status, headers: h });
 }
 
 /**
@@ -68,7 +69,7 @@ describe("confluence input validation", () => {
 });
 
 describe("confluence actions", () => {
-	it("search GETs /pages with CQL query", async () => {
+	it("search GETs the cloud search endpoint with CQL query", async () => {
 		const { fetch, calls } = stub([res({ body: JSON.stringify({ results: [], _links: {} }) })]);
 		const r = await confluenceImpl(
 			{ action: "search", cql: "space = SPACE", limit: 10 },
@@ -76,7 +77,7 @@ describe("confluence actions", () => {
 		);
 		assert.strictEqual(r.ok, true);
 		assert.strictEqual(r.status, 200);
-		assert.match(calls[0].url, /\/wiki\/api\/v2\/pages\?/);
+		assert.match(calls[0].url, /\/wiki\/rest\/api\/search\?/);
 		assert.match(calls[0].url, /cql=space\+%3D\+SPACE/);
 		assert.match(calls[0].url, /limit=10/);
 		assert.strictEqual(calls[0].options.method, "GET");
@@ -152,6 +153,93 @@ describe("confluence actions", () => {
 			assert.strictEqual(r.ok, true, action);
 			assert.match(calls[0].url, new RegExp(`/wiki/api/v2/pages/123${path}$`), action);
 		}
+	});
+});
+
+describe("confluence dc mode", () => {
+	const dcUrl = (opts = {}) => ({
+		...base,
+		...opts,
+		policy: { ...base.policy, baseUrl: "https://wiki.example.com", api: "dc" },
+	});
+
+	it("get uses the v1 content endpoint with body.storage expand", async () => {
+		const { fetch, calls } = stub([res({ body: JSON.stringify({ id: "123", title: "Home" }) })]);
+		const r = await confluenceImpl({ action: "get", id: "123" }, dcUrl({ fetch }));
+		assert.strictEqual(r.ok, true);
+		assert.match(calls[0].url, /\/rest\/api\/content\/123\?/);
+		assert.match(calls[0].url, /expand=body\.storage/);
+	});
+
+	it("create uses the v1 content endpoint with space key", async () => {
+		const { fetch, calls } = stub([res({ body: JSON.stringify({ id: "456", title: "New" }) })]);
+		const r = await confluenceImpl(
+			{ action: "create", spaceKey: "SPACE", title: "New", body: "hello" },
+			dcUrl({ fetch }),
+		);
+		assert.strictEqual(r.ok, true);
+		assert.match(calls[0].url, /\/rest\/api\/content$/);
+		const sent = JSON.parse(calls[0].options.body);
+		assert.strictEqual(sent.type, "page");
+		assert.deepStrictEqual(sent.space, { key: "SPACE" });
+	});
+
+	it("search uses the v1 search endpoint", async () => {
+		const { fetch, calls } = stub([res({ body: JSON.stringify({ results: [] }) })]);
+		const r = await confluenceImpl({ action: "search", cql: "space = SPACE" }, dcUrl({ fetch }));
+		assert.strictEqual(r.ok, true);
+		assert.match(calls[0].url, /\/rest\/api\/search\?/);
+	});
+
+	it("spaces uses the v1 space endpoint", async () => {
+		const { fetch, calls } = stub([res({ body: "[]" })]);
+		const r = await confluenceImpl({ action: "spaces" }, dcUrl({ fetch }));
+		assert.strictEqual(r.ok, true);
+		assert.match(calls[0].url, /\/rest\/api\/space$/);
+	});
+
+	it("labels uses the v1 label endpoint", async () => {
+		const { fetch, calls } = stub([res({ body: "[]" })]);
+		const r = await confluenceImpl({ action: "labels", id: "123" }, dcUrl({ fetch }));
+		assert.strictEqual(r.ok, true);
+		assert.match(calls[0].url, /\/rest\/api\/content\/123\/label$/);
+	});
+
+	it("attachments uses the v1 child attachment endpoint", async () => {
+		const { fetch, calls } = stub([res({ body: "[]" })]);
+		const r = await confluenceImpl({ action: "attachments", id: "123" }, dcUrl({ fetch }));
+		assert.strictEqual(r.ok, true);
+		assert.match(calls[0].url, /\/rest\/api\/content\/123\/child\/attachment$/);
+	});
+});
+
+describe("confluence response validation", () => {
+	it("rejects an HTML response on a JSON API call", async () => {
+		const { fetch } = stub([
+			res({
+				status: 200,
+				headers: { "content-type": "text/html" },
+				body: "<html><body>login</body></html>",
+			}),
+		]);
+		const r = await confluenceImpl({ action: "get", id: "123" }, withUrl({ fetch }));
+		assert.strictEqual(r.ok, false);
+		assert.match(r.error, /Expected JSON response/);
+	});
+
+	it("detects a login redirect followed by the transport", async () => {
+		// First hop: 302 to the login page. Second hop: the login page returns 200 HTML.
+		const { fetch } = stub([
+			res({ status: 302, headers: { location: "/login.action?permissionViolation=true" } }),
+			res({
+				status: 200,
+				headers: { "content-type": "text/html" },
+				body: "<html>login</html>",
+			}),
+		]);
+		const r = await confluenceImpl({ action: "get", id: "123" }, withUrl({ fetch }));
+		assert.strictEqual(r.ok, false);
+		assert.match(r.error, /login redirect/i);
 	});
 });
 
