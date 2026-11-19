@@ -34,7 +34,11 @@ function createJiraMock() {
 
 		// POST /rest/api/2/search
 		if (path.endsWith("/search") && method === "POST") {
-			const all = [...issues.values()];
+			const projectMatch = body?.jql?.match(/project\s*=\s*"?([^"\s]+)"?/);
+			const projectKey = projectMatch?.[1];
+			const all = [...issues.values()].filter(
+				(issue) => !projectKey || issue.fields.project?.key === projectKey,
+			);
 			const startAt = body?.startAt ?? 0;
 			const maxResults = body?.maxResults ?? 50;
 			const page = all.slice(startAt, startAt + maxResults);
@@ -187,6 +191,30 @@ describe("jira integration", () => {
 		r = await jiraImpl({ action: "get", key }, opts);
 		assert.strictEqual(r.ok, false);
 		assert.strictEqual(r.status, 404);
+	});
+
+	it("creates an issue with components, labels, priority, and a custom field", async () => {
+		const r = await jiraImpl(
+			{
+				action: "create",
+				project: "PROJ",
+				issueType: "Bug",
+				summary: "full fields",
+				components: ["api"],
+				labels: ["regression"],
+				priority: "High",
+				fields: { customfield_10014: "EPIC-1" },
+			},
+			opts,
+		);
+		assert.strictEqual(r.ok, true);
+		const key = r.data.key;
+		const g = await jiraImpl({ action: "get", key }, opts);
+		assert.strictEqual(g.ok, true);
+		assert.deepStrictEqual(g.data.fields.components, [{ name: "api" }]);
+		assert.deepStrictEqual(g.data.fields.labels, ["regression"]);
+		assert.deepStrictEqual(g.data.fields.priority, { name: "High" });
+		assert.strictEqual(g.data.fields.customfield_10014, "EPIC-1");
 	});
 
 	it("handles empty JQL results", async () => {
