@@ -16,7 +16,6 @@ import { ConversationPanel } from "./conversationPanel.js";
 import { CommandParser } from "./commandParser.js";
 import { createSession } from "../session/factory.js";
 import { setConfigValue } from "../config/loader.js";
-import { SummarizationSchema } from "../config/schemas/summarization.js";
 import { isAvailable, getGcCalls } from "../memory/gc.js";
 import { logger } from "../shared/logger.js";
 import { formatClarifyPrompt } from "../shared/clarifyPrompt.js";
@@ -124,33 +123,6 @@ export function shouldContinueAfterCompact({ compacted, autoContinueCount, autoC
 }
 
 /**
- * Default fraction of the context window at which the TUI compacts
- * automatically. Taken from the config schema so there is one source for it.
- */
-export const DEFAULT_AUTO_COMPACT_FRACTION = SummarizationSchema.parse({}).contextFraction;
-
-/**
- * Decide whether the context has reached the auto-compaction threshold.
- *
- * Driven purely by the same token count and context window the status-bar meter
- * uses, so compaction fires exactly when the meter reaches the threshold.
- *
- * @param {Object} params - Decision inputs
- * @param {number} params.contextSize - Current context size in tokens
- * @param {number} params.contextWindow - Context window in tokens (0/unset disables)
- * @param {number} [params.fraction=0.8] - Fraction of the window that triggers compaction
- * @returns {boolean} True when the context should be compacted now
- */
-export function shouldAutoCompact({
-	contextSize,
-	contextWindow,
-	fraction = DEFAULT_AUTO_COMPACT_FRACTION,
-}) {
-	if (!(contextWindow > 0) || !(contextSize > 0)) return false;
-	return contextSize >= contextWindow * fraction;
-}
-
-/**
  * Decide what to do after a turn when the loop detector may have abandoned the stream.
  *
  * Mirrors `shouldAutoContinue`: it acts only when the streaming bubble is the
@@ -227,7 +199,6 @@ const ConversationArea = forwardRef(function ConversationArea(
 		reasoningCollapsed,
 		toolCallCollapsed,
 		hidden = false,
-		contextWindow = 0,
 	},
 	ref,
 ) {
@@ -512,20 +483,6 @@ const ConversationArea = forwardRef(function ConversationArea(
 		}
 	};
 
-	/**
-	 * Compact the context when it has reached the auto-compaction threshold.
-	 * Recounts from the checkpointer first so the decision uses the live size.
-	 * @returns {Promise<boolean>} True when a compaction ran and succeeded
-	 */
-	const autoCompactIfNeeded = async () => {
-		if (!sessionState || !compactContext) return false;
-		const size = await updateContextSize(sessionState, config);
-		const fraction = config?.summarization?.contextFraction ?? DEFAULT_AUTO_COMPACT_FRACTION;
-		if (!shouldAutoCompact({ contextSize: size, contextWindow, fraction })) return false;
-		logger.info({ size, contextWindow, fraction }, "[compact] auto-compacting at threshold");
-		return handleCompact();
-	};
-
 	const handleChat = async (text, options = {}) => {
 		if (shouldAbort()) return;
 		gcManager?.();
@@ -547,10 +504,6 @@ const ConversationArea = forwardRef(function ConversationArea(
 			await resumeClarify(text);
 			return;
 		}
-
-		// Compact BEFORE the new user exchange is recorded: compaction reloads the
-		// session conversation from the checkpointer, which would drop it.
-		await autoCompactIfNeeded();
 
 		// silentUser: dispatch the message without rendering it as a user message
 		// in the TUI (e.g., synthesized skill prompts). The assistant's streaming
@@ -725,9 +678,6 @@ const ConversationArea = forwardRef(function ConversationArea(
 					role: "assistant",
 					content: responseContent,
 				});
-				// Turn finished: compact now if the context crossed the threshold
-				// during it (the next turn would otherwise start over the limit).
-				await autoCompactIfNeeded();
 			}
 			if (onSaveSession) {
 				onSaveSession();

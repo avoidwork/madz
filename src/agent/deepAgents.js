@@ -463,8 +463,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 
 	// Resolve the model's real context length at init. If it cannot be resolved
 	// (unreachable, model not found, field absent) startup continues and the
-	// configured context window is used. Auto-compaction itself runs from the
-	// TUI (see `autoCompactIfNeeded`).
+	// configured context window is used.
 	const contextLength = await getModelContextLength(providerConfig, { memoryDir });
 	// Mutate the shared config singleton so the server-derived context window is
 	// visible everywhere it is read (e.g. the /settings view and the TUI
