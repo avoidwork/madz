@@ -368,6 +368,7 @@ Once inside the interactive terminal, use these commands:
 | `/schedule run-now <name>`   | Run a job immediately                                                                                                      |
 | `/gc`                        | Trigger V8 garbage collection                                                                                              |
 | `/gc status`                 | Check GC availability and call count                                                                                       |
+| `/compact`                   | Compact the context window                                                                                                 |
 | `/clear`                     | Clear current conversation                                                                                                 |
 | `/new`                       | Start a fresh session                                                                                                      |
 | `/sessions`                  | Open the sessions panel                                                                                                    |

@@ -76,16 +76,18 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 |                 | `logPath`                           | _(empty)_                        | Cron job output file (stdout+stderr appended); empty = no redirect                                                                                                                                          |
 | `tui`           | `mouseScrollLines`                  | `1`                              | Lines to scroll per mouse wheel event                                                                                                                       |
 |                 | `name`                              | `madz`                           | TUI identifier in banner                                                                                                                                    |
-|                 | `showToolResults`                   | `true`                           | Display tool call result lines in the TUI                                                                                                                   |
+|                 | `overscan`                          | `10`                             | Extra items to mount on each side of the virtualized scroll view                                                                                           |
+|                 | `showToolResults`                   | `false`                          | Display tool call result lines in the TUI                                                                                                                   |
 |                 | `reasoningCollapsed`                | `true`                           | Start with reasoning blocks collapsed (`ctrl+r` to toggle)                                                                                                  |
 |                 | `toolCallCollapsed`                 | `true`                           | Start with tool-call result blocks collapsed (`ctrl+t` to toggle)                                                                                           |
 |                 | `statusBar.model`                   | `true`                           | Show the active model in the status bar                                                                                                                     |
 |                 | `statusBar.skills`                  | `true`                           | Show the skills count in the status bar                                                                                                                     |
 |                 | `statusBar.messages`                | `true`                           | Show the message count in the status bar                                                                                                                    |
-|                 | `statusBar.context`                 | `true`                           | Show the context size in the status bar                                                                                                                     |
+|                 | `statusBar.context`                 | `true`                           | Show the context utilization meter in the status bar                                                                                                       |
 |                 | `statusBar.tokens`                  | `true`                           | Show the rolling token budget in the status bar                                                                                                             |
 |                 | `statusBar.quote`                   | `true`                           | Show the rotating quote in the status bar                                                                                                                   |
 |                 | `statusBar.version`                 | `true`                           | Show the version in the status bar                                                                                                                          |
+|                 | `statusBar.project`                 | `true`                           | Show the active project in the status bar                                                                                                                   |
 | `agent`         | `recursionLimit`                    | `1000`                           | Max graph execution steps per agent call                                                                                                                    |
 |                 | `sampling`                          | `true`                           | Enable the `sampling` tool (ephemeral memory capture); `false` disables registration                                                                        |
 |                 | `bundledSkills`                     | `true`                           | Load bundled `.skills/` skills; `false` loads only `reflection` from `.skills/`                                                                             |
@@ -139,10 +141,11 @@ tui:
 - **`model`** — show the active model name (`[🧠 model]`).
 - **`skills`** — show the skills count (`[⚡N]`).
 - **`messages`** — show the message count (`[💬 N]`).
-- **`context`** — show the context size (`[▦ N]`).
+- **`context`** — show the context utilization meter (`[▋▋▋░░░░░░░ 30%]`), or the context size (`[▦ N]`) when no window is configured.
 - **`tokens`** — show the rolling token budget (`[💎 count/budget]`); only renders when a budget is configured.
 - **`quote`** — show the rotating quote on the right side.
 - **`version`** — show the version on the right side.
+- **`project`** — show the active project name on the right side; only renders when a project is set.
 
 Each element renders only when its boolean is `true` **and** its data is present — e.g., `tokens` also requires `openai.rateLimit.maxTokensMinute > 0`, and `quote`/`model`/`version` require a non-empty value.
 
