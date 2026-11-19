@@ -1,9 +1,6 @@
 import { HumanMessage } from "@langchain/core/messages";
 import { logger } from "../shared/logger.js";
 
-/** Default number of recent messages kept verbatim after compaction. */
-export const DEFAULT_KEEP_MESSAGES = 5;
-
 /** Marker prefix of the synthetic summary message. */
 export const SUMMARY_PREFIX = "Here is a summary of the conversation to date:";
 
@@ -124,13 +121,13 @@ async function offloadHistory(backend, messages, threadId) {
  * @param {Array} options.messages - Full message history
  * @param {Object} options.model - Chat model with `invoke`
  * @param {Object} [options.backend] - Backend for best-effort history offload
- * @param {number} [options.keep=5] - Maximum number of recent messages to keep
+ * @param {number} options.keep - Maximum number of recent messages to keep
  * @param {string} [options.threadId] - Thread id for the offload file name
  * @returns {Promise<{messages: Array, summarized: number, kept: number, offloadPath: (string|null)}|null>}
  *   The compacted history, or null when there is nothing worth summarizing
  */
 export async function compactMessages(options = {}) {
-	const { messages = [], model, backend, keep = DEFAULT_KEEP_MESSAGES, threadId } = options;
+	const { messages = [], model, backend, keep, threadId } = options;
 	const start = findTailStart(messages, keep);
 	const toSummarize = messages.slice(0, start);
 	const tail = messages.slice(start);

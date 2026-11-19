@@ -1,5 +1,6 @@
 import {
 	createDeepAgent,
+	createSummarizationMiddleware,
 	CompositeBackend,
 	registerHarnessProfile,
 	createHarnessProfile,
@@ -31,8 +32,17 @@ import { createContextBackend } from "./contextBackend.js";
 import { getAllAgents } from "./agentDefinitions.js";
 import { logger } from "../shared/logger.js";
 import { createCodeInterpreterMiddleware } from "@langchain/quickjs";
-import { compactMessages, DEFAULT_KEEP_MESSAGES } from "./compaction.js";
+import { compactMessages } from "./compaction.js";
 import { createTurnTransformer } from "../stream/transformers/index.js";
+
+/**
+ * Cached number of recent messages kept verbatim after compaction. Read once
+ * from `loadConfig().summarization.keepMessages` so `compactAgentContext` does
+ * not re-load the config on every invocation. `loadConfig()` is itself cached,
+ * so this mirrors the same value without the per-call lookup.
+ * @type {number}
+ */
+const KEEP_MESSAGES = loadConfig().summarization?.keepMessages;
 
 /**
  * Build the model-config overrides for a subagent from its per-agent
@@ -245,7 +255,7 @@ export function toConversationExchange(message) {
  *   Result describing what was removed and trimmed
  */
 export async function compactAgentContext(agent, config, sessionState, options = {}) {
-	const keepRecent = options.keepRecent ?? DEFAULT_KEEP_MESSAGES;
+	const keepRecent = options.keepRecent ?? KEEP_MESSAGES;
 	const backend = options.backend;
 	const model = options.model;
 
@@ -501,6 +511,24 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		model,
 	});
 
+	// Summarization middleware: compacts the conversation when the context
+	// reaches `contextFraction` of the resolved context window. The trigger is
+	// expressed in tokens because the model instance does not expose
+	// `profile.maxInputTokens` (which the fraction trigger requires); the
+	// resolved context length is the authoritative window. When the window
+	// cannot be resolved, the middleware falls back to the library's
+	// model-profile defaults.
+	const contextFraction = config.summarization?.contextFraction ?? 0.8;
+	const keepMessages = config.summarization?.keepMessages;
+	const summarizationMiddleware = createSummarizationMiddleware({
+		model,
+		backend,
+		...(contextLength > 0
+			? { trigger: { type: "tokens", value: Math.floor(contextLength * contextFraction) } }
+			: {}),
+		keep: { type: "messages", value: keepMessages },
+	});
+
 	const agent = createDeepAgent({
 		model,
 		tools: orchestratorTools,
@@ -516,6 +544,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 			...(skillPaths.length > 0
 				? [createSkillsMiddleware({ registry: skillRegistry, sources: skillPaths })]
 				: []),
+			summarizationMiddleware,
 			...(copilotRetryMiddleware ? [copilotRetryMiddleware] : []),
 			...(tokenBudgetMiddleware ? [tokenBudgetMiddleware] : []),
 		],

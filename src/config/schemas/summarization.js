@@ -11,7 +11,7 @@ export const SummarizationSchema = z
 	.object({
 		// Number of most recent messages kept verbatim after compaction; everything
 		// older is replaced by one summary message.
-		keepMessages: z.number().int().min(0).optional(),
+		keepMessages: z.number().int().min(0).default(10),
 		// Fraction of the model's context window at which to auto-compact.
 		contextFraction: z.number().positive().max(1).default(0.8),
 	})

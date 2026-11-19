@@ -6,7 +6,6 @@ import {
 	findTailStart,
 	buildTranscript,
 	SUMMARY_PREFIX,
-	DEFAULT_KEEP_MESSAGES,
 } from "../../../src/agent/compaction.js";
 
 const human = (t) => new HumanMessage(t);
@@ -87,21 +86,21 @@ describe("buildTranscript", () => {
 });
 
 describe("compactMessages", () => {
-	it("returns [summary, ...last 5] for a long history", async () => {
+	it("returns [summary, ...last N] for a long history", async () => {
 		const msgs = Array.from({ length: 12 }, (_, i) => (i % 2 ? ai(`m${i}`) : human(`m${i}`)));
-		const result = await compactMessages({ messages: msgs, model: model("S") });
-		assert.strictEqual(result.messages.length, 1 + DEFAULT_KEEP_MESSAGES);
+		const result = await compactMessages({ messages: msgs, model: model("S"), keep: 10 });
+		assert.strictEqual(result.messages.length, 11);
 		assert.ok(result.messages[0].content.startsWith(SUMMARY_PREFIX));
 		assert.ok(result.messages[0].content.includes("S"));
-		assert.strictEqual(result.messages[1].content, "m7");
+		assert.strictEqual(result.messages[1].content, "m2");
 		assert.strictEqual(result.messages.at(-1).content, "m11");
-		assert.strictEqual(result.summarized, 7);
-		assert.strictEqual(result.kept, 5);
+		assert.strictEqual(result.summarized, 2);
+		assert.strictEqual(result.kept, 10);
 	});
 
 	it("marks the summary as a HumanMessage so strict providers accept it", async () => {
-		const msgs = Array.from({ length: 8 }, (_, i) => human(`m${i}`));
-		const { messages } = await compactMessages({ messages: msgs, model: model() });
+		const msgs = Array.from({ length: 12 }, (_, i) => human(`m${i}`));
+		const { messages } = await compactMessages({ messages: msgs, model: model(), keep: 10 });
 		assert.strictEqual(messages[0]._getType(), "human");
 		assert.strictEqual(messages[0].additional_kwargs.madz_summary, true);
 	});
@@ -126,10 +125,10 @@ describe("compactMessages", () => {
 			},
 		};
 		const prior = human(`${SUMMARY_PREFIX}\n\nOLD FACTS`);
-		const msgs = [prior, ...Array.from({ length: 8 }, (_, i) => human(`m${i}`))];
-		const { messages } = await compactMessages({ messages: msgs, model: m });
+		const msgs = [prior, ...Array.from({ length: 12 }, (_, i) => human(`m${i}`))];
+		const { messages } = await compactMessages({ messages: msgs, model: m, keep: 10 });
 		assert.match(seen, /OLD FACTS/);
-		assert.strictEqual(messages.length, 6);
+		assert.strictEqual(messages.length, 11);
 	});
 
 	it("never leaves a tool result without its tool call in the tail", async () => {
@@ -154,11 +153,12 @@ describe("compactMessages", () => {
 	it("offloads the summarized history to the backend", async () => {
 		const writes = [];
 		const backend = { write: async (path, content) => writes.push({ path, content }) };
-		const msgs = Array.from({ length: 9 }, (_, i) => human(`m${i}`));
+		const msgs = Array.from({ length: 12 }, (_, i) => human(`m${i}`));
 		const result = await compactMessages({
 			messages: msgs,
 			model: model(),
 			backend,
+			keep: 10,
 			threadId: "thr/1",
 		});
 		assert.strictEqual(writes.length, 1);
@@ -174,8 +174,8 @@ describe("compactMessages", () => {
 				throw new Error("disk full");
 			},
 		};
-		const msgs = Array.from({ length: 9 }, (_, i) => human(`m${i}`));
-		const result = await compactMessages({ messages: msgs, model: model(), backend });
+		const msgs = Array.from({ length: 12 }, (_, i) => human(`m${i}`));
+		const result = await compactMessages({ messages: msgs, model: model(), backend, keep: 10 });
 		assert.strictEqual(result.offloadPath, null);
 		assert.ok(!result.messages[0].content.includes("saved to"));
 	});
@@ -186,14 +186,17 @@ describe("compactMessages", () => {
 				throw new Error("model down");
 			},
 		};
-		const msgs = Array.from({ length: 9 }, (_, i) => human(`m${i}`));
-		await assert.rejects(() => compactMessages({ messages: msgs, model: m }), /model down/);
+		const msgs = Array.from({ length: 12 }, (_, i) => human(`m${i}`));
+		await assert.rejects(
+			() => compactMessages({ messages: msgs, model: m, keep: 10 }),
+			/model down/,
+		);
 	});
 
 	it("throws on an empty summary", async () => {
-		const msgs = Array.from({ length: 9 }, (_, i) => human(`m${i}`));
+		const msgs = Array.from({ length: 12 }, (_, i) => human(`m${i}`));
 		await assert.rejects(
-			() => compactMessages({ messages: msgs, model: model("   ") }),
+			() => compactMessages({ messages: msgs, model: model("   "), keep: 10 }),
 			/empty output/,
 		);
 	});
