@@ -34,64 +34,79 @@ const timeout = z
 const common = { sessionId, timeout };
 
 /**
- * Zod schema for the `browser` tool input. A discriminated union keyed on
- * `action` so each action carries only its own parameters. An optional
- * `sessionId` allows chaining actions across calls within a persistent
- * browser session.
+ * Zod schema for the `browser` tool input.
+ *
+ * A single flat object with an `action` enum so the serialized JSON schema is
+ * a plain object rather than a top-level `oneOf`. Per-action requirements are
+ * enforced in `superRefine`; the dispatch still branches on `action`. An
+ * optional `sessionId` allows chaining actions across calls within a
+ * persistent browser session. This keeps every provider (including GitHub
+ * Copilot, which rejects top-level `oneOf` tool schemas) happy.
  */
-export const BrowserToolSchema = z.discriminatedUnion("action", [
-	z.object({
-		action: z.literal("navigate"),
-		url: z.string().url().describe("URL to navigate to"),
-		...common,
-	}),
-	z.object({
-		action: z.literal("click"),
-		selector: z.string().min(1).describe("CSS selector of the element to click"),
-		...common,
-	}),
-	z.object({
-		action: z.literal("type"),
-		selector: z.string().min(1).describe("CSS selector of the input to type into"),
-		text: z.string().describe("Text to type"),
-		...common,
-	}),
-	z.object({
-		action: z.literal("fill"),
-		selector: z.string().min(1).describe("CSS selector of the input to fill"),
-		text: z.string().describe("Text to enter"),
-		...common,
-	}),
-	z.object({
-		action: z.literal("press"),
-		key: z.string().min(1).describe("Keyboard key to press (e.g. 'Enter', 'Tab')"),
-		...common,
-	}),
-	z.object({
-		action: z.literal("screenshot"),
+export const BrowserToolSchema = z
+	.object({
+		action: z
+			.enum([
+				"navigate",
+				"click",
+				"type",
+				"fill",
+				"press",
+				"screenshot",
+				"extract",
+				"waitFor",
+				"evaluate",
+				"close",
+			])
+			.describe("The browser action to perform"),
+		url: z.string().url().optional().describe("URL to navigate to"),
+		selector: z.string().min(1).optional().describe("CSS selector of the element to interact with"),
+		text: z.string().optional().describe("Text to type or enter"),
+		key: z.string().min(1).optional().describe("Keyboard key to press (e.g. 'Enter', 'Tab')"),
 		fullPage: z.boolean().optional().describe("Capture the full page (default: true)"),
-		...common,
-	}),
-	z.object({ action: z.literal("extract"), ...common }),
-	z.object({
-		action: z.literal("waitFor"),
-		selector: z.string().min(1).optional().describe("CSS selector to wait for"),
 		waitUntil: z
 			.enum(["networkidle", "networkidle0", "networkidle2", "domcontentloaded", "load"])
 			.optional()
 			.describe("Page state to wait for when no selector is given (default: networkidle)"),
+		fn: z.string().min(1).optional().describe("JavaScript expression to evaluate in page context"),
 		...common,
-	}),
-	z.object({
-		action: z.literal("evaluate"),
-		fn: z.string().min(1).describe("JavaScript expression to evaluate in page context"),
-		...common,
-	}),
-	z.object({
-		action: z.literal("close"),
-		sessionId: z.string().describe("Session ID to close"),
-	}),
-]);
+	})
+	.superRefine((data, ctx) => {
+		const require = (field, message) => {
+			if (data[field] === undefined) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: [field],
+					message,
+				});
+			}
+		};
+		switch (data.action) {
+			case "navigate":
+				require("url", "url is required when action is 'navigate'");
+				break;
+			case "click":
+				require("selector", "selector is required when action is 'click'");
+				break;
+			case "type":
+				require("selector", "selector is required when action is 'type'");
+				require("text", "text is required when action is 'type'");
+				break;
+			case "fill":
+				require("selector", "selector is required when action is 'fill'");
+				require("text", "text is required when action is 'fill'");
+				break;
+			case "press":
+				require("key", "key is required when action is 'press'");
+				break;
+			case "evaluate":
+				require("fn", "fn is required when action is 'evaluate'");
+				break;
+			case "close":
+				require("sessionId", "sessionId is required when action is 'close'");
+				break;
+		}
+	});
 
 /**
  * Close a browser, logging rather than swallowing a failure.

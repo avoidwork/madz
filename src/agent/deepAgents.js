@@ -362,6 +362,7 @@ export async function compactAgentContext(agent, config, sessionState, options =
 export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	const config = loadConfig();
 	let systemPrompt = await loadSystemPrompt();
+	logger.info({ systemPrompt }, "Loaded system prompt");
 
 	// Discover skills from configured scopes
 	const skillRegistry = new SkillRegistry();
@@ -554,6 +555,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		model,
 		tools: orchestratorTools,
 		systemPrompt,
+		generalPurposeAgent: false,
 		store: new InMemoryStore(),
 		backend,
 		subagents: subagentDefinitions,
