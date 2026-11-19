@@ -2,7 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert";
 import React from "react";
 import { render } from "ink";
-import ConversationArea from "../../../src/tui/conversationArea.js";
+import ConversationArea, { abortable } from "../../../src/tui/conversationArea.js";
 
 const words = (n) => Array.from({ length: n }, (_, i) => `w${i}`).join(" ");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -188,6 +188,98 @@ describe("ConversationArea context size is monotonic while the pre-turn recount 
 				`context size dropped from ${reported[i - 1]} to ${reported[i]}; reported: ${JSON.stringify(reported)}`,
 			);
 		}
+	});
+});
+
+describe("abortable", () => {
+	it("resolves with the value when the signal never aborts", async () => {
+		const controller = new AbortController();
+		assert.strictEqual(await abortable(Promise.resolve(7), controller.signal), 7);
+	});
+
+	it("passes the promise through when no signal is given", async () => {
+		assert.strictEqual(await abortable(Promise.resolve(3)), 3);
+	});
+
+	it("rejects with an AbortError as soon as the signal aborts", async () => {
+		const controller = new AbortController();
+		const pending = abortable(
+			sleep(500).then(() => "late"),
+			controller.signal,
+		);
+		controller.abort();
+		await assert.rejects(pending, (err) => err.name === "AbortError");
+	});
+
+	it("rejects immediately when the signal is already aborted", async () => {
+		const controller = new AbortController();
+		controller.abort();
+		await assert.rejects(
+			abortable(Promise.resolve(1), controller.signal),
+			(err) => err.name === "AbortError",
+		);
+	});
+
+	it("propagates the promise's own rejection", async () => {
+		const controller = new AbortController();
+		await assert.rejects(abortable(Promise.reject(new Error("boom")), controller.signal), /boom/);
+	});
+});
+
+describe("ConversationArea aborts a superseded context update", () => {
+	it("abandons the in-flight recount when a newer update begins", async () => {
+		const { SessionStateManager } = await import("../../../src/session/stateManager.js");
+		const sessionState = new SessionStateManager();
+		const history = [{ role: "user", content: words(1000) }];
+		sessionState.loadConversation(history);
+		let recountsStarted = 0;
+		const slowModel = {
+			getNumTokensFromMessages: async (msgs) => {
+				if (msgs.some((m) => m.content === "hi")) {
+					recountsStarted++;
+					await sleep(300);
+				}
+				return model.getNumTokensFromMessages(msgs);
+			},
+		};
+		const reported = [];
+		const ref = React.createRef();
+		const dispatchProvider = async (_text, _provider, handler) => {
+			await handler({ type: "reasoning", text: words(50) });
+			await sleep(500);
+			return { content: "", lastEventType: "message" };
+		};
+		const { unmount } = render(
+			React.createElement(ConversationArea, {
+				ref,
+				config: { tui: { name: "madz" } },
+				model: slowModel,
+				sessionState,
+				dispatchProvider,
+				getContextMessages: async () => history,
+				messageCountRef: { current: 0 },
+				onContextChange: (n) => reported.push(n),
+				onCompactingChange: () => {},
+				onInterruptInput: () => {},
+				onQuit: () => {},
+				onNewSession: () => {},
+				contextWindow: 100000,
+			}),
+		);
+		try {
+			await sleep(150);
+			reported.length = 0;
+			await ref.current.handleChat("hi");
+			await sleep(600);
+		} finally {
+			unmount();
+		}
+		assert.strictEqual(recountsStarted, 1, "the pre-turn recount should have started");
+		assert.ok(
+			!reported.includes(1001),
+			`the superseded recount's value was applied; reported: ${JSON.stringify(reported)}`,
+		);
+		assert.strictEqual(reported.at(-1), 1050);
 	});
 });
 

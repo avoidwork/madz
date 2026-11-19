@@ -41,6 +41,39 @@ export async function countToolMessageTokens(model, text) {
 	return 0;
 }
 
+/**
+ * Await `promise` but reject with an AbortError as soon as `signal` aborts.
+ * The underlying call is not cancelled (the checkpointer read and the
+ * tokenizer take no signal); the caller just stops waiting on it and its
+ * eventual result is discarded.
+ * @param {Promise<*>} promise - Work to wait on
+ * @param {AbortSignal} signal - Signal that abandons the wait
+ * @returns {Promise<*>} The promise's value, or rejects with an AbortError
+ */
+export function abortable(promise, signal) {
+	if (!signal) return promise;
+	return new Promise((resolve, reject) => {
+		const abortError = () => new DOMException("Context update superseded", "AbortError");
+		if (signal.aborted) {
+			Promise.resolve(promise).catch(() => {});
+			reject(abortError());
+			return;
+		}
+		const onAbort = () => reject(abortError());
+		signal.addEventListener("abort", onAbort, { once: true });
+		Promise.resolve(promise).then(
+			(value) => {
+				signal.removeEventListener("abort", onAbort);
+				resolve(value);
+			},
+			(err) => {
+				signal.removeEventListener("abort", onAbort);
+				reject(err);
+			},
+		);
+	});
+}
+
 /** Last-event types that mean a turn ended without a final assistant message. */
 const AUTO_CONTINUE_EVENT_TYPES = new Set(["reasoning", "tool", "on_tool_end"]);
 
@@ -233,14 +266,26 @@ const ConversationArea = forwardRef(function ConversationArea(
 ) {
 	const [contextSize, setContextSize] = useState(0);
 	const [, setIsCompacting] = useState(false);
-	// Monotonic write counter. Every context write (a streaming update or the
-	// start of a full recount) takes a new number; a recount that finishes after
-	// a newer write is stale and must not overwrite it.
-	const contextWriteSeqRef = useRef(0);
+	// Controller of the context update currently in flight (a full recount or a
+	// debounced streaming update). Starting a new update aborts the previous one
+	// so a slower, older computation can never land after a newer one.
+	const contextUpdateAbortRef = useRef(null);
+	// Last size written to the status bar; returned when a recount is superseded.
+	const lastContextSizeRef = useRef(0);
+	/**
+	 * Begin a context update: abort any in-flight one and return the new signal.
+	 * @returns {AbortSignal} Signal that aborts when a newer update begins
+	 */
+	const beginContextUpdate = useCallback(() => {
+		contextUpdateAbortRef.current?.abort();
+		const controller = new AbortController();
+		contextUpdateAbortRef.current = controller;
+		return controller.signal;
+	}, []);
 	// Wrapper that updates both local state and the status bar (via InputArea)
 	const updateContextDisplay = useCallback(
 		(size) => {
-			contextWriteSeqRef.current += 1;
+			lastContextSizeRef.current = size;
 			setContextSize(size);
 			onContextChange?.(size);
 		},
@@ -309,6 +354,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 				clearTimeout(contextUpdateTimerRef.current);
 				contextUpdateTimerRef.current = null;
 			}
+			contextUpdateAbortRef.current?.abort();
 		};
 	}, []);
 
@@ -841,48 +887,54 @@ const ConversationArea = forwardRef(function ConversationArea(
 				contextUpdateTimerRef.current = null;
 			}
 			if (!sessionState) return 0;
-			const writeSeq = ++contextWriteSeqRef.current;
-			// When an explicit message set is provided (e.g. the user's just-sent
-			// message, which isn't in the checkpointer yet on the first turn), use
-			// it directly. Otherwise source the conversation from the real
-			// checkpointer session when the accessor is available, so the counter
-			// reflects the full message set the model sees (tool calls, tool
-			// messages, content blocks). Fall back to the lossy sessionState array
-			// when the accessor is unavailable.
-			let counted = messages;
-			if (!counted) {
-				counted = sessionState.getConversation();
-				if (typeof getContextMessages === "function") {
-					const contextMessages = await getContextMessages();
-					if (contextMessages && contextMessages.length > 0) {
-						counted = contextMessages;
+			// Supersede any in-flight update (recount or streaming).
+			const signal = beginContextUpdate();
+			try {
+				// When an explicit message set is provided (e.g. the user's just-sent
+				// message, which isn't in the checkpointer yet on the first turn), use
+				// it directly. Otherwise source the conversation from the real
+				// checkpointer session when the accessor is available, so the counter
+				// reflects the full message set the model sees (tool calls, tool
+				// messages, content blocks). Fall back to the lossy sessionState array
+				// when the accessor is unavailable.
+				let counted = messages;
+				if (!counted) {
+					counted = sessionState.getConversation();
+					if (typeof getContextMessages === "function") {
+						const contextMessages = await abortable(getContextMessages(), signal);
+						if (contextMessages && contextMessages.length > 0) {
+							counted = contextMessages;
+						}
 					}
 				}
+				// Normalize every message to a real LangChain object before counting.
+				counted = counted.map(toLangChainMessage);
+				// Include the system prompt in the count so the context window reflects
+				// what the model actually sees on every turn. It's not part of graph
+				// state, so it must be prepended here.
+				if (systemPrompt) {
+					counted = [new SystemMessage(systemPrompt), ...counted];
+				}
+				// The output budget (maxTokens) is intentionally not added to the
+				// count. The status-bar context meter must reflect actual context
+				// usage against the context window, not the reserved output budget.
+				let totalTokens = 0;
+				if (model && typeof model.getNumTokensFromMessages === "function") {
+					const { totalCount } = await abortable(model.getNumTokensFromMessages(counted), signal);
+					totalTokens = totalCount;
+				}
+				if (signal.aborted) return lastContextSizeRef.current;
+				lastContextSizeRef.current = totalTokens;
+				setContextSize(totalTokens);
+				onContextChange?.(totalTokens);
+				return totalTokens;
+			} catch (err) {
+				// Superseded by a newer update: its result is the one that counts.
+				if (err?.name === "AbortError") return lastContextSizeRef.current;
+				throw err;
 			}
-			// Normalize every message to a real LangChain object before counting.
-			counted = counted.map(toLangChainMessage);
-			// Include the system prompt in the count so the context window reflects
-			// what the model actually sees on every turn. It's not part of graph
-			// state, so it must be prepended here.
-			if (systemPrompt) {
-				counted = [new SystemMessage(systemPrompt), ...counted];
-			}
-			// The output budget (maxTokens) is intentionally not added to the
-			// count. The status-bar context meter must reflect actual context
-			// usage against the context window, not the reserved output budget.
-			let totalTokens = 0;
-			if (model && typeof model.getNumTokensFromMessages === "function") {
-				const { totalCount } = await model.getNumTokensFromMessages(counted);
-				totalTokens = totalCount;
-			}
-			// A newer write (streaming update or later recount) landed while this
-			// count was in flight; applying it would move the bar backwards.
-			if (writeSeq !== contextWriteSeqRef.current) return totalTokens;
-			setContextSize(totalTokens);
-			onContextChange?.(totalTokens);
-			return totalTokens;
 		},
-		[model, getContextMessages, systemPrompt],
+		[model, getContextMessages, systemPrompt, beginContextUpdate],
 	);
 
 	const addMessage = (msg) => {
@@ -919,23 +971,32 @@ const ConversationArea = forwardRef(function ConversationArea(
 				pendingContextRef.current.content = content;
 				contextUpdateTimerRef.current = setTimeout(async () => {
 					contextUpdateTimerRef.current = null;
+					// Supersede any in-flight update (recount or earlier streaming).
+					const signal = beginContextUpdate();
 					const text = [streamedReasoning, pendingContextRef.current.content]
 						.filter(Boolean)
 						.join("\n");
 					const cached = tokenCacheRef.current;
 					if (text && cached.content !== text) {
-						cached.content = text;
+						let tokens = 0;
 						if (model && typeof model.getNumTokensFromMessages === "function") {
 							try {
-								const { totalCount } = await model.getNumTokensFromMessages([new AIMessage(text)]);
-								cached.tokens = totalCount;
-							} catch {
-								cached.tokens = 0;
+								const { totalCount } = await abortable(
+									model.getNumTokensFromMessages([new AIMessage(text)]),
+									signal,
+								);
+								tokens = totalCount;
+							} catch (err) {
+								// Superseded: the newer update owns the display.
+								if (err?.name === "AbortError") return;
+								tokens = 0;
 							}
-						} else {
-							cached.tokens = 0;
 						}
+						if (signal.aborted) return;
+						cached.content = text;
+						cached.tokens = tokens;
 					}
+					if (signal.aborted) return;
 					onContextUpdate(preStreamContextSize + cached.tokens + toolMessageTokensRef.current);
 				}, 33);
 			};
