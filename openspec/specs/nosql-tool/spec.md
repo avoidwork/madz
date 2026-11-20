@@ -73,3 +73,14 @@ The system SHALL enforce a timeout on every NoSQL operation.
 
 - **WHEN** a NoSQL operation exceeds the configured timeout
 - **THEN** the operation is aborted and an error is returned
+
+### Requirement: Config-driven connection sourcing
+The system SHALL source NoSQL connection details from server-side config (`config.nosql[engine]`), never from model input.
+
+#### Scenario: Connection from config
+- **WHEN** the `nosql` tool is invoked with an engine and operation
+- **THEN** the connection is resolved from `config.nosql[engine]` and the model supplies only engine and operation
+
+#### Scenario: Connection env vars map without vendor prefix
+- **WHEN** `MONGODB_CONNECTION_STRING` is set
+- **THEN** it maps to `nosql.mongodb.connectionString` (the `nosql` container key is dropped from the env-var name)

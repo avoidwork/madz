@@ -57,7 +57,7 @@ The single source of project configuration, loaded by `src/config/loader.js`. Se
 
 ### DROPPED_KEYS
 
-Container keys stripped from the env-var name when mapping config paths to environment variables. These are `providers`, `credentials`, `ratelimit`, `timeout`, `search`, `process`, `calendar`, and `subAgentsTemperature`. For example, `providers.openai.credentials.apiKey` → `OPENAI_API_KEY`.
+Container keys stripped from the env-var name when mapping config paths to environment variables. These are `providers`, `credentials`, `ratelimit`, `timeout`, `search`, `sql`, and `nosql`. For example, `providers.openai.credentials.apiKey` → `OPENAI_API_KEY`, and `sql.postgres.host` → `POSTGRES_HOST`.
 
 ### syncEnv
 

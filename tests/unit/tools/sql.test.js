@@ -38,13 +38,16 @@ describe("tools - sql", () => {
 			assert.ok(result.success);
 		});
 
-		it("accepts connection config", () => {
+		it("does not accept connection config from the model", () => {
+			// Connection is sourced server-side from config; the schema strips
+			// any connection the model supplies.
 			const result = sql.schema.safeParse({
 				driver: "postgres",
-				connection: { host: "localhost", port: 5432, user: "u", password: "p", database: "d" },
+				connection: { host: "localhost", port: 5432 },
 				query: "SELECT 1",
 			});
 			assert.ok(result.success);
+			assert.strictEqual(result.data.connection, undefined);
 		});
 	});
 
@@ -68,6 +71,17 @@ describe("tools - sql", () => {
 			const result = await sqlImpl({ driver: "sqlite", query: "   " }, { allowedPaths: ["/tmp"] });
 			assert.strictEqual(result.ok, false);
 			assert.strictEqual(result.kind, "invalid-input");
+		});
+
+		it("sources connection from server-side config policy", async () => {
+			// The driver's execute receives the connection resolved from the
+			// policy (config.sql[driver]), not from model input.
+			const policy = { sqlite: { file: ":memory:" } };
+			const result = await sqlImpl(
+				{ driver: "sqlite", query: "SELECT 1" },
+				{ allowedPaths: ["/tmp"], policy },
+			);
+			assert.strictEqual(result.ok, true);
 		});
 	});
 

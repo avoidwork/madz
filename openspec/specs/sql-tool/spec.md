@@ -44,3 +44,14 @@ The system SHALL enforce the sandbox allowlist on SQLite file paths.
 #### Scenario: SQLite path outside allowlist is rejected
 - **WHEN** a user provides a SQLite file path outside the sandbox allowlist
 - **THEN** the system returns an access-denied error
+
+### Requirement: Config-driven connection sourcing
+The system SHALL source SQL connection details from server-side config (`config.sql[driver]`), never from model input.
+
+#### Scenario: Connection from config
+- **WHEN** the `sql` tool is invoked with a driver and query
+- **THEN** the connection is resolved from `config.sql[driver]` and the model supplies only driver, query, and params
+
+#### Scenario: Connection env vars map without vendor prefix
+- **WHEN** `POSTGRES_HOST` is set
+- **THEN** it maps to `sql.postgres.host` (the `sql` container key is dropped from the env-var name)

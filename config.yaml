@@ -80,6 +80,22 @@ memory:
   screenshotsDir: memory/screenshots/
   sessionsDir: memory/sessions/
   toolsDir: memory/tools/
+nosql:
+  mongodb:
+    connectionString: "" # MONGODB_CONNECTION_STRING
+    host: ""             # MONGODB_HOST
+    port: 27017          # MONGODB_PORT
+    credentials:
+      username: ""       # MONGODB_USERNAME
+      password: ""       # MONGODB_PASSWORD
+      database: ""       # MONGODB_DATABASE
+  redis:
+    host: ""             # REDIS_HOST
+    port: 6379           # REDIS_PORT
+    credentials:
+      username: ""       # REDIS_USERNAME
+      password: ""       # REDIS_PASSWORD
+    db: 0                # REDIS_DB
 persistence:
   mode: sqlite
 providers:
@@ -159,6 +175,21 @@ sandbox:
   skillScanPaths:
     - "skills/"
     - ".skills/"
+sql:
+  postgres:
+    host: ""             # POSTGRES_HOST
+    port: 5432           # POSTGRES_PORT
+    user: ""             # POSTGRES_USER
+    password: ""         # POSTGRES_PASSWORD
+    database: ""         # POSTGRES_DATABASE
+  sqlite:
+    file: ""             # SQLITE_FILE
+  mysql:
+    host: ""             # MYSQL_HOST
+    port: 3306           # MYSQL_PORT
+    user: ""             # MYSQL_USER
+    password: ""         # MYSQL_PASSWORD
+    database: ""         # MYSQL_DATABASE
 schedules:
   logPath: ""
   syncOnInit: true

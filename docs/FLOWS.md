@@ -118,7 +118,7 @@ loadConfig()
 ├── resolved = _resolveEnvRecursively(raw, [])
 │   └── Walks config tree; for each leaf:
 │       ├── DROPPED_KEYS = ["providers", "credentials", "ratelimit", "timeout",
-│       │                   "search", "process", "calendar", "subAgentsTemperature"]
+│       │                   "search", "sql", "nosql"]
 │       ├── envKey = pathSegments (minus dropped) → UPPER_SNAKE_CASE → join("_")
 │       ├── envValue = process.env[envKey]
 │       └── if envValue exists:

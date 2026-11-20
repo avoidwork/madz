@@ -44,13 +44,16 @@ describe("tools - nosql", () => {
 			assert.strictEqual(result.success, false);
 		});
 
-		it("accepts connection config", () => {
+		it("does not accept connection config from the model", () => {
+			// Connection is sourced server-side from config; the schema strips
+			// any connection the model supplies.
 			const result = nosql.schema.safeParse({
 				engine: "mongodb",
 				connection: { host: "localhost", port: 27017 },
 				operation: { op: "find", collection: "users" },
 			});
 			assert.ok(result.success);
+			assert.strictEqual(result.data.connection, undefined);
 		});
 	});
 
@@ -59,6 +62,27 @@ describe("tools - nosql", () => {
 			const result = await nosqlImpl({ engine: "bogus" });
 			assert.strictEqual(result.ok, false);
 			assert.strictEqual(result.kind, "invalid-engine");
+		});
+
+		it("sources connection from server-side config policy", async () => {
+			// The engine's execute receives the connection resolved from the
+			// policy (config.nosql[engine]), not from model input. An injected
+			// client avoids a real MongoDB connection.
+			const policy = { mongodb: { host: "localhost", port: 27017 } };
+			const mockClient = {
+				connect: async () => {},
+				db: () => ({
+					collection: () => ({
+						find: () => ({ toArray: async () => [] }),
+					}),
+				}),
+			};
+			const result = await nosqlImpl(
+				{ engine: "mongodb", operation: { op: "find", collection: "users" } },
+				{ policy, client: mockClient },
+			);
+			assert.strictEqual(result.ok, true);
+			assert.strictEqual(result.count, 0);
 		});
 	});
 

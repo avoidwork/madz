@@ -9,6 +9,8 @@ import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import * as mongodb from "./engines/mongodb.js";
 import * as redis from "./engines/redis.js";
+import { NosqlConfigSchema } from "../../config/schemas/nosql.js";
+import { loadConfig } from "../../config/loader.js";
 
 /** Registry of supported engines, keyed by engine name. */
 export const ENGINES = {
@@ -23,6 +25,7 @@ const VALID_ENGINES = Object.keys(ENGINES);
  * Core NoSQL tool logic.
  * @param {object} input - The tool input
  * @param {object} [options] - Runtime options
+ * @param {object} [options.policy] - Server-side nosql config (test seam)
  * @returns {Promise<object>} Result of the operation
  */
 export async function nosqlImpl(input = {}, options = {}) {
@@ -36,8 +39,13 @@ export async function nosqlImpl(input = {}, options = {}) {
 		};
 	}
 
+	// Connection comes from server-side config (config.nosql[engine]), never
+	// from model input. The model supplies only engine and operation.
+	const policy = NosqlConfigSchema.parse(options.policy ?? loadConfig().nosql ?? {});
+	const connection = policy[engine] ?? {};
+
 	const engineModule = ENGINES[engine];
-	return engineModule.execute(input, options);
+	return engineModule.execute({ ...input, connection }, options);
 }
 
 /**
@@ -51,26 +59,6 @@ export async function closeAll() {
 		}
 	}
 }
-
-/**
- * Flat connection schema merging the MongoDB and Redis connection configs so
- * the serialized tool schema is a plain object (no top-level `oneOf`). Fields
- * are optional; each engine's `execute` applies its own defaults.
- */
-const connectionSchema = z.object({
-	connectionString: z.string().optional().describe("MongoDB connection string"),
-	host: z.string().optional().describe("Database host"),
-	port: z.number().int().positive().optional().describe("Database port"),
-	credentials: z
-		.object({
-			username: z.string().optional().describe("Username"),
-			password: z.string().optional().describe("Password"),
-			database: z.string().optional().describe("Database name"),
-		})
-		.optional()
-		.describe("Connection credentials"),
-	db: z.number().int().nonnegative().optional().describe("Redis database index"),
-});
 
 /**
  * Flat operation schema merging the MongoDB and Redis operation fields so the
@@ -136,7 +124,6 @@ const operationSchema = z.object({
 export const nosqlSchema = z
 	.object({
 		engine: z.enum(["mongodb", "redis"]).describe("mongodb or redis"),
-		connection: connectionSchema.optional().describe("Connection config"),
 		operation: operationSchema.describe("The operation to execute"),
 	})
 	.superRefine((data, ctx) => {
@@ -155,13 +142,15 @@ export const nosqlSchema = z
 /**
  * First-class NoSQL tool. Runs operations against MongoDB and Redis databases.
  * Uses a registry/plugin architecture so new engines can be added without
- * modifying the core dispatch.
+ * modifying the core dispatch. Connection details come from server-side config
+ * (config.nosql[engine]); the model supplies only engine and operation.
  */
 export const nosql = tool((input, options = {}) => nosqlImpl(input, options), {
 	name: "nosql",
 	description:
 		"NoSQL tool. Runs operations against mongodb or redis databases. " +
-		"engine: mongodb or redis. connection: connection config. operation: the operation to execute. " +
+		"engine: mongodb or redis. operation: the operation to execute. " +
+		"Connection details are attached server-side from config; the model never supplies them. " +
 		"Uses a registry/plugin architecture so new engines can be added without modifying the core dispatch.",
 	schema: nosqlSchema,
 });
