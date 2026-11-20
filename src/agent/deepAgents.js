@@ -17,6 +17,7 @@ import { getModelContextLength } from "../provider/modelInfo.js";
 import { getActiveProviderConfig, getActiveProviderName } from "../provider/index.js";
 import { createTokenBudgetMiddleware } from "../provider/tokenBudgetMiddleware.js";
 import { createCopilotRetryMiddleware } from "../provider/copilotRetryMiddleware.js";
+import { createContextCalibrationMiddleware } from "../provider/contextCalibration.js";
 import { createEvictionAwareFilesystemMiddleware } from "./evictionCeiling.js";
 import { createSkillsMiddleware } from "./skillsMiddleware.js";
 import {
@@ -569,6 +570,8 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 			summarizationMiddleware,
 			...(copilotRetryMiddleware ? [copilotRetryMiddleware] : []),
 			...(tokenBudgetMiddleware ? [tokenBudgetMiddleware] : []),
+			// Innermost: measures the request exactly as sent, against the raw response.
+			createContextCalibrationMiddleware({ model }),
 		],
 		streamTransformers: [() => createTurnTransformer()],
 	});
