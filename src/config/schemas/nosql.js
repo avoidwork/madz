@@ -24,6 +24,7 @@ const RedisConnectionSchema = z.object({
 			password: z.string().optional().default(""),
 		})
 		.default({}),
+	db: z.number().int().nonnegative().default(0),
 });
 
 /** NoSQL tool config section. */
