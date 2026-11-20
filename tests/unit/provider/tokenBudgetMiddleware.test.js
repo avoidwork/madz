@@ -3,6 +3,7 @@ import assert from "node:assert";
 import { createAgent } from "langchain";
 import { ChatOpenAI } from "@langchain/openai";
 import { z } from "zod";
+import { isCommand } from "@langchain/langgraph";
 import { tool } from "@langchain/core/tools";
 import {
 	createTokenBudgetMiddleware,
@@ -377,6 +378,35 @@ describe("TokenBudget.wrapModelCall 400 context-window compaction", () => {
 			/Invalid API key/,
 		);
 		assert.strictEqual(compactCalls, 0, "non-context 400 must not trigger compaction");
+	});
+
+	it("re-sends the rebuilt request and persists its stateUpdate via a Command", async () => {
+		const rebuilt = {
+			...makeRequest("compacted"),
+			stateUpdate: { _summarizationEvent: { id: 1 } },
+		};
+		const sent = [];
+		const mw = createTokenBudgetMiddleware({
+			maxTokensMinute: 100000,
+			model: makeMockModel(),
+			maxTokens: 0,
+			budget: createTokenBudget(100000),
+			sleep: noSleep,
+			onContextWindowExceeded: async () => rebuilt,
+		});
+		const result = await mw.wrapModelCall(makeRequest(), async (req) => {
+			sent.push(req);
+			if (sent.length === 1) {
+				const e = new Error("This model's maximum context length is 128000 tokens");
+				e.status = 400;
+				throw e;
+			}
+			return { usage_metadata: { input_tokens: 10, output_tokens: 5, total_tokens: 15 } };
+		});
+		assert.strictEqual(sent[1].messages, rebuilt.messages, "re-send uses the rebuilt messages");
+		assert.ok(!("stateUpdate" in sent[1]), "stateUpdate is not forwarded to the model call");
+		assert.ok(isCommand(result), "success returns a Command");
+		assert.deepStrictEqual(result.update, rebuilt.stateUpdate);
 	});
 
 	it("surfaces the error when the retry also fails with a context-window error", async () => {

@@ -17,6 +17,7 @@ import { getModelContextLength } from "../provider/modelInfo.js";
 import { getActiveProviderConfig, getActiveProviderName } from "../provider/index.js";
 import { createTokenBudgetMiddleware } from "../provider/tokenBudgetMiddleware.js";
 import { createCopilotRetryMiddleware } from "../provider/copilotRetryMiddleware.js";
+import { createContextCalibrationMiddleware } from "../provider/contextCalibration.js";
 import { createEvictionAwareFilesystemMiddleware } from "./evictionCeiling.js";
 import { createSkillsMiddleware } from "./skillsMiddleware.js";
 import {
@@ -32,7 +33,7 @@ import { createContextBackend } from "./contextBackend.js";
 import { getAllAgents } from "./agentDefinitions.js";
 import { logger } from "../shared/logger.js";
 import { createCodeInterpreterMiddleware } from "@langchain/quickjs";
-import { compactMessages } from "./compaction.js";
+import { compactMessages, compactRequest } from "./compaction.js";
 import { getEffectiveMessages } from "./effectiveMessages.js";
 import { createTurnTransformer } from "../stream/transformers/index.js";
 
@@ -487,7 +488,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		maxTokens: providerConfig.maxTokens,
 		onContextWindowExceeded: async (err, request) => {
 			if (typeof compactOnContextWindowExceeded === "function") {
-				await compactOnContextWindowExceeded(err, request);
+				return compactOnContextWindowExceeded(err, request);
 			}
 		},
 	});
@@ -569,6 +570,8 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 			summarizationMiddleware,
 			...(copilotRetryMiddleware ? [copilotRetryMiddleware] : []),
 			...(tokenBudgetMiddleware ? [tokenBudgetMiddleware] : []),
+			// Innermost: measures the request exactly as sent, against the raw response.
+			createContextCalibrationMiddleware({ model }),
 		],
 		streamTransformers: [() => createTurnTransformer()],
 	});
@@ -577,23 +580,25 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	// window on demand. The callback is bound to the agent instance and accepts
 	// a LangGraph runnable config (with `thread_id`), an optional session state
 	// manager to sync, plus optional options.
-	agent.compactContext = async (config, sessionState, options) =>
-		compactAgentContext(agent, config, sessionState, {
-			keepRecent: config.summarization?.keepMessages,
+	agent.compactContext = async (runnableConfig, sessionState, options) =>
+		compactAgentContext(agent, runnableConfig, sessionState, {
+			keepRecent: keepMessages,
 			...options,
 			backend,
 			model,
 		});
 
-	// Wire the middleware's 400 context-window handler to the agent's compaction
-	// path. The middleware is created before the agent, so this closure is set
-	// once the agent exists. It extracts the thread_id from the request runtime
-	// and compacts the context for that thread, then the middleware re-sends.
-	compactOnContextWindowExceeded = async (err, request) => {
-		const threadId = request?.runtime?.configurable?.thread_id;
-		const config = threadId ? { configurable: { thread_id: threadId } } : undefined;
-		await agent.compactContext(config);
-	};
+	// Wire the middleware's 400 context-window handler. It runs inside a graph
+	// step, so it compacts the request in memory and hands back the matching
+	// `_summarizationEvent` for the middleware to persist via a `Command`;
+	// `updateState` from here would be overwritten when the step commits.
+	compactOnContextWindowExceeded = async (err, request) =>
+		compactRequest(request, {
+			model,
+			backend,
+			keep: keepMessages,
+			threadId: request?.runtime?.configurable?.thread_id,
+		});
 
 	// Expose the MCP adapter (if any) so the caller can close it on shutdown.
 	// `allTools` is an array with the adapter attached as a property when MCP

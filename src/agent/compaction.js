@@ -167,3 +167,50 @@ export async function compactMessages(options = {}) {
 		offloadPath,
 	};
 }
+
+/**
+ * Compact a model request in memory, for a context-window overflow hit while a
+ * graph step is running.
+ *
+ * `updateState` cannot be used here: the running step commits its own writes
+ * afterwards and discards an out-of-band checkpoint update, and the in-flight
+ * request would be re-sent unchanged. Instead the request's window is rebuilt as
+ * `[summary, ...tail]` and the matching `_summarizationEvent` is returned as
+ * `stateUpdate` for the caller to persist through a `Command`. The event cutoff
+ * is `state.messages.length - tail.length`, so the persisted window
+ * (`[summary, ...messages.slice(cutoff)]`) equals the window that was sent.
+ *
+ * @param {Object} request - The `wrapModelCall` request (`messages`, `state`)
+ * @param {Object} options - Options
+ * @param {Object} options.model - Chat model with `invoke`
+ * @param {Object} [options.backend] - Backend for best-effort history offload
+ * @param {number} options.keep - Maximum number of recent messages to keep
+ * @param {string} [options.threadId] - Thread id for the offload file name
+ * @returns {Promise<Object|null>} The request with compacted `messages` and a
+ *   `stateUpdate`, or null when there is nothing worth summarizing
+ */
+export async function compactRequest(request, options = {}) {
+	const { model, backend, keep, threadId } = options;
+	const result = await compactMessages({
+		messages: request.messages ?? [],
+		model,
+		backend,
+		keep,
+		threadId,
+	});
+	if (!result) return null;
+
+	const [summaryMessage, ...tail] = result.messages;
+	const stateMessages = request.state?.messages ?? [];
+	return {
+		...request,
+		messages: result.messages,
+		stateUpdate: {
+			_summarizationEvent: {
+				cutoffIndex: Math.max(0, stateMessages.length - tail.length),
+				summaryMessage,
+				filePath: result.offloadPath,
+			},
+		},
+	};
+}
