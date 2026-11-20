@@ -928,7 +928,7 @@ describe("StatusBar - no appInfo rendering", () => {
 		);
 
 		assert.ok(result.includes("∙∙∙"), "idle dots should appear");
-		assert.ok(result.includes("∙ ⚡ 3"), "skill count should appear");
+		assert.ok(result.includes("| ⚡ 3"), "skill count should appear");
 		assert.ok(result.includes("∙ 💬 10"), "message count should appear");
 	});
 
@@ -985,7 +985,7 @@ describe("StatusBar - no appInfo rendering", () => {
 		);
 
 		assert.ok(result.includes("Streaming...") === false, "status message text should not appear");
-		assert.ok(result.includes("∙ ⚡ 0"), "skill count should appear");
+		assert.ok(result.includes("| ⚡ 0"), "skill count should appear");
 	});
 
 	it("renders the token budget segment when a budget is configured", async () => {
@@ -1387,7 +1387,7 @@ describe("InputArea - imperative handle", () => {
 		);
 
 		// Should show message count and skill count
-		assert.ok(result.includes("∙ ⚡ 3"), "skill count should appear");
+		assert.ok(result.includes("| ⚡ 3"), "skill count should appear");
 		assert.ok(result.includes("∙ 💬 5"), "message count should appear");
 	});
 });

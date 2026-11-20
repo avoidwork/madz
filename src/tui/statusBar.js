@@ -168,11 +168,21 @@ export const StatusBar = React.memo(function StatusBar({
 
 			showModel ? React.createElement(Text, { key: "model", color: "gray" }, " " + model) : null,
 
+			showContext
+				? React.createElement(
+						Text,
+						{ key: "context", color: contextColor },
+						" " +
+							(contextWindow > 0
+								? renderContextMeter(contextSize, contextWindow, showContextPercent)
+								: formatSize(contextSize)),
+					)
+				: null,
 			showSkills
 				? React.createElement(
 						Text,
 						{ key: "skills", color: "gray" },
-						" \u2219 \u26A1 " + formatNumber(skillCount),
+						" | \u26A1 " + formatNumber(skillCount),
 					)
 				: null,
 			showMessages
@@ -180,16 +190,6 @@ export const StatusBar = React.memo(function StatusBar({
 						Text,
 						{ key: "messages", color: "gray" },
 						" \u2219 \u{1F4AC} " + formatNumber(messageCount),
-					)
-				: null,
-			showContext
-				? React.createElement(
-						Text,
-						{ key: "context", color: contextColor },
-						" \u2219 " +
-							(contextWindow > 0
-								? renderContextMeter(contextSize, contextWindow, showContextPercent)
-								: formatSize(contextSize)),
 					)
 				: null,
 			showTokens
