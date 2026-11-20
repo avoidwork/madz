@@ -3,6 +3,7 @@ import assert from "node:assert";
 import { AIMessage, HumanMessage, ToolMessage } from "@langchain/core/messages";
 import {
 	compactMessages,
+	compactRequest,
 	findTailStart,
 	buildTranscript,
 	SUMMARY_PREFIX,
@@ -205,5 +206,50 @@ describe("compactMessages", () => {
 		const msgs = Array.from({ length: 9 }, (_, i) => human(`m${i}`));
 		const { messages } = await compactMessages({ messages: msgs, model: model(), keep: 2 });
 		assert.strictEqual(messages.length, 3);
+	});
+});
+
+describe("compactRequest", () => {
+	it("returns a rebuilt request and the matching summarization event", async () => {
+		const msgs = Array.from({ length: 6 }, (_, i) => human(`m${i}`));
+		const request = { messages: msgs, state: { messages: msgs }, tools: [] };
+		const next = await compactRequest(request, { model: model(), keep: 2 });
+
+		assert.strictEqual(next.messages.length, 3);
+		assert.ok(next.messages[0].content.startsWith(SUMMARY_PREFIX));
+		assert.strictEqual(next.tools, request.tools, "other request fields are preserved");
+		const event = next.stateUpdate._summarizationEvent;
+		assert.strictEqual(event.cutoffIndex, 4);
+		assert.strictEqual(event.summaryMessage, next.messages[0]);
+	});
+
+	it("computes the cutoff against state.messages when a prior event shrank the window", async () => {
+		const stateMsgs = Array.from({ length: 10 }, (_, i) => human(`m${i}`));
+		// The window the model sees: a prior summary plus the last 4 state messages.
+		const windowMsgs = [human("prior-summary"), ...stateMsgs.slice(6)];
+		const request = { messages: windowMsgs, state: { messages: stateMsgs } };
+		const next = await compactRequest(request, { model: model(), keep: 2 });
+
+		assert.strictEqual(next.messages.length, 3);
+		assert.strictEqual(next.stateUpdate._summarizationEvent.cutoffIndex, 8);
+	});
+
+	it("returns null when there is nothing to summarize", async () => {
+		const msgs = [human("a"), human("b")];
+		const next = await compactRequest(
+			{ messages: msgs, state: { messages: msgs } },
+			{ model: model(), keep: 5 },
+		);
+		assert.strictEqual(next, null);
+	});
+
+	it("records the offload path as the event file path", async () => {
+		const backend = { write: async () => undefined };
+		const msgs = Array.from({ length: 6 }, (_, i) => human(`m${i}`));
+		const next = await compactRequest(
+			{ messages: msgs, state: { messages: msgs } },
+			{ model: model(), backend, keep: 2, threadId: "t1" },
+		);
+		assert.match(next.stateUpdate._summarizationEvent.filePath, /^\/conversation_history\/t1-/);
 	});
 });

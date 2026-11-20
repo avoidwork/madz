@@ -1,4 +1,5 @@
 import { createMiddleware, countTokensApproximately } from "langchain";
+import { Command } from "@langchain/langgraph";
 import { getSharedTokenBudget, getRetryDelayMs, DEFAULT_RETRY_AFTER_MS } from "./openai.js";
 import { logger } from "../shared/logger.js";
 
@@ -64,6 +65,10 @@ export function readUsageTokens(result) {
  *   request (so the caller can extract the thread_id). It should compact the
  *   context (e.g. via `agent.compactContext`) so the request can be re-sent once.
  *   It may return a rebuilt request (with `messages`) to be used for the re-send.
+ *   The rebuilt request may carry a `stateUpdate` (graph state channels); once the
+ *   re-send succeeds it is persisted via a `Command`, so the checkpointer agrees
+ *   with the window the model was actually sent. Writing state out-of-band
+ *   (`updateState`) from inside a running step is lost when the step commits.
  * @returns {Object|null} The middleware, or `null` when the budget is disabled
  */
 export function createTokenBudgetMiddleware(options = {}) {
@@ -117,6 +122,7 @@ export function createTokenBudgetMiddleware(options = {}) {
 			let estimatedCost = await estimateCost(request);
 			let rateRetries = 0;
 			let contextRetries = 0;
+			let stateUpdate;
 
 			for (;;) {
 				// Atomically wait for capacity and record the reservation.
@@ -126,6 +132,7 @@ export function createTokenBudgetMiddleware(options = {}) {
 					// Reconcile the reserved entry to the actual usage reported by the API.
 					const actual = readUsageTokens(result);
 					if (actual > 0) budget.reconcile(handle, actual);
+					if (stateUpdate) return new Command({ update: stateUpdate });
 					return result;
 				} catch (err) {
 					// A failed attempt must not consume budget.
@@ -149,7 +156,9 @@ export function createTokenBudgetMiddleware(options = {}) {
 							const next = await onContextWindowExceeded(err, request);
 							// Honor a rebuilt request when the callback returns one.
 							if (next && typeof next === "object" && Array.isArray(next.messages)) {
-								request = next;
+								const { stateUpdate: update, ...rebuilt } = next;
+								request = rebuilt;
+								stateUpdate = update;
 							}
 						} catch (cbErr) {
 							logger.warn(
