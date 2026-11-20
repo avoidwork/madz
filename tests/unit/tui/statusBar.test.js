@@ -112,6 +112,11 @@ describe("getContextUtilization", () => {
 		assert.strictEqual(getContextUtilization(128000, 128000), 100);
 	});
 
+	it("caps at 100% when context size exceeds the window", () => {
+		assert.strictEqual(getContextUtilization(200000, 128000), 100);
+		assert.strictEqual(getContextUtilization(256000, 128000), 100);
+	});
+
 	it("rounds to the nearest integer", () => {
 		assert.strictEqual(getContextUtilization(64001, 128000), 50);
 		assert.strictEqual(getContextUtilization(64050, 128000), 50);
@@ -137,6 +142,11 @@ describe("renderContextMeter", () => {
 
 	it("renders all filled blocks at 100% utilization", () => {
 		const result = renderContextMeter(128000, 128000);
+		assert.strictEqual(result, "▋▋▋▋▋▋▋▋▋▋ 100%");
+	});
+
+	it("caps the meter at 100% when context size exceeds the window", () => {
+		const result = renderContextMeter(200000, 128000);
 		assert.strictEqual(result, "▋▋▋▋▋▋▋▋▋▋ 100%");
 	});
 

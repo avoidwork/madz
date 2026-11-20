@@ -78,14 +78,16 @@ export function getContextUtilizationColor(
 /**
  * Compute the context-window utilization percentage.
  * Returns 0 when no context window is configured (contextWindow is 0/unset)
- * to avoid a divide-by-zero.
+ * to avoid a divide-by-zero. Capped at 100 so the meter never exceeds full
+ * utilization when contextSize exceeds the window (e.g. from unexpected
+ * token counts).
  * @param {number} contextSize - Current context size in tokens
  * @param {number} contextWindow - Configured context window in tokens (0 = unset)
  * @returns {number} Utilization percentage in the range [0, 100]
  */
 export function getContextUtilization(contextSize, contextWindow) {
 	if (!contextWindow || contextWindow <= 0) return 0;
-	return Math.round((contextSize / contextWindow) * 100);
+	return Math.min(100, Math.round((contextSize / contextWindow) * 100));
 }
 
 /**
