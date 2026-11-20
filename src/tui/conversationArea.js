@@ -19,6 +19,7 @@ import { setConfigValue } from "../config/loader.js";
 import { isAvailable, getGcCalls } from "../memory/gc.js";
 import { logger } from "../shared/logger.js";
 import { formatClarifyPrompt } from "../shared/clarifyPrompt.js";
+import { calibratedContextSize, getContextOverhead } from "../provider/contextCalibration.js";
 
 /**
 /**
@@ -818,10 +819,11 @@ const ConversationArea = forwardRef(function ConversationArea(
 			}
 			// Normalize every message to a real LangChain object before counting.
 			counted = counted.map(toLangChainMessage);
-			// Include the system prompt in the count so the context window reflects
-			// what the model actually sees on every turn. It's not part of graph
-			// state, so it must be prepended here.
-			if (systemPrompt) {
+			// Once a real model call has been measured, the request overhead (system
+			// prompt, deepagents prompt sections, tool schemas) is known exactly from
+			// the provider's reported usage and is added below. Until then, fall back
+			// to the base system prompt, which is not part of graph state.
+			if (getContextOverhead() === null && systemPrompt) {
 				counted = [new SystemMessage(systemPrompt), ...counted];
 			}
 			// The output budget (maxTokens) is intentionally not added to the
@@ -830,7 +832,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 			let totalTokens = 0;
 			if (model && typeof model.getNumTokensFromMessages === "function") {
 				const { totalCount } = await model.getNumTokensFromMessages(counted);
-				totalTokens = totalCount;
+				totalTokens = calibratedContextSize(totalCount);
 			}
 			setContextSize(totalTokens);
 			onContextChange?.(totalTokens);

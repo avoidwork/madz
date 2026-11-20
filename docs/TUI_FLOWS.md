@@ -152,14 +152,20 @@ updateContextSize(sessionState, config, messages?)
 │   └── plain { role, content } → new HumanMessage / AIMessage / SystemMessage
 │       (model.getNumTokensFromMessages calls _getType() on each message, so
 │        hand-rolled plain objects crash — real LangChain objects are required)
-├── prepend the system prompt: [new SystemMessage(systemPrompt), ...counted]
-│   └── systemPrompt = SYSTEM_PROMPT + "\n\n---\n\n" + AGENTS.md (built by
-│       createDeepAgentsOrchestrator, exposed via return { agent, model, systemPrompt }
-│       and threaded index.js → app.js → ConversationArea)
-├── totalTokens = model.getNumTokensFromMessages(counted).totalCount
-├── totalTokens += maxTokens (output budget, matching token-budget middleware)
+├── prepend the system prompt only until a real model call has been measured:
+│   └── [new SystemMessage(systemPrompt), ...counted]
+│       (systemPrompt = SYSTEM_PROMPT + "\n\n---\n\n" + AGENTS.md, built by
+│        createDeepAgentsOrchestrator and threaded index.js → app.js → ConversationArea)
+├── totalTokens = calibratedContextSize(model.getNumTokensFromMessages(counted).totalCount)
+│   └── calibratedContextSize adds the request overhead measured on the latest real
+│       model call (src/provider/contextCalibration.js): provider input_tokens minus the
+│       tokenizer's count of that request's messages. The overhead is the system prompt,
+│       deepagents prompt sections and tool schemas, so the meter matches the request the
+│       summarization trigger sees. No measured call yet → count unchanged.
 └── setContextSize(totalTokens); onContextChange(totalTokens)
 ```
+
+**Calibration:** the `ContextCalibration` middleware is registered last (innermost) in `createDeepAgentsOrchestrator`, so it sees the request exactly as sent, after summarization and truncation. On every real model call it records `usage_metadata.input_tokens - tokenizer(request.messages)` via `setContextOverhead`. Providers that report no usage leave the overhead unset and the meter falls back to the tokenizer count plus the base system prompt.
 
 **System prompt exposure:** `createDeepAgentsOrchestrator` (src/agent/deepAgents.js) now returns `{ agent, model, systemPrompt }`. `index.js` destructures it and passes `systemPrompt` (plus `getContextMessages` and `model`) into `App`, which threads them into `ConversationArea`. `getContextMessages` reads the live LangChain message array from the checkpointer via `agent.getState(thread).values.messages`, degrading to `null` so the counter falls back to `sessionState.getConversation()` when the checkpointer is unavailable.
 
