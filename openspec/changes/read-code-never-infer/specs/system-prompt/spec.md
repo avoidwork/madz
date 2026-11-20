@@ -25,6 +25,6 @@ The `SYSTEM_PROMPT.md` SHALL include a directive requiring the model to open and
 - **WHEN** `SYSTEM_PROMPT.md` is loaded
 - **THEN** rule 3.2 ("respond when you have the answer") states that it does not apply to claims about code, referencing the read-the-code directive
 
-#### Scenario: Rule 4.3 carve-out for code claims
+#### Scenario: Rule 4.4 carve-out for code claims
 - **WHEN** `SYSTEM_PROMPT.md` is loaded
-- **THEN** rule 4.3 ("state your assumptions") does not permit unverified assumptions about code
+- **THEN** rule 4.4 ("state your assumptions") does not permit unverified assumptions about code

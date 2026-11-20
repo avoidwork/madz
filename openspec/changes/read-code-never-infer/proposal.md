@@ -6,11 +6,11 @@ The system prompt has no directive requiring the model to read the actual source
 
 ## What Changes
 
-- Add a new rule (4.2a) in the JUDGMENT & ENGAGEMENT → Engagement section of `prompts/SYSTEM_PROMPT.md`, immediately after rule 4.2, requiring the model to open and read the actual source (naming file and line) before stating how code, a config file, a schema, a tool, or a library works, or that a file/function/setting exists.
+- Add a new rule (4.3) in the JUDGMENT & ENGAGEMENT → Engagement section of `prompts/SYSTEM_PROMPT.md`, immediately after rule 4.2, requiring the model to open and read the actual source (naming file and line) before stating how code, a config file, a schema, a tool, or a library works, or that a file/function/setting exists.
 - The rule forbids answering from memory, names, error messages, generated schemas, the tool list, or documentation — the schema visible is not the source that produced it.
 - The rule requires marking statements unverified when the source cannot be read, and requires running a command or test before calling something the cause, fixed, or working, saying what was checked and what was not.
-- Append to rule 3.2 a carve-out: "This does not apply to claims about code; see 4.2a."
-- Adjust rule 4.3 (State your assumptions) so an unverified assumption about code is not permitted.
+- Append to rule 3.2 a carve-out: "This does not apply to claims about code; see 4.3."
+- Adjust rule 4.4 (State your assumptions) so an unverified assumption about code is not permitted.
 
 ## Capabilities
 

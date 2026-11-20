@@ -11,10 +11,10 @@ See proposal.md - Why. This is a single-file prompt change to `prompts/SYSTEM_PR
 
 ## Decisions
 
-- **Rule numbering: use `4.2a`.** The issue's proposed wording references existing rules by number (3.2, 4.3). Renumbering 4.3–4.14 would require updating those references and risk stale cross-references. Instead, insert the new rule as `4.2a` immediately after 4.2, keeping it adjacent without renumbering. This preserves the existing rule numbers and their references.
-  - *Alternative considered:* renumbering all subsequent rules (4.3→4.4, etc.). Rejected as more invasive and error-prone given the issue explicitly cites rule numbers.
-- **Carve-out wording in 3.2.** Append "This does not apply to claims about code; see 4.2a." to rule 3.2, matching the issue's proposed wording.
-- **Adjust 4.3.** Add a clause noting that unverified assumptions about code are not permitted and are governed by 4.2a, so the new rule overrides 4.3 for code claims.
+- **Rule numbering: insert the new rule as `4.3` and renumber the subsequent rules.** The issue's proposed wording references rules by number (3.2, 4.3). Inserting the new rule as 4.3 keeps it adjacent to 4.2 and uses a numeric identifier, per project convention that rules are numeric. The subsequent rules (formerly 4.3–4.14) are renumbered to 4.4–4.15, and all cross-references are updated.
+  - *Alternative considered:* a non-numeric sub-identifier (e.g., `4.2a`). Rejected — the user requires rules to be numeric.
+- **Carve-out wording in 3.2.** Append "This does not apply to claims about code; see 4.3." to rule 3.2, matching the issue's proposed wording.
+- **Adjust 4.4.** Add a clause noting that unverified assumptions about code are not permitted and are governed by 4.3, so the new rule overrides 4.4 for code claims.
 - **Rule body wording.** Use the issue's proposed wording verbatim (adjusted for the concrete rule number), since it was validated by the reporter's testing.
 
 ## Risks / Trade-offs
