@@ -10,6 +10,8 @@ import { z } from "zod";
 import * as postgres from "./drivers/postgres.js";
 import * as sqlite from "./drivers/sqlite.js";
 import * as mysql from "./drivers/mysql.js";
+import { SqlConfigSchema } from "../../config/schemas/sql.js";
+import { loadConfig } from "../../config/loader.js";
 
 /** Registry of supported drivers, keyed by driver name. */
 export const DRIVERS = {
@@ -26,6 +28,7 @@ const VALID_DRIVERS = Object.keys(DRIVERS);
  * @param {object} input - The tool input
  * @param {object} [options] - Runtime options
  * @param {string[]} [options.allowedPaths] - Sandbox-allowed paths
+ * @param {object} [options.policy] - Server-side sql config (test seam)
  * @returns {Promise<object>} Result of the operation
  */
 export async function sqlImpl(input = {}, options = {}) {
@@ -47,9 +50,14 @@ export async function sqlImpl(input = {}, options = {}) {
 		};
 	}
 
+	// Connection comes from server-side config (config.sql[driver]), never from
+	// model input. The model supplies only driver/query/params.
+	const policy = SqlConfigSchema.parse(options.policy ?? loadConfig().sql ?? {});
+	const connection = policy[driver] ?? {};
+
 	const driverModule = DRIVERS[driver];
 	const allowedPaths = options.allowedPaths || [];
-	return driverModule.execute({ ...input, allowedPaths });
+	return driverModule.execute({ ...input, connection, allowedPaths });
 }
 
 /**
@@ -65,29 +73,23 @@ export async function closeAll() {
 }
 
 const driverSchema = z.enum(VALID_DRIVERS).describe("Database driver: postgres, sqlite, or mysql");
-const connectionSchema = z.object({
-	host: z.string().optional().describe("Database host"),
-	port: z.number().int().positive().optional().describe("Database port"),
-	user: z.string().optional().describe("Database user"),
-	password: z.string().optional().describe("Database password"),
-	database: z.string().optional().describe("Database name"),
-	file: z.string().optional().describe("SQLite file path (or ':memory:')"),
-});
 
 /**
  * First-class SQL tool. Runs parameterized SQL queries against Postgres,
  * SQLite, and MySQL databases. Uses a registry/plugin architecture so new
- * drivers can be added without modifying the core dispatch.
+ * drivers can be added without modifying the core dispatch. Connection
+ * details come from server-side config (config.sql[driver]); the model
+ * supplies only driver, query, and params.
  */
 export const sql = tool((input, options = {}) => sqlImpl(input, options), {
 	name: "sql",
 	description:
 		"SQL tool. Runs parameterized SQL queries against postgres, sqlite, or mysql databases. " +
 		"driver: postgres, sqlite, or mysql. query: the SQL statement. params: bound parameters. " +
+		"Connection details are attached server-side from config; the model never supplies them. " +
 		"Uses parameterized queries exclusively (no string concatenation of user input).",
 	schema: z.object({
 		driver: driverSchema,
-		connection: connectionSchema.optional().describe("Connection config"),
 		query: z.string().min(1).describe("The SQL query"),
 		params: z.array(z.unknown()).optional().describe("Bound parameters for the query"),
 	}),

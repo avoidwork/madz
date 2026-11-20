@@ -14,8 +14,8 @@ import { sqlImpl, closeAll } from "../../../src/tools/sql/index.js";
 const TEST_DIR = join(tmpdir(), `__test_sql_integration__${process.pid}`);
 const ALLOWED_PATHS = [TEST_DIR];
 
-function getOptions() {
-	return { allowedPaths: ALLOWED_PATHS };
+function getOptions(policy = {}) {
+	return { allowedPaths: ALLOWED_PATHS, policy };
 }
 
 function setupTestFiles() {
@@ -39,8 +39,8 @@ describe("tools - sql integration", () => {
 
 	it("rejects a SQLite file path outside the allowlist", async () => {
 		const result = await sqlImpl(
-			{ driver: "sqlite", connection: { file: "/etc/outside.db" }, query: "SELECT 1" },
-			getOptions(),
+			{ driver: "sqlite", query: "SELECT 1" },
+			getOptions({ sqlite: { file: "/etc/outside.db" } }),
 		);
 		assert.strictEqual(result.ok, false);
 		assert.strictEqual(result.kind, "query-failed");
@@ -50,21 +50,19 @@ describe("tools - sql integration", () => {
 		const create = await sqlImpl(
 			{
 				driver: "sqlite",
-				connection: { file: ":memory:" },
 				query: "CREATE TABLE t (id INTEGER PRIMARY KEY, name TEXT)",
 			},
-			getOptions(),
+			getOptions({ sqlite: { file: ":memory:" } }),
 		);
 		assert.strictEqual(create.ok, true);
 
 		const insert = await sqlImpl(
 			{
 				driver: "sqlite",
-				connection: { file: ":memory:" },
 				query: "INSERT INTO t (name) VALUES (?)",
 				params: ["hello"],
 			},
-			getOptions(),
+			getOptions({ sqlite: { file: ":memory:" } }),
 		);
 		assert.strictEqual(insert.ok, true);
 		assert.strictEqual(insert.changes, 1);
@@ -75,29 +73,26 @@ describe("tools - sql integration", () => {
 		await sqlImpl(
 			{
 				driver: "sqlite",
-				connection: { file: ":memory:" },
 				query: "CREATE TABLE t (id INTEGER PRIMARY KEY, name TEXT)",
 			},
-			getOptions(),
+			getOptions({ sqlite: { file: ":memory:" } }),
 		);
 		await sqlImpl(
 			{
 				driver: "sqlite",
-				connection: { file: ":memory:" },
 				query: "INSERT INTO t (name) VALUES (?)",
 				params: ["hello"],
 			},
-			getOptions(),
+			getOptions({ sqlite: { file: ":memory:" } }),
 		);
 
 		const select = await sqlImpl(
 			{
 				driver: "sqlite",
-				connection: { file: ":memory:" },
 				query: "SELECT * FROM t WHERE id = ?",
 				params: [1],
 			},
-			getOptions(),
+			getOptions({ sqlite: { file: ":memory:" } }),
 		);
 		assert.strictEqual(select.ok, true);
 		assert.strictEqual(select.rowCount, 1);
@@ -108,19 +103,17 @@ describe("tools - sql integration", () => {
 		await sqlImpl(
 			{
 				driver: "sqlite",
-				connection: { file: ":memory:" },
 				query: "CREATE TABLE t (id INTEGER PRIMARY KEY, name TEXT)",
 			},
-			getOptions(),
+			getOptions({ sqlite: { file: ":memory:" } }),
 		);
 		const select = await sqlImpl(
 			{
 				driver: "sqlite",
-				connection: { file: ":memory:" },
 				query: "SELECT * FROM t WHERE id = ?",
 				params: [999],
 			},
-			getOptions(),
+			getOptions({ sqlite: { file: ":memory:" } }),
 		);
 		assert.strictEqual(select.ok, true);
 		assert.strictEqual(select.rowCount, 0);

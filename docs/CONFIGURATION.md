@@ -100,6 +100,17 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 |                 | `<name>.agents`                     | `["orchestrator"]`               | Agent types that receive the server's tools                                                                                                                 |
 | `persistence`   | `mode`                              | `sqlite`                         | Storage backend (`memory`, `sqlite`)                                                                                                                        |
 | `search`        | `tavily.apiKey`                     | _(empty)_                        | Tavily search API key                                                                                                                                       |
+| `sql`           | `postgres.host`                     | _(empty)_                        | Postgres host                                                                                                                                               |
+|                 | `postgres.port`                     | `5432`                           | Postgres port                                                                                                                                               |
+|                 | `postgres.user`                     | _(empty)_                        | Postgres user                                                                                                                                               |
+|                 | `postgres.password`                 | _(empty)_                        | Postgres password                                                                                                                                           |
+|                 | `postgres.database`                 | _(empty)_                        | Postgres database name                                                                                                                                      |
+|                 | `sqlite.file`                       | _(empty)_                        | SQLite file path (or `:memory:`)                                                                                                                            |
+|                 | `mysql.host`                        | _(empty)_                        | MySQL host                                                                                                                                                  |
+|                 | `mysql.port`                        | `3306`                           | MySQL port                                                                                                                                                  |
+|                 | `mysql.user`                        | _(empty)_                        | MySQL user                                                                                                                                                  |
+|                 | `mysql.password`                    | _(empty)_                        | MySQL password                                                                                                                                              |
+|                 | `mysql.database`                    | _(empty)_                        | MySQL database name                                                                                                                                         |
 | `skillAgentMap` | `[].pattern`                        | _(none)_                         | Regex pattern to match skill names                                                                                                                          |
 |                 | `[].agent`                          | _(none)_                         | Agent name to assign when pattern matches                                                                                                                   |
 | `summarization` | `keepMessages`                      | `5`                              | Most recent messages kept verbatim after compaction (older history becomes one summary)                                                                     |
@@ -121,7 +132,8 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 |                 | `redis.port`                        | `6379`                           | Redis port                                                                                                                                                  |
 |                 | `redis.credentials.username`        | _(empty)_                        | Redis username                                                                                                                                              |
 |                 | `redis.credentials.password`        | _(empty)_                        | Redis password                                                                                                                                              |
-|                 | `projects.<name>.exclude`           | `["node_modules/**", ...]`       | Glob patterns for files to exclude                                                                                                                          |
+|                 | `redis.db`                          | `0`                              | Redis database index                                                                                                                                        |
+|                 | `projects.<name>.exclude`           | `["node_modules/**", ...]`        | Glob patterns for files to exclude                                                                                                                          |
 
 ### Status Bar
 
@@ -242,9 +254,49 @@ On a `429` rate-limit response, the request is retried once after the `retry-aft
 | `AGENT_SAMPLING`            | `true`   | Enable the `sampling` tool; `false` disables registration       |
 | `AGENT_BUNDLED_SKILLS`      | `true`   | Load bundled `.skills/` skills; `false` loads only `reflection` |
 
+### SQL Tool
+
+The `sql` tool runs parameterized queries against Postgres, SQLite, and MySQL. Connection details are sourced from server-side config (`config.sql[driver]`), never from model input — the model supplies only `driver`, `query`, and `params`. The `sql` section is a dropped container key, so the driver name is the first segment of the env var name.
+
+```yaml
+sql:
+  postgres:
+    host: ""
+    port: 5432
+    user: ""
+    password: ""
+    database: ""
+  sqlite:
+    file: ""
+  mysql:
+    host: ""
+    port: 3306
+    user: ""
+    password: ""
+    database: ""
+```
+
+**Environment variable overrides:**
+
+| Variable            | Default  | Description                    |
+| ------------------- | -------- | ------------------------------ |
+| `POSTGRES_HOST`     | _(empty)_ | Postgres host                 |
+| `POSTGRES_PORT`     | `5432`   | Postgres port                 |
+| `POSTGRES_USER`     | _(empty)_ | Postgres user                 |
+| `POSTGRES_PASSWORD` | _(empty)_ | Postgres password             |
+| `POSTGRES_DATABASE` | _(empty)_ | Postgres database name        |
+| `SQLITE_FILE`       | _(empty)_ | SQLite file path (or `:memory:`) |
+| `MYSQL_HOST`        | _(empty)_ | MySQL host                    |
+| `MYSQL_PORT`        | `3306`   | MySQL port                    |
+| `MYSQL_USER`        | _(empty)_ | MySQL user                    |
+| `MYSQL_PASSWORD`    | _(empty)_ | MySQL password                |
+| `MYSQL_DATABASE`    | _(empty)_ | MySQL database name           |
+
+The `sql` key is dropped from env var names, so `sql.postgres.host` maps to `POSTGRES_HOST` (not `SQL_POSTGRES_HOST`). When a new driver is added, its env vars must be documented here following the same table format.
+
 ### NoSQL Tool
 
-The `nosql` tool queries MongoDB (document store) and Redis (key-value store) directly. Connection credentials are sourced from environment variables only — never hardcoded in config files. The `nosql` section is a dropped container key, so the engine name is the first segment of the env var name.
+The `nosql` tool queries MongoDB (document store) and Redis (key-value store) directly. Connection details are sourced from server-side config (`config.nosql[engine]`), never from model input — the model supplies only `engine` and `operation`. The `nosql` section is a dropped container key, so the engine name is the first segment of the env var name.
 
 ```yaml
 nosql:
@@ -262,6 +314,7 @@ nosql:
     credentials:
       username: ""
       password: ""
+    db: 0
 ```
 
 **Environment variable overrides:**
@@ -278,5 +331,6 @@ nosql:
 | `REDIS_PORT`              | `6379`   | Redis port                                    |
 | `REDIS_USERNAME`          | _(empty)_ | Redis username                                |
 | `REDIS_PASSWORD`          | _(empty)_ | Redis password                                |
+| `REDIS_DB`                | `0`      | Redis database index                          |
 
 The `nosql` key is dropped from env var names, so `nosql.mongodb.credentials.password` maps to `MONGODB_PASSWORD` (not `NOSQL_MONGODB_CREDENTIALS_PASSWORD`). When a new engine is added, its env vars must be documented here following the same table format.
