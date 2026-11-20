@@ -681,7 +681,7 @@ export function MessageBubbleInner({
 					React.createElement(
 						Text,
 						{ color: "gray" },
-						`⚡ ${completedTotal} tool call${completedTotal !== 1 ? "s" : ""}: ${completedText}`,
+						`🧰 ${completedTotal} tool call${completedTotal !== 1 ? "s" : ""}: ${completedText}`,
 					),
 				)
 			: null;
