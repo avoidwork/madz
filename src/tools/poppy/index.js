@@ -81,9 +81,9 @@ export const poppySchema = z
 		};
 		// discover-only fields
 		rejectField("domain", ["discover"]);
-		// identity-only fields
-		rejectField("op", ["identity"]);
-		rejectField("clientId", ["identity"]);
+		// identity/session/oauth fields
+		rejectField("op", ["identity", "session", "oauth"]);
+		rejectField("clientId", ["identity", "oauth"]);
 		rejectField("clientName", ["identity"]);
 		rejectField("jwksUri", ["identity"]);
 		rejectField("redirectUris", ["identity"]);
