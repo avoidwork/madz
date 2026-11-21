@@ -1,20 +1,20 @@
 # image-tool Specification
 
 ## Purpose
-Provides a unified `image` tool that dispatches on an `action` enum (`read`, `resize`, `metadata`, `convert`, `generate`) so the harness exposes a single image tool covering reading, resizing, metadata extraction, format conversion, and FAL.ai generation.
+Provides a local `image` tool that dispatches on an `action` enum (`read`, `resize`, `metadata`, `convert`) so the harness exposes a single local image tool covering reading, resizing, metadata extraction, and format conversion. Image generation from a text prompt is provided by the separate `generateImage` tool, which carries the `network:outbound` permission and the FAL API key.
 
 ## Requirements
 
-### Requirement: Single image tool dispatches on action enum
-The system SHALL provide a single `image` tool that dispatches on a required `action` enum with values `read`, `resize`, `metadata`, `convert`, and `generate`. There SHALL be only one image tool; the retired `readImage` and `generateImage` tools SHALL NOT be registered.
+### Requirement: Single local image tool dispatches on action enum
+The system SHALL provide a single `image` tool that dispatches on a required `action` enum with values `read`, `resize`, `metadata`, and `convert`. The retired `readImage` tool SHALL NOT be registered. Image generation is provided by the separate `generateImage` tool, not by the `image` tool.
 
 #### Scenario: Tool exposes action enum
 - **WHEN** the `image` tool is invoked
-- **THEN** it requires an `action` field that is one of `read`, `resize`, `metadata`, `convert`, or `generate`
+- **THEN** it requires an `action` field that is one of `read`, `resize`, `metadata`, or `convert`
 
-#### Scenario: Only one image tool registered
+#### Scenario: Only one local image tool registered
 - **WHEN** the tool registry is built
-- **THEN** the `image` tool is the only image tool registered, and `readImage`/`generateImage` are not present
+- **THEN** the `image` tool is the only local image tool registered, and `readImage` is not present
 
 ### Requirement: Read action returns image_url content block
 The system SHALL, for the `image` tool's `read` action, read an image file from disk and return a base64 data-URI `image_url` content block for LLM vision analysis, downscaling images wider or taller than the configured `image.maxDimension` while preserving aspect ratio and never enlarging.
@@ -68,25 +68,28 @@ The system SHALL, for the `image` tool's `convert` action, convert an image to a
 - **WHEN** the `image` tool's `convert` action is invoked with an unsupported target format
 - **THEN** it returns `{ ok: false, error }` with a descriptive message
 
-### Requirement: Generate action returns structured result
-The system SHALL, for the `image` tool's `generate` action, generate an image from a text prompt via FAL.ai (FLUX Klein) and return a native structured object `{ ok: true, imageUrl }` on success or `{ ok: false, error }` on failure.
+### Requirement: Per-action schema validation
+The system SHALL validate the `image` tool's input per action, requiring the fields each action needs and rejecting fields that only apply to a different action.
+
+#### Scenario: Resize requires path, output, and a dimension
+- **WHEN** the `image` tool's `resize` action is invoked without a path, output, or dimension
+- **THEN** schema validation fails with a descriptive error
+
+#### Scenario: Convert requires path, output, and format
+- **WHEN** the `image` tool's `convert` action is invoked without a path, output, or format
+- **THEN** schema validation fails with a descriptive error
+
+#### Scenario: Field rejected on wrong action
+- **WHEN** a field that only applies to one action is supplied to a different action
+- **THEN** schema validation fails with a descriptive error
+
+### Requirement: GenerateImage tool generates an image
+The system SHALL provide a separate `generateImage` tool that generates an image from a text prompt via FAL.ai (FLUX Klein) and returns a native structured object `{ ok: true, imageUrl }` on success or `{ ok: false, error }` on failure. The FAL API key is resolved server-side from config/env and never passed by the model.
 
 #### Scenario: Successful generation returns native object
-- **WHEN** the `image` tool's `generate` action is invoked with a valid prompt and a valid FAL API key
+- **WHEN** the `generateImage` tool is invoked with a valid prompt and a valid FAL API key
 - **THEN** it returns `{ ok: true, imageUrl }` as a native object, not a stringified JSON string
 
 #### Scenario: Missing prompt returns structured error
-- **WHEN** the `image` tool's `generate` action is invoked without a non-empty prompt
+- **WHEN** the `generateImage` tool is invoked without a non-empty prompt
 - **THEN** it returns `{ ok: false, error }` with a message that the prompt is required
-
-#### Scenario: Prompt too long returns structured error
-- **WHEN** the `image` tool's `generate` action is invoked with a prompt longer than 1000 characters
-- **THEN** it returns `{ ok: false, error }` with a message that the prompt is too long
-
-#### Scenario: Missing API key returns structured error
-- **WHEN** the `image` tool's `generate` action is invoked without a configured FAL API key
-- **THEN** it returns `{ ok: false, error }` with a message that the API key is required
-
-#### Scenario: FAL error returns structured error
-- **WHEN** the FAL.ai API call fails during the `generate` action
-- **THEN** it returns `{ ok: false, error }` with the FAL error message

@@ -465,15 +465,17 @@ textToSpeech tool:
 **Entry:** `src/tools/image/index.js`
 
 ```
-image tool:
-├── dispatch on action (read | resize | metadata | convert | generate)
+image tool (local, offline):
+├── dispatch on action (read | resize | metadata | convert)
 ├── schema: flat object with action enum + superRefine per-action validation
 │   (path required for read/metadata; path+output+dimension for resize;
-│    path+output+format for convert; prompt for generate)
+│    path+output+format for convert)
 ├── read → validate path, read file, downscale to config image.maxDimension, return image_url block
 ├── resize → resize to target width/height or max dimension, preserve aspect ratio
 ├── metadata → return image metadata via sharp
-├── convert → convert to target format (png/jpeg/webp/etc.)
+└── convert → convert to target format (png/jpeg/webp/etc.)
+
+generateImage tool (remote, opt-in):
 └── generate → validate FAL_API_KEY exists (resolved server-side, never passed by the model),
     POST https://queue.fal.run/fal-ai/flux/klein, return { ok, imageUrl?, error? }
 ```
@@ -777,7 +779,8 @@ index.js
 │     ├── tools/agents/ → workspace/loadAgents.js — AGENTS.md discovery
 │     ├── tools/reflection/ → reflectionSessions
 │     ├── tools/web/ → sandbox/urlFilter.js, fetch — searchWeb
-│     ├── tools/image/ → FAL_API_KEY — image tool (read/resize/metadata/convert/generate)
+│     ├── tools/image/ → image tool (read/resize/metadata/convert)
+│     ├── tools/generateImage/ → FAL_API_KEY — generateImage tool (remote generation)
 │     ├── tools/tts/ → OPENAI_API_KEY — textToSpeech via OpenAI audio endpoint
 │     ├── tools/fileExtract/ → docx/pptx/xlsx/pdf extraction (docx, pptx, xlsx, pdf tools)
 │     ├── tools/pdf/ → generatePdf

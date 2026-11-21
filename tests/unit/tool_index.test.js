@@ -10,6 +10,7 @@ describe("tools - buildToolConfig", () => {
 			"clarify",
 			"searchWeb",
 			"image",
+			"generateImage",
 			"cronJob",
 			"textToSpeech",
 			"sampling",
