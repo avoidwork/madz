@@ -306,6 +306,7 @@ async function convertAction(input, options = {}) {
  * @param {object} input - Tool input
  * @param {object} [options] - Runtime options for test injection
  * @param {string} [options.falApiKey] - FAL.ai API key (overrides config)
+ * @param {boolean} [options.networkOutbound] - Whether `network:outbound` permission is enabled
  * @returns {Promise<{ ok: boolean, imageUrl?: string, error?: string }>} Structured result
  */
 async function generateAction(input, options = {}) {
@@ -320,6 +321,13 @@ async function generateAction(input, options = {}) {
 
 	if (prompt.length > 1000) {
 		return { ok: false, error: "Prompt must be 1000 characters or fewer" };
+	}
+
+	if (options.networkOutbound === false) {
+		return {
+			ok: false,
+			error: "Image generation requires the network:outbound permission",
+		};
 	}
 
 	const config = loadConfig();

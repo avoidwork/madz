@@ -243,6 +243,15 @@ describe("image tool - generate action", () => {
 		assert.match(result.error, /FAL_API_KEY is required/);
 	});
 
+	it("returns a native structured error object when network:outbound is disabled", async () => {
+		const result = await imageImpl(
+			{ action: "generate", prompt: "a cat" },
+			{ falApiKey: "test-key", networkOutbound: false },
+		);
+		assert.strictEqual(result.ok, false);
+		assert.match(result.error, /network:outbound permission/);
+	});
+
 	it("returns a native structured success object with imageUrl", async () => {
 		const fetchMock = mock.method(globalThis, "fetch", async () => ({
 			ok: true,

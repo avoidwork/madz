@@ -122,9 +122,9 @@ describe("tool registration - integration", () => {
 		assert.ok(toolNames.includes("searchWeb"));
 	});
 
-	it("registers image with network:outbound and filesystem:read", async () => {
+	it("registers image with filesystem:read only", async () => {
 		const tools = await buildToolConfig({
-			permissions: ["network:outbound", "filesystem:read"],
+			permissions: ["filesystem:read"],
 			config: {
 				providers: { fal: { credentials: { apiKey: "sk-fake-fal" } } },
 				search: { exa: {} },

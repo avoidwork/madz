@@ -126,7 +126,7 @@ describe("tools - buildToolConfig", () => {
 		const toolNames = tools.map((t) => t.name);
 		// Tier 1: 6 tools (terminal, process, searchSession, clarify, agents)
 		// Tier 2: cronJob, sampling, date (no perms or network:outbound)
-		// No API keys: searchWeb/image/textToSpeech won't register
+		// No API keys: searchWeb/textToSpeech won't register (image registers with filesystem:read)
 		assert.ok(toolNames.length >= 9, "All tier 1 + tier 2 tools should register");
 		assert.ok(toolNames.includes("process"), "process should register");
 		assert.ok(toolNames.includes("cronJob"), "cronJob should register");

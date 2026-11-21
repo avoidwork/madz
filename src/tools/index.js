@@ -2,7 +2,7 @@ import { clarify } from "./clarify/index.js";
 import { cronJob } from "./cron/index.js";
 import { date } from "./date/index.js";
 import { agents } from "./agents/index.js";
-import { image } from "./image/index.js";
+import { image, imageImpl } from "./image/index.js";
 import { memory } from "./memory/index.js";
 import { sampling } from "./sampling/index.js";
 import { searchSession } from "./session/index.js";
@@ -55,7 +55,7 @@ export const TOOL_PERMISSIONS = {
 	createSkill: ["filesystem:write"],
 	skill: ["filesystem:read"],
 	date: [],
-	image: ["filesystem:read", "network:outbound"],
+	image: ["filesystem:read"],
 	memory: ["filesystem:read", "filesystem:write"],
 	todo: ["filesystem:read", "filesystem:write"],
 	file: ["filesystem:read", "filesystem:write"],
@@ -505,7 +505,22 @@ export async function buildToolConfig(options) {
 
 			case "image": {
 				if (!hasAllPerms) continue;
-				tools.push(TOOLS[toolName]);
+				// The `image` tool registers with only `filesystem:read` so the
+				// local actions (read/resize/metadata/convert) are available in
+				// read-only sandboxes. The `generate` action additionally needs
+				// `network:outbound` and the FAL API key; gate it at runtime by
+				// injecting the resolved key and permission flag into the tool's
+				// options so the impl can reject `generate` when either is absent.
+				const imageTool = tool(
+					(input, options = {}) =>
+						imageImpl(input, {
+							...options,
+							falApiKey: runtimeOptions.falApiKey,
+							networkOutbound: enabledSet.has("network:outbound"),
+						}),
+					{ name: "image", description: TOOLS.image.description, schema: TOOLS.image.schema },
+				);
+				tools.push(imageTool);
 				continue;
 			}
 
