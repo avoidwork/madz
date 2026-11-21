@@ -132,6 +132,6 @@ export async function poppyImpl(input, options = {}) {
 export const poppy = tool(poppyImpl, {
 	name: "poppy",
 	description:
-		"Poppy (Personal Agent Protocol) tool. Dispatches on an `action` enum: `discover` fetches and validates a company's poppy.json at https://{domain}/.well-known/poppy.json over HTTPS, following redirects (each HTTPS, final path exactly /.well-known/poppy.json with no query), validates required fields (protocol_version, organization.name/domain, at least one of agent/apis/web), checks organization.domain equals the serving host (case-insensitive), rejects non-HTTPS and loopback/private/link-local URLs, returns a normalized representation, and caches per-domain with a TTL. `identity` manages the agent's client metadata document and signing keys (build_metadata, generate_key, sign_assertion, validate_redirect, validate_jwks, validate_metadata). `session` generates Poppy-Session JWTs signed with delegated keys and issues delegations (sign_session, issue_delegation). Requires network:outbound.",
+		"Poppy (Personal Agent Protocol) tool. Dispatches on an `action` enum: `discover` fetches and validates a company's poppy.json; `identity` manages the agent's client metadata document and signing keys; `session` generates Poppy-Session JWTs and issues delegations. Requires network:outbound.",
 	schema: poppySchema,
 });
