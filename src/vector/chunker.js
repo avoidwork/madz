@@ -1,5 +1,6 @@
 import { readFile, stat } from "node:fs/promises";
 import { getDefaultMaxFileSize, hasNullBytes, isBinaryPath, isSecretFile } from "./fileFilters.js";
+import { logger } from "../shared/logger.js";
 
 /**
  * Split source file content into fixed-size chunks with overlap.
@@ -84,14 +85,18 @@ export async function chunkFile(filePath, options = {}) {
 		if (stats.size > maxFileSize) {
 			return [];
 		}
-	} catch (_err) {
+	} catch (err) {
+		// File missing or unreadable — skip it, but log so the failure is not silent.
+		logger.debug(`Failed to stat ${filePath}: ${err.message}`);
 		return [];
 	}
 
 	let content;
 	try {
 		content = await readFile(filePath, "utf-8");
-	} catch (_err) {
+	} catch (err) {
+		// File missing or unreadable — skip it, but log so the failure is not silent.
+		logger.debug(`Failed to read ${filePath}: ${err.message}`);
 		return [];
 	}
 

@@ -4,6 +4,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { readFile, writeFile, access } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { logger } from "../../shared/logger.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const WEBHOOKS_FILE = join(__dirname, "../../../memory/tools/webhooks.json");
@@ -16,7 +17,9 @@ const WEBHOOKS_DIR = join(__dirname, "../../../memory/tools");
 async function ensureWebhooksDir() {
 	try {
 		await access(WEBHOOKS_DIR);
-	} catch (_err) {
+	} catch (err) {
+		// Directory does not exist yet — create it. Log at debug since this is expected on first run.
+		logger.debug(`Webhooks dir missing, creating ${WEBHOOKS_DIR}: ${err.message}`);
 		const { mkdir } = await import("node:fs/promises");
 		await mkdir(WEBHOOKS_DIR, { recursive: true });
 	}
@@ -31,7 +34,9 @@ async function loadWebhooks() {
 		await access(WEBHOOKS_FILE);
 		const data = await readFile(WEBHOOKS_FILE, "utf-8");
 		return JSON.parse(data);
-	} catch (_err) {
+	} catch (err) {
+		// Missing file or malformed JSON — treat as no webhooks, but log so the failure is not silent.
+		logger.debug(`Failed to load webhooks from ${WEBHOOKS_FILE}: ${err.message}`);
 		return [];
 	}
 }
@@ -150,7 +155,9 @@ export async function webhookManagement(input) {
 	let parsed;
 	try {
 		parsed = JSON.parse(input);
-	} catch (_err) {
+	} catch (err) {
+		// Invalid JSON input from the caller — return an error to the tool, but log so the failure is not silent.
+		logger.debug(`Invalid JSON input to webhookManagement: ${err.message}`);
 		return { ok: false, error: "Invalid JSON input" };
 	}
 	return webhookManagementImpl(parsed);

@@ -1,3 +1,5 @@
+import { logger } from "../shared/logger.js";
+
 const ALLOWED_SCHEMES = new Set(["http:", "https:"]);
 const IPV4_LITERAL = /^\d+(?:\.\d+){3}$/;
 
@@ -68,7 +70,9 @@ function matchesAllowlistEntry(parsed, entry) {
 		const effectivePort = parsed.port || (parsed.protocol === "https:" ? "443" : "80");
 		const defaultPort = parsed.protocol === "https:" ? "443" : "80";
 		return effectivePort === (port ?? defaultPort);
-	} catch (_err) {
+	} catch (err) {
+		// Malformed allowlist entry — treat as non-matching, but log so the failure is not silent.
+		logger.debug(`Invalid allowlist entry: ${raw}: ${err.message}`);
 		return false;
 	}
 }
@@ -99,7 +103,9 @@ export function filterUrl(url, allowlist = []) {
 		}
 
 		return { allowed: true, reason: "" };
-	} catch (_err) {
+	} catch (err) {
+		// Malformed URL — reject it, but log so the failure is not silent.
+		logger.debug(`Invalid URL: ${url}: ${err.message}`);
 		return { allowed: false, reason: "Invalid URL format" };
 	}
 }
@@ -114,7 +120,9 @@ export function isSchemeAllowed(url) {
 	try {
 		const scheme = new URL(url).protocol.toLowerCase();
 		return ALLOWED_SCHEMES.has(scheme);
-	} catch (_err) {
+	} catch (err) {
+		// Malformed URL — treat as not allowed, but log so the failure is not silent.
+		logger.debug(`Invalid URL: ${url}: ${err.message}`);
 		return false;
 	}
 }

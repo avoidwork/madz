@@ -249,7 +249,10 @@ async function readBody(resp, maxBytes, signal) {
 		if (signal?.aborted) fail();
 		signal?.addEventListener("abort", fail, { once: true });
 	});
-	aborted.catch(() => {});
+	aborted.catch(() => {
+		// Intentional swallow: the abort promise is only used to race against
+		// reader.read(); a rejection here is already surfaced via the race.
+	});
 	const chunks = [];
 	let total = 0;
 	for (;;) {

@@ -80,6 +80,8 @@ async function searchWithBing(apiKey, query, limit) {
 		});
 		clearTimeout(timeoutId);
 		if (!resp.ok) {
+			// Intentional swallow: on an error response the body text is best-effort
+			// context for the error message; a read failure should not mask the HTTP error.
 			const text = await resp.text().catch(() => "");
 			return { ok: false, error: `Bing API error (${resp.status}): ${text.slice(0, 200)}` };
 		}
