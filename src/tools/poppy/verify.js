@@ -1,9 +1,7 @@
 import { z } from "zod";
 import { jwtVerify, importJWK, createLocalJWKSet } from "jose";
 import { computeAth } from "./session.js";
-
-/** Default fetch timeout in ms for verification HTTP calls. */
-const FETCH_TIMEOUT = 10000;
+import { fetchJson } from "./common.js";
 
 /** Maximum delegation lifetime in seconds (24 hours). */
 const MAX_DELEGATION_TTL = 86400;
@@ -39,33 +37,6 @@ export const ClientMetadataSchema = z.object({
 });
 
 /**
- * Fetch a JSON document over HTTPS with a timeout, without following
- * redirects.
- * @param {string} url - The URL to fetch
- * @param {object} [options] - Fetch options
- * @param {number} [options.timeout=10000] - Timeout in ms
- * @returns {Promise<{ok: boolean, data?: object, error?: string}>} Result
- */
-async function fetchJson(url, options = {}) {
-	const timeout = options.timeout ?? FETCH_TIMEOUT;
-	const controller = new AbortController();
-	const timeoutId = setTimeout(() => controller.abort(), timeout);
-	try {
-		const resp = await fetch(url, {
-			method: "GET",
-			redirect: "manual",
-			signal: controller.signal,
-		});
-		if (!resp.ok) {
-			return { ok: false, error: `HTTP error ${resp.status} fetching ${url}` };
-		}
-		const data = await resp.json();
-		return { ok: true, data };
-	} catch (err) {
-		return { ok: false, error: err.message };
-	} finally {
-		clearTimeout(timeoutId);
-	}
 }
 
 /**
@@ -77,7 +48,8 @@ async function fetchJson(url, options = {}) {
  * @returns {Promise<{ok: boolean, data?: object, error?: string}>} Result
  */
 export async function fetchClientMetadata(iss, options = {}) {
-	const metadataResult = await fetchJson(iss, options);
+	// The client metadata is fetched without following redirects (CIMD §5).
+	const metadataResult = await fetchJson(iss, { ...options, redirect: "manual" });
 	if (!metadataResult.ok) {
 		return { ok: false, error: `Failed to fetch client metadata: ${metadataResult.error}` };
 	}
@@ -88,7 +60,7 @@ export async function fetchClientMetadata(iss, options = {}) {
 			error: `Invalid client metadata: ${parsed.error.issues.map((i) => i.message).join("; ")}`,
 		};
 	}
-	const jwksResult = await fetchJson(parsed.data.jwks_uri, options);
+	const jwksResult = await fetchJson(parsed.data.jwks_uri, { ...options, redirect: "manual" });
 	if (!jwksResult.ok) {
 		return { ok: false, error: `Failed to fetch JWKS: ${jwksResult.error}` };
 	}

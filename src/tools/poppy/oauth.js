@@ -4,9 +4,7 @@ import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { signClientAssertion, deserializePrivateKey } from "./identity.js";
-
-/** Default fetch timeout in ms for OAuth HTTP calls. */
-const FETCH_TIMEOUT = 10000;
+import { fetchJson } from "./common.js";
 
 /** Default device flow polling interval in seconds (RFC 8628). */
 const DEFAULT_DEVICE_INTERVAL = 5;
@@ -64,45 +62,6 @@ export const DeviceCodeResponseSchema = z.object({
 	expires_in: z.number(),
 	interval: z.number().optional(),
 });
-
-/**
- * Fetch a JSON document over HTTPS with a timeout.
- * @param {string} url - The URL to fetch
- * @param {object} [options] - Fetch options
- * @param {number} [options.timeout=10000] - Timeout in ms
- * @param {object} [options.headers] - Additional request headers
- * @param {string} [options.body] - Optional request body
- * @param {string} [options.method="GET"] - HTTP method
- * @returns {Promise<{ok: boolean, data?: object, error?: string}>} Result
- */
-async function fetchJson(url, options = {}) {
-	const timeout = options.timeout ?? FETCH_TIMEOUT;
-	const controller = new AbortController();
-	const timeoutId = setTimeout(() => controller.abort(), timeout);
-	try {
-		const resp = await fetch(url, {
-			method: options.method ?? "GET",
-			headers: options.headers,
-			body: options.body,
-			signal: controller.signal,
-		});
-		if (!resp.ok) {
-			let data = null;
-			try {
-				data = await resp.json();
-			} catch {
-				// Non-JSON error body; ignore.
-			}
-			return { ok: false, error: `HTTP error ${resp.status} fetching ${url}`, data };
-		}
-		const data = await resp.json();
-		return { ok: true, data };
-	} catch (err) {
-		return { ok: false, error: err.message };
-	} finally {
-		clearTimeout(timeoutId);
-	}
-}
 
 /**
  * Discover OAuth Authorization Server Metadata (RFC 8414) and protected
