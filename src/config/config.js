@@ -26,6 +26,7 @@ import { ImageSchema } from "./schemas/image.js";
 import { SqlConfigSchema } from "./schemas/sql.js";
 import { NosqlConfigSchema } from "./schemas/nosql.js";
 import { JiraSchema } from "./schemas/jira.js";
+import { PoppySchema } from "./schemas/poppy.js";
 import { ConfluenceSchema } from "./schemas/confluence.js";
 import { McpSchema } from "./schemas/mcp.js";
 
@@ -46,6 +47,7 @@ export {
 	SqlConfigSchema,
 	NosqlConfigSchema,
 	JiraSchema,
+	PoppySchema,
 	ConfluenceSchema,
 	McpSchema,
 	AzureProviderConfigSchema,
@@ -64,6 +66,7 @@ export const ConfigSchema = z.object({
 	sandbox: SandboxScopeSchema.default({}),
 	api: ApiSchema.default({}),
 	jira: JiraSchema.default({}),
+	poppy: PoppySchema.default({}),
 	confluence: ConfluenceSchema.default({}),
 	browser: BrowserSchema.default({}),
 	search: SearchConfigSchema.default({}),

@@ -98,6 +98,10 @@ nosql:
     db: 0                # REDIS_DB
 persistence:
   mode: sqlite
+poppy:
+  enabled: true # false = tool not registered (POPPY_ENABLED)
+  rateLimit: 10
+  timeout: 30000
 providers:
   azure:
     apiVersion:

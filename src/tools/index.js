@@ -22,6 +22,7 @@ import { namecom } from "./dns/index.js";
 import { generatePptxTool } from "./pptx/index.js";
 import { createApiTool } from "./api/index.js";
 import { jira } from "./jira/index.js";
+import { poppy } from "./poppy/index.js";
 import { confluence } from "./confluence/index.js";
 import { graphql } from "./graphql/index.js";
 import { json } from "./json/index.js";
@@ -87,6 +88,7 @@ export const TOOL_PERMISSIONS = {
 	generatePptx: ["filesystem:write"],
 	api: ["network:outbound"],
 	jira: ["network:outbound"],
+	poppy: ["network:outbound"],
 	confluence: ["network:outbound"],
 	graphql: ["network:outbound"],
 	json: ["filesystem:read"],
@@ -224,6 +226,7 @@ export const TOOL_CLASSIFICATIONS = {
 	generatePptx: ["search", "research", "coding", "documentation", "debug"],
 	api: ["search", "research", "coding", "documentation", "debug"],
 	jira: ["search", "research", "coding", "documentation", "debug"],
+	poppy: ["search", "research", "coding", "documentation", "debug"],
 	confluence: ["search", "research", "coding", "documentation", "debug"],
 	graphql: ["search", "research", "coding", "documentation", "debug"],
 	json: ["search", "research", "coding", "documentation", "debug"],
@@ -329,6 +332,7 @@ export const ORCHESTRATOR_TOOLS = [
 	"getConfig",
 	"git",
 	"jira",
+	"poppy",
 	"memory",
 	"process",
 	"image",
@@ -381,6 +385,7 @@ export const TOOLS = {
 	generatePptx: generatePptxTool,
 	api: createApiTool,
 	jira,
+	poppy,
 	confluence,
 	graphql,
 	json,
@@ -554,6 +559,12 @@ export async function buildToolConfig(options) {
 			case "jira": {
 				if (!hasAllPerms || config?.jira?.enabled === false) continue;
 				tools.push(TOOLS.jira);
+				continue;
+			}
+
+			case "poppy": {
+				if (!hasAllPerms || config?.poppy?.enabled === false) continue;
+				tools.push(TOOLS.poppy);
 				continue;
 			}
 

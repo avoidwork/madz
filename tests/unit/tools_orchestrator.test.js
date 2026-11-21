@@ -215,6 +215,26 @@ describe("orchestrator - jira access", () => {
 	});
 });
 
+describe("orchestrator - poppy access", () => {
+	it("ORCHESTRATOR_TOOLS should include poppy", () => {
+		ok(ORCHESTRATOR_TOOLS.includes("poppy"), "ORCHESTRATOR_TOOLS should include poppy");
+	});
+
+	it("poppy should be classified for subagent types", () => {
+		ok(TOOL_CLASSIFICATIONS.poppy, "poppy should have a TOOL_CLASSIFICATIONS entry");
+		ok(
+			TOOL_CLASSIFICATIONS.poppy.includes("coding"),
+			"poppy should include coding in its classifications",
+		);
+	});
+
+	it("getToolsForAgentTypes should return poppy for coding type", async () => {
+		const tools = await loadTools();
+		const toolsForCoding = getToolsForAgentTypes(["coding"], tools);
+		ok(toolsForCoding.includes("poppy"), "getToolsForAgentTypes(['coding']) should include poppy");
+	});
+});
+
 describe("orchestrator - confluence access", () => {
 	it("ORCHESTRATOR_TOOLS should include confluence", () => {
 		ok(ORCHESTRATOR_TOOLS.includes("confluence"), "ORCHESTRATOR_TOOLS should include confluence");
