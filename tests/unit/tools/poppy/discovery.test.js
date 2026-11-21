@@ -9,7 +9,7 @@ import {
 	normalizeDocument,
 	fetchPoppy,
 	discoverPoppy,
-	poppyImpl,
+	execute,
 } from "../../../../src/tools/poppy/discovery.js";
 import { poppy } from "../../../../src/tools/poppy/index.js";
 
@@ -307,26 +307,46 @@ describe("poppy - discoverPoppy", () => {
 	});
 });
 
-describe("poppy - poppyImpl", () => {
+describe("poppy - execute", () => {
 	it("requires a domain", async () => {
-		const result = await poppyImpl({});
+		const result = await execute({});
 		assert.strictEqual(result.ok, false);
 		assert.match(result.error, /Domain is required/);
 	});
 
 	it("rejects an empty domain", async () => {
-		const result = await poppyImpl({ domain: "  " });
+		const result = await execute({ domain: "  " });
 		assert.strictEqual(result.ok, false);
 	});
 });
 
 describe("poppy - tool schema", () => {
-	it("accepts a valid domain", () => {
-		const result = poppy.schema.safeParse({ domain: "example.com" });
+	it("accepts a valid discover action", () => {
+		const result = poppy.schema.safeParse({ action: "discover", domain: "example.com" });
 		assert.strictEqual(result.success, true);
 	});
-	it("rejects a missing domain", () => {
-		const result = poppy.schema.safeParse({});
+	it("rejects a missing action", () => {
+		const result = poppy.schema.safeParse({ domain: "example.com" });
+		assert.strictEqual(result.success, false);
+	});
+	it("rejects a discover action without a domain", () => {
+		const result = poppy.schema.safeParse({ action: "discover" });
+		assert.strictEqual(result.success, false);
+	});
+	it("accepts a valid identity action", () => {
+		const result = poppy.schema.safeParse({ action: "identity", op: "build_metadata" });
+		assert.strictEqual(result.success, true);
+	});
+	it("rejects an identity action without an op", () => {
+		const result = poppy.schema.safeParse({ action: "identity" });
+		assert.strictEqual(result.success, false);
+	});
+	it("rejects a domain on the identity action", () => {
+		const result = poppy.schema.safeParse({
+			action: "identity",
+			op: "build_metadata",
+			domain: "example.com",
+		});
 		assert.strictEqual(result.success, false);
 	});
 });
