@@ -6,8 +6,11 @@ import { AIMessage, HumanMessage } from "@langchain/core/messages";
 import {
 	calibratedContextSize,
 	createContextCalibrationMiddleware,
+	getContextInputTokens,
 	getContextOverhead,
 	readInputTokens,
+	resetContextCalibration,
+	setContextInputTokens,
 	setContextOverhead,
 } from "../../../src/provider/contextCalibration.js";
 
@@ -89,8 +92,41 @@ describe("context overhead", () => {
 	});
 });
 
+describe("context input tokens", () => {
+	beforeEach(() => resetContextCalibration());
+
+	it("is null until a real call is measured", () => {
+		assert.strictEqual(getContextInputTokens(), null);
+	});
+
+	it("records the provider-reported input tokens once measured", () => {
+		setContextInputTokens(REPORTED_INPUT);
+		assert.strictEqual(getContextInputTokens(), REPORTED_INPUT);
+	});
+
+	it("ignores a non-positive input token count", () => {
+		setContextInputTokens(0);
+		assert.strictEqual(getContextInputTokens(), null);
+		setContextInputTokens(-5);
+		assert.strictEqual(getContextInputTokens(), null);
+	});
+
+	it("ignores a non-finite input token count", () => {
+		setContextInputTokens(Number.NaN);
+		assert.strictEqual(getContextInputTokens(), null);
+	});
+
+	it("resets both overhead and input tokens", () => {
+		setContextOverhead(10);
+		setContextInputTokens(REPORTED_INPUT);
+		resetContextCalibration();
+		assert.strictEqual(getContextOverhead(), null);
+		assert.strictEqual(getContextInputTokens(), null);
+	});
+});
+
 describe("createContextCalibrationMiddleware", () => {
-	beforeEach(() => setContextOverhead(null));
+	beforeEach(() => resetContextCalibration());
 
 	it("measures overhead as provider input tokens minus tokenizer message tokens", async () => {
 		const mw = createContextCalibrationMiddleware({ model: tokenizer });
@@ -100,6 +136,7 @@ describe("createContextCalibrationMiddleware", () => {
 
 		assert.strictEqual(returned, result, "the response passes through untouched");
 		assert.strictEqual(getContextOverhead(), REPORTED_INPUT - TOKENIZER_COUNT);
+		assert.strictEqual(getContextInputTokens(), REPORTED_INPUT);
 	});
 
 	it("leaves the overhead alone when the response has no usage", async () => {

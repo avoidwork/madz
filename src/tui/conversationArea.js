@@ -19,7 +19,11 @@ import { setConfigValue } from "../config/loader.js";
 import { isAvailable, getGcCalls } from "../memory/gc.js";
 import { logger } from "../shared/logger.js";
 import { formatClarifyPrompt } from "../shared/clarifyPrompt.js";
-import { calibratedContextSize, getContextOverhead } from "../provider/contextCalibration.js";
+import {
+	calibratedContextSize,
+	getContextInputTokens,
+	getContextOverhead,
+} from "../provider/contextCalibration.js";
 
 /**
 /**
@@ -218,11 +222,6 @@ const ConversationArea = forwardRef(function ConversationArea(
 	const isStreamingRef = useRef(false);
 	const dispatchPromiseRef = useRef(null);
 	const streamingMsgIdRef = useRef(null);
-	const tokenCacheRef = useRef({ content: "", tokens: 0 });
-	// Separate cache for streaming reasoning text. Reasoning is counted toward
-	// the live context window but is never folded into the assistant's rendered
-	// content, so it needs its own token cache keyed on the reasoning text.
-	const reasoningTokenCacheRef = useRef({ content: "", tokens: 0 });
 	// Counts silent "Continue" nudges dispatched when a turn ends on reasoning.
 	// Bounded by config.agent.autoContinueLimit to prevent an infinite loop.
 	const autoContinueCountRef = useRef(0);
@@ -232,9 +231,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 	const loopNudgesRef = useRef([]);
 	const escalationCount = config?.loopDetection?.escalationCount;
 	const escalationWindowMs = config?.loopDetection?.escalationWindowMs;
-	const toolMessageTokensRef = useRef(0);
 	const contextUpdateTimerRef = useRef(null);
-	const pendingContextRef = useRef({ content: "", reasoning: "" });
 	// Tracks the last segment id seen per segment type so the live context
 	// count only recalculates when a NEW segment begins (a new block id),
 	// not on every chunk. This keeps the status bar stable during long
@@ -496,9 +493,6 @@ const ConversationArea = forwardRef(function ConversationArea(
 	const handleChat = async (text, options = {}) => {
 		if (shouldAbort()) return;
 		gcManager?.();
-		// Reset the tool-message token accumulator at the start of each turn so
-		// tool tokens from a previous turn do not leak into the next.
-		toolMessageTokensRef.current = 0;
 		// Reset the segment-id tracker so the first block of this turn (which
 		// may reuse a block index from the previous turn) triggers a context
 		// recalculation.
@@ -528,17 +522,6 @@ const ConversationArea = forwardRef(function ConversationArea(
 
 		if (sessionState) {
 			sessionState.addExchange({ role: "user", content: text });
-			// Build the full message set: the real checkpointer conversation
-			// (which includes tool calls/messages) plus the just-sent user
-			// message. On the first turn the checkpointer doesn't have the
-			// message yet, so we append it explicitly rather than replacing the
-			// whole conversation with a single message.
-			let contextMessages = [];
-			if (typeof getContextMessages === "function") {
-				const ctx = await getContextMessages();
-				if (ctx && ctx.length > 0) contextMessages = ctx;
-			}
-			updateContextSize(sessionState, config, [...contextMessages, new HumanMessage(text)]);
 		}
 
 		await runTurn((handler, signal) =>
@@ -817,22 +800,32 @@ const ConversationArea = forwardRef(function ConversationArea(
 					}
 				}
 			}
-			// Normalize every message to a real LangChain object before counting.
-			counted = counted.map(toLangChainMessage);
-			// Once a real model call has been measured, the request overhead (system
-			// prompt, deepagents prompt sections, tool schemas) is known exactly from
-			// the provider's reported usage and is added below. Until then, fall back
-			// to the base system prompt, which is not part of graph state.
-			if (getContextOverhead() === null && systemPrompt) {
-				counted = [new SystemMessage(systemPrompt), ...counted];
-			}
-			// The output budget (maxTokens) is intentionally not added to the
-			// count. The status-bar context meter must reflect actual context
-			// usage against the context window, not the reserved output budget.
+			// Once a real model call has been measured, the provider-reported input
+			// token count is the single source of truth for the meter. It reflects
+			// exactly what the provider saw, so the meter is not influenced by the
+			// user's typed/submitted input. Until then, fall back to the tokenizer
+			// estimate (plus the calibrated overhead, or the base system prompt).
+			const providerTokens = getContextInputTokens();
 			let totalTokens = 0;
-			if (model && typeof model.getNumTokensFromMessages === "function") {
-				const { totalCount } = await model.getNumTokensFromMessages(counted);
-				totalTokens = calibratedContextSize(totalCount);
+			if (providerTokens !== null) {
+				totalTokens = providerTokens;
+			} else {
+				// Normalize every message to a real LangChain object before counting.
+				counted = counted.map(toLangChainMessage);
+				// Once a real model call has been measured, the request overhead (system
+				// prompt, deepagents prompt sections, tool schemas) is known exactly from
+				// the provider's reported usage and is added below. Until then, fall back
+				// to the base system prompt, which is not part of graph state.
+				if (getContextOverhead() === null && systemPrompt) {
+					counted = [new SystemMessage(systemPrompt), ...counted];
+				}
+				// The output budget (maxTokens) is intentionally not added to the
+				// count. The status-bar context meter must reflect actual context
+				// usage against the context window, not the reserved output budget.
+				if (model && typeof model.getNumTokensFromMessages === "function") {
+					const { totalCount } = await model.getNumTokensFromMessages(counted);
+					totalTokens = calibratedContextSize(totalCount);
+				}
 			}
 			setContextSize(totalTokens);
 			onContextChange?.(totalTokens);
@@ -865,11 +858,12 @@ const ConversationArea = forwardRef(function ConversationArea(
 			completedToolCalls = {},
 		) => {
 			// Debounced context size update — coalesces rapid chunks into a single
-			// token calculation every ~200ms so the status bar stays responsive.
-			// Gated on segment identity: when a segment carries a block id, the
-			// count only recalculates when a NEW block begins (a new id), not on
-			// every chunk that continues an existing block. This keeps the status
-			// bar stable during long streams instead of bouncing on each token.
+			// update so the status bar stays responsive. During an in-flight stream
+			// the meter HOLDS at the last provider-reported value rather than
+			// estimating content tokens live: the provider has not reported usage
+			// for the current turn yet, so estimating would make the meter react to
+			// tokens the provider has not seen. The meter only moves when a real
+			// model call completes and reports input tokens.
 			const debouncedContextUpdate = (content, reasoning = "", segmentType, segmentId) => {
 				if (segmentType && hasId(segmentId)) {
 					if (lastSegmentIdRef.current[segmentType] === segmentId) return;
@@ -878,48 +872,11 @@ const ConversationArea = forwardRef(function ConversationArea(
 				if (contextUpdateTimerRef.current) {
 					clearTimeout(contextUpdateTimerRef.current);
 				}
-				pendingContextRef.current.content = content;
-				pendingContextRef.current.reasoning = reasoning;
-				contextUpdateTimerRef.current = setTimeout(async () => {
+				contextUpdateTimerRef.current = setTimeout(() => {
 					contextUpdateTimerRef.current = null;
-					const text = pendingContextRef.current.content;
-					const reasoningText = pendingContextRef.current.reasoning;
-					const cached = tokenCacheRef.current;
-					const reasoningCached = reasoningTokenCacheRef.current;
-					if (text && cached.content !== text) {
-						cached.content = text;
-						if (model && typeof model.getNumTokensFromMessages === "function") {
-							try {
-								const { totalCount } = await model.getNumTokensFromMessages([new AIMessage(text)]);
-								cached.tokens = totalCount;
-							} catch {
-								cached.tokens = 0;
-							}
-						} else {
-							cached.tokens = 0;
-						}
-					}
-					if (reasoningText && reasoningCached.content !== reasoningText) {
-						reasoningCached.content = reasoningText;
-						if (model && typeof model.getNumTokensFromMessages === "function") {
-							try {
-								const { totalCount } = await model.getNumTokensFromMessages([
-									new AIMessage(reasoningText),
-								]);
-								reasoningCached.tokens = totalCount;
-							} catch {
-								reasoningCached.tokens = 0;
-							}
-						} else {
-							reasoningCached.tokens = 0;
-						}
-					}
-					onContextUpdate(
-						preStreamContextSize +
-							cached.tokens +
-							reasoningCached.tokens +
-							toolMessageTokensRef.current,
-					);
+					// Hold at the last provider-reported value; fall back to the
+					// pre-stream context size before the first real call.
+					onContextUpdate(getContextInputTokens() ?? preStreamContextSize);
 				}, 33);
 			};
 
@@ -1075,15 +1032,14 @@ const ConversationArea = forwardRef(function ConversationArea(
 						const toolText = event.data?.text || event.text || "";
 						const toolName = event.data?.name || event.name || "";
 						if (toolText) {
-							// Count the tool-message text toward the live context
-							// window. This is decoupled from display: the tool text
-							// is never folded into committedContentRef, so it does
-							// not pollute the rendered assistant message.
-							toolMessageTokensRef.current += await countToolMessageTokens(model, toolText);
+							// The tool text is never folded into committedContentRef,
+							// so it does not pollute the rendered assistant message.
+							// The meter holds at the last provider-reported value
+							// during streaming, so tool tokens are not counted live.
 							debouncedContextUpdate(committedContentRef.current, "", "tool", undefined);
 
 							// Cancelled tool calls (synthetic message) stay in provider
-							// context (counted above) but never render as a tool call.
+							// context but never render as a tool call.
 							if (!isCancelledToolEvent(event)) {
 								// Render the tool text as a distinct `tool` segment so it
 								// shows as a separate block toggled by toolCallCollapsed.
