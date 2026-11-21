@@ -7,6 +7,7 @@ import * as oauth from "./oauth.js";
 import * as verify from "./verify.js";
 import * as api from "./api.js";
 import * as conversation from "./conversation.js";
+import * as browser from "./browser.js";
 
 /**
  * Registry of Poppy actions, keyed by action name. Each action module exports
@@ -21,6 +22,7 @@ export const ACTIONS = {
 	verify,
 	api,
 	conversation,
+	browser,
 };
 
 /**
@@ -35,7 +37,16 @@ export const ACTIONS = {
 export const poppySchema = z
 	.object({
 		action: z
-			.enum(["discover", "identity", "session", "oauth", "verify", "api", "conversation"])
+			.enum([
+				"discover",
+				"identity",
+				"session",
+				"oauth",
+				"verify",
+				"api",
+				"conversation",
+				"browser",
+			])
 			.describe("The Poppy operation to perform"),
 		// discover
 		domain: z.string().optional().describe("The company domain to discover (e.g. example.com)"),
@@ -101,6 +112,9 @@ export const poppySchema = z
 			.string()
 			.optional()
 			.describe("The user-requested event ID for a direct conversation"),
+		// browser
+		disabled: z.boolean().optional().describe("Whether web browsing is disabled"),
+		unscoped: z.boolean().optional().describe("Whether the web channel is unscoped"),
 	})
 	.superRefine((data, ctx) => {
 		const { action } = data;
@@ -116,7 +130,7 @@ export const poppySchema = z
 		// discover-only fields
 		rejectField("domain", ["discover"]);
 		// identity/session/oauth/verify/api fields
-		rejectField("op", ["identity", "session", "oauth", "api", "conversation"]);
+		rejectField("op", ["identity", "session", "oauth", "api", "conversation", "browser"]);
 		rejectField("clientId", ["identity", "oauth"]);
 		rejectField("clientName", ["identity"]);
 		rejectField("jwksUri", ["identity"]);
@@ -132,12 +146,12 @@ export const poppySchema = z
 		rejectField("method", ["session", "verify", "api"]);
 		rejectField("url", ["session", "verify"]);
 		rejectField("agentId", ["session"]);
-		rejectField("accessToken", ["session", "verify", "conversation"]);
+		rejectField("accessToken", ["session", "verify", "conversation", "browser"]);
 		rejectField("delegation", ["session"]);
 		// oauth-only fields
 		rejectField("issuer", ["oauth"]);
 		rejectField("redirectUri", ["oauth"]);
-		rejectField("scope", ["oauth", "api"]);
+		rejectField("scope", ["oauth", "api", "browser"]);
 		rejectField("state", ["oauth"]);
 		rejectField("code", ["oauth"]);
 		rejectField("codeVerifier", ["oauth"]);
@@ -147,11 +161,11 @@ export const poppySchema = z
 		rejectField("tokenTypeHint", ["oauth"]);
 		rejectField("poll", ["oauth"]);
 		// verify/conversation fields
-		rejectField("session", ["verify", "conversation"]);
+		rejectField("session", ["verify", "conversation", "browser"]);
 		// api-only fields
 		rejectField("task", ["api"]);
 		rejectField("apiType", ["api"]);
-		rejectField("endpoint", ["api", "conversation"]);
+		rejectField("endpoint", ["api", "conversation", "browser"]);
 		rejectField("path", ["api"]);
 		rejectField("body", ["api"]);
 		rejectField("version", ["api"]);
@@ -168,6 +182,9 @@ export const poppySchema = z
 		rejectField("cursor", ["conversation"]);
 		rejectField("parentConversationId", ["conversation"]);
 		rejectField("userRequestedEventId", ["conversation"]);
+		// browser-only fields
+		rejectField("disabled", ["browser"]);
+		rejectField("unscoped", ["browser"]);
 
 		if (action === "discover") {
 			if (!data.domain) {
@@ -225,6 +242,14 @@ export const poppySchema = z
 					message: "op is required for the 'conversation' action",
 				});
 			}
+		} else if (action === "browser") {
+			if (!data.op) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["op"],
+					message: "op is required for the 'browser' action",
+				});
+			}
 		}
 	});
 
@@ -251,6 +276,6 @@ export async function poppyImpl(input, options = {}) {
 export const poppy = tool(poppyImpl, {
 	name: "poppy",
 	description:
-		"Poppy (Personal Agent Protocol) tool. Dispatches on an `action` enum: `discover` fetches and validates a company's poppy.json; `identity` manages the agent's client metadata document and signing keys; `session` generates Poppy-Session JWTs and issues delegations; `oauth` performs Direct Sign-In (authorization code + PKCE) and Device Sign-In (device authorization grant), refresh token rotation, revocation, and DPoP; `verify` verifies incoming Poppy-Session JWTs, delegations, and access tokens on company-side endpoints. Requires network:outbound.",
+		"Poppy (Personal Agent Protocol) tool. Dispatches on an `action` enum: `discover` fetches and validates a company's poppy.json; `identity` manages the agent's client metadata document and signing keys; `session` generates Poppy-Session JWTs and issues delegations; `oauth` performs Direct Sign-In (authorization code + PKCE) and Device Sign-In (device authorization grant), refresh token rotation, revocation, and DPoP; `verify` verifies incoming Poppy-Session JWTs, delegations, and access tokens on company-side endpoints; `browser` joins a company's browser session via the browser-session endpoint. Requires network:outbound.",
 	schema: poppySchema,
 });
