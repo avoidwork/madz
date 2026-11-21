@@ -33,11 +33,15 @@ The system SHALL follow redirects only when every hop is HTTPS, and SHALL requir
 - **THEN** discovery fails with an error
 
 ### Requirement: Document validation
-The system SHALL validate the document against a schema covering `protocol_version`, `organization`, `auth`, `agent`, `apis`, `web`, `tasks` and `extensions`.
+The system SHALL validate the document against the Poppy 1.0 schema: `protocol_version`, `organization`, `auth` (`issuer`, `disabled`, `scopes` as a name-to-description map, `scope_hints` with `changes` and `personal_data`), `agent.protocols`, `apis` as a list of `{type, url, description}`, `web`, `tasks`, `extensions`, and at least one of `agent`, `apis` or `web`. Every URL in the document SHALL be HTTPS.
 
 #### Scenario: Malformed document
 - **WHEN** the response body is not JSON or fails schema validation
 - **THEN** discovery fails with an error naming the invalid fields
+
+#### Scenario: Incompatible protocol version
+- **WHEN** `protocol_version` has a major version other than the one the tool implements
+- **THEN** discovery fails with an error
 
 ### Requirement: Organization domain matches the serving host
 The system SHALL verify that `organization.domain` equals the host that served the document.
@@ -47,7 +51,7 @@ The system SHALL verify that `organization.domain` equals the host that served t
 - **THEN** discovery fails with an error
 
 ### Requirement: OAuth issuer verification
-The system SHALL resolve the OAuth issuer from the domain's `/.well-known/oauth-protected-resource` metadata when present, and verify that the issuer's metadata lists the domain in `protected_resources`.
+The system SHALL resolve the OAuth issuer from the domain's `/.well-known/oauth-protected-resource` metadata (whose `resource` MUST be exactly `https://{domain}`), using `auth.issuer` to choose when several authorization servers are listed, and verify that the issuer's metadata `issuer` matches exactly and that `protected_resources` lists exactly `https://{domain}`. Any failure other than HTTP 404 on the protected resource metadata SHALL be an error with no fallback.
 
 #### Scenario: Issuer lists the domain
 - **WHEN** protected resource metadata names an issuer whose metadata `protected_resources` includes the domain
@@ -62,7 +66,7 @@ The system SHALL resolve the OAuth issuer from the domain's `/.well-known/oauth-
 - **THEN** discovery succeeds and the summary reports no issuer
 
 ### Requirement: Normalized summary
-The system SHALL return organization, protocol version, offered channels (agent, apis, web), scopes and scope hints, sign-in options, and extensions.
+The system SHALL return organization, protocol version, offered channels (agent, apis, web) with agent protocols, APIs and web details, scopes with descriptions, scope hints, supported scopes, sign-in types derived from the issuer's `grant_types_supported` (direct, device; none when `auth.disabled`), the issuer, the tasks endpoint, and extensions.
 
 #### Scenario: Channels reported
 - **WHEN** the document defines `agent` and `web` but no `apis`
