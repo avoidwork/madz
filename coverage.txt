@@ -41,7 +41,7 @@
 ℹ    tui.js                      | 100.00 |   100.00 |  100.00 | 
 ℹ    vector.js                   | 100.00 |   100.00 |  100.00 | 
 ℹ  memory                        |        |          |         | 
-ℹ   context.js                   |  95.44 |    90.28 |  100.00 | 92-94 118-121 153 238-240
+ℹ   context.js                   |  95.85 |    91.55 |  100.00 | 92-94 118-121 238-240
 ℹ   contextDir.js                | 100.00 |   100.00 |  100.00 | 
 ℹ   expireEphemeralMemories.js   |  91.67 |    79.31 |  100.00 | 52-54 114-116 124-128
 ℹ   fsUtil.js                    |  93.02 |   100.00 |   66.67 | 37-39
@@ -63,7 +63,7 @@
 ℹ   copilotRetryMiddleware.js    |  88.52 |    79.49 |   83.33 | 75-88
 ℹ   index.js                     | 100.00 |   100.00 |  100.00 | 
 ℹ   modelInfo.js                 |  97.80 |    96.08 |  100.00 | 142-143 193-194 241-242
-ℹ   openai.js                    |  91.60 |    73.61 |   78.57 | 65 90-92 138-139 145-146 181-184 233 236-238 257-259 267-271 279-280 292-295
+ℹ   openai.js                    |  91.60 |    72.60 |   78.57 | 65 90-92 138-139 145-146 181-184 233 236-238 257-259 267-271 279-280 292-295
 ℹ   tokenBudget.js               |  97.14 |    85.71 |   82.35 | 50-51 83-84
 ℹ   tokenBudgetMiddleware.js     |  98.17 |    82.28 |   87.50 | 99-100 102-103
 ℹ  sandbox                       |        |          |         | 
@@ -206,11 +206,12 @@
 ℹ     redis.js                   |  89.27 |    84.21 |   75.00 | 24-37 118-119 128-130
 ℹ    index.js                    | 100.00 |    75.00 |   75.00 | 
 ℹ   pdf                          |        |          |         | 
-ℹ    index.js                    |  94.29 |    85.71 |  100.00 | 90-94 142-143 174-185 200-201 252-253 289 355-356 363-364 375-376 410-411 446-447 451-452 516-520 586-588 590-592 594-596 598-600 692-693 910 913-914
+ℹ    index.js                    |  67.13 |    68.71 |   85.00 | 53-59 78-84 90-94 115-116 121-122 142-143 155-156 158 174-185 196 200-201 252-253 355-356 363-364 369-376 378-380 402-465 503-504 514-522 538-540 542-544 546-548 550-552 571-615 618 663-664 666-670 676-679 681-705 707-721 750-751 757-843 910
 ℹ   poppy                        |        |          |         | 
 ℹ    discovery.js                |  88.76 |    74.31 |   71.43 | 108 110-111 114 116-119 157-161 180-181 217-219 241-247 254-257 262-266 318-319 338-343 372-373 377-378 414
 ℹ    identity.js                 | 100.00 |    95.29 |  100.00 | 
-ℹ    index.js                    |  94.69 |   100.00 |   66.67 | 95-100
+ℹ    index.js                    |  89.78 |    90.00 |   66.67 | 102-109 119-124
+ℹ    session.js                  | 100.00 |    96.97 |  100.00 | 
 ℹ   pptx                         |        |          |         | 
 ℹ    index.js                    |  98.65 |    94.32 |   92.86 | 478-481 542-543 563-564
 ℹ   process                      |        |          |         | 
@@ -290,6 +291,400 @@
 ℹ   loadAgents.js                |  74.29 |    78.57 |   50.00 | 25-26 41 56-70
 ℹ   project.js                   | 100.00 |   100.00 |  100.00 | 
 ℹ --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-ℹ all files                      |  93.45 |    86.60 |   88.56 | 
+ℹ all files                      |  92.84 |    86.37 |   88.47 | 
 ℹ --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ℹ end of coverage report
+
+✖ failing tests:
+
+test at tests/unit/logger.test.js:121:2
+✖ dual-file output: errors in both files, info only in madz.log (4.4) (258.369291ms)
+  AssertionError [ERR_ASSERTION]: Subprocess failed: node:fs:624
+      return binding.readFileUtf8(path, stringToFlags(options.flag));
+                     ^
+  
+  Error: ENOENT: no such file or directory, open '/app/projects/madz.worktrees/7f8f8d8c486b2e97/memory/__logger_test__/dualfile-1/madz.log'
+      at readFileSync (node:fs:624:20)
+      at file:///app/projects/madz.worktrees/7f8f8d8c486b2e97/[eval1]:37:25 {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: '/app/projects/madz.worktrees/7f8f8d8c486b2e97/memory/__logger_test__/dualfile-1/madz.log'
+  }
+  
+  Node.js v26.13.1
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (file:///app/projects/madz.worktrees/7f8f8d8c486b2e97/tests/unit/logger.test.js:150:10)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/unit/logger.test.js:183:2
+✖ structured JSON output from each log method (4.7) (248.281667ms)
+  AssertionError [ERR_ASSERTION]: Subprocess failed: node:fs:624
+      return binding.readFileUtf8(path, stringToFlags(options.flag));
+                     ^
+  
+  Error: ENOENT: no such file or directory, open '/app/projects/madz.worktrees/7f8f8d8c486b2e97/memory/__logger_test__/struct-1/struct.log'
+      at readFileSync (node:fs:624:20)
+      at file:///app/projects/madz.worktrees/7f8f8d8c486b2e97/[eval1]:38:27 {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: '/app/projects/madz.worktrees/7f8f8d8c486b2e97/memory/__logger_test__/struct-1/struct.log'
+  }
+  
+  Node.js v26.13.1
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (file:///app/projects/madz.worktrees/7f8f8d8c486b2e97/tests/unit/logger.test.js:210:10)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/unit/logger.test.js:595:3
+✖ logs with Error objects (268.072334ms)
+  AssertionError [ERR_ASSERTION]: stderr: node:fs:624
+      return binding.readFileUtf8(path, stringToFlags(options.flag));
+                     ^
+  
+  Error: ENOENT: no such file or directory, open '/app/projects/madz.worktrees/7f8f8d8c486b2e97/memory/__logger_test__/struct-edge-2/struct_err.log'
+      at readFileSync (node:fs:624:20)
+      at file:///app/projects/madz.worktrees/7f8f8d8c486b2e97/[eval1]:30:22 {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: '/app/projects/madz.worktrees/7f8f8d8c486b2e97/memory/__logger_test__/struct-edge-2/struct_err.log'
+  }
+  
+  Node.js v26.13.1
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (file:///app/projects/madz.worktrees/7f8f8d8c486b2e97/tests/unit/logger.test.js:613:11)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:161:3
+✖ generates PDF with custom CSS (2182.963251ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  false !== true
+  
+      at TestContext.<anonymous> (file:///app/projects/madz.worktrees/7f8f8d8c486b2e97/tests/unit/tools_pdf_generate.test.js:169:11)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:188:3
+✖ defaults outputPath to config.memory.toolsDir when omitted (16.523209ms)
+  [Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/a.pdf'] { errno: -2, code: 'ENOENT', syscall: 'open', path: 'memory/__test_pdf_generate__/a.pdf' }
+
+test at tests/unit/tools_pdf_generate.test.js:202:3
+✖ merges two PDFs (3.674542ms)
+  [Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/a.pdf'] { errno: -2, code: 'ENOENT', syscall: 'open', path: 'memory/__test_pdf_generate__/a.pdf' }
+
+test at tests/unit/tools_pdf_generate.test.js:220:3
+✖ merges PDFs and returns base64 (2.906334ms)
+  [Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/c.pdf'] { errno: -2, code: 'ENOENT', syscall: 'open', path: 'memory/__test_pdf_generate__/c.pdf' }
+
+test at tests/unit/tools_pdf_generate.test.js:241:3
+✖ rejects file exceeding max size (0.287541ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/large.pdf'
+      at async open (node:internal/fs/promises:1467:25)
+      at async writeFile (node:internal/fs/promises:2210:14)
+      at async TestContext.<anonymous> (file:///app/projects/madz.worktrees/7f8f8d8c486b2e97/tests/unit/tools_pdf_generate.test.js:244:4)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/large.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:275:3
+✖ requires outputPattern or base64 (2.131ms)
+  [Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/split_src.pdf'] { errno: -2, code: 'ENOENT', syscall: 'open', path: 'memory/__test_pdf_generate__/split_src.pdf' }
+
+test at tests/unit/tools_pdf_generate.test.js:288:3
+✖ splits PDF by page range (1.942375ms)
+  [Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/src_range.pdf'] { errno: -2, code: 'ENOENT', syscall: 'open', path: 'memory/__test_pdf_generate__/src_range.pdf' }
+
+test at tests/unit/tools_pdf_generate.test.js:303:3
+✖ splits PDF by individual pages (2.10925ms)
+  [Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/src_pages.pdf'] { errno: -2, code: 'ENOENT', syscall: 'open', path: 'memory/__test_pdf_generate__/src_pages.pdf' }
+
+test at tests/unit/tools_pdf_generate.test.js:318:3
+✖ splits PDF by all pages (1.972333ms)
+  [Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/src_all.pdf'] { errno: -2, code: 'ENOENT', syscall: 'open', path: 'memory/__test_pdf_generate__/src_all.pdf' }
+
+test at tests/unit/tools_pdf_generate.test.js:333:3
+✖ returns base64 array when requested (1.565625ms)
+  [Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/src_b64.pdf'] { errno: -2, code: 'ENOENT', syscall: 'open', path: 'memory/__test_pdf_generate__/src_b64.pdf' }
+
+test at tests/unit/tools_pdf_generate.test.js:355:3
+✖ rejects invalid page range (2.753625ms)
+  [Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/src_invalid.pdf'] { errno: -2, code: 'ENOENT', syscall: 'open', path: 'memory/__test_pdf_generate__/src_invalid.pdf' }
+
+test at tests/unit/tools_pdf_generate.test.js:377:3
+✖ requires text or image watermark (2.762834ms)
+  [Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/wm_src.pdf'] { errno: -2, code: 'ENOENT', syscall: 'open', path: 'memory/__test_pdf_generate__/wm_src.pdf' }
+
+test at tests/unit/tools_pdf_generate.test.js:390:3
+✖ adds text watermark to all pages (5.055375ms)
+  [Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/wm_all.pdf'] { errno: -2, code: 'ENOENT', syscall: 'open', path: 'memory/__test_pdf_generate__/wm_all.pdf' }
+
+test at tests/unit/tools_pdf_generate.test.js:407:3
+✖ adds text watermark to specific pages (1.790334ms)
+  [Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/wm_pages.pdf'] { errno: -2, code: 'ENOENT', syscall: 'open', path: 'memory/__test_pdf_generate__/wm_pages.pdf' }
+
+test at tests/unit/tools_pdf_generate.test.js:425:3
+✖ adds image watermark (1.041375ms)
+  [Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/wm_img_src.pdf'] { errno: -2, code: 'ENOENT', syscall: 'open', path: 'memory/__test_pdf_generate__/wm_img_src.pdf' }
+
+test at tests/unit/tools_pdf_generate.test.js:443:3
+✖ returns base64 output (1.000959ms)
+  [Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/wm_b64_src.pdf'] { errno: -2, code: 'ENOENT', syscall: 'open', path: 'memory/__test_pdf_generate__/wm_b64_src.pdf' }
+
+test at tests/unit/tools_pdf_generate.test.js:460:3
+✖ accepts base64 input (4.591458ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  false !== true
+  
+      at TestContext.<anonymous> (file:///app/projects/madz.worktrees/7f8f8d8c486b2e97/tests/unit/tools_pdf_generate.test.js:471:11)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:491:3
+✖ requires text or image signature (1.800084ms)
+  [Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/sig_src.pdf'] { errno: -2, code: 'ENOENT', syscall: 'open', path: 'memory/__test_pdf_generate__/sig_src.pdf' }
+
+test at tests/unit/tools_pdf_generate.test.js:506:3
+✖ requires page, x, y (1.331375ms)
+  [Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/sig_coords.pdf'] { errno: -2, code: 'ENOENT', syscall: 'open', path: 'memory/__test_pdf_generate__/sig_coords.pdf' }
+
+test at tests/unit/tools_pdf_generate.test.js:519:3
+✖ embeds text signature (1.181833ms)
+  [Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/sig_text_src.pdf'] { errno: -2, code: 'ENOENT', syscall: 'open', path: 'memory/__test_pdf_generate__/sig_text_src.pdf' }
+
+test at tests/unit/tools_pdf_generate.test.js:539:3
+✖ embeds image signature (1.327792ms)
+  [Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/sig_img_src.pdf'] { errno: -2, code: 'ENOENT', syscall: 'open', path: 'memory/__test_pdf_generate__/sig_img_src.pdf' }
+
+test at tests/unit/tools_pdf_generate.test.js:560:3
+✖ rejects out-of-range page (1.1595ms)
+  [Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/sig_page.pdf'] { errno: -2, code: 'ENOENT', syscall: 'open', path: 'memory/__test_pdf_generate__/sig_page.pdf' }
+
+test at tests/unit/tools_pdf_generate.test.js:576:3
+✖ returns base64 output (1.101333ms)
+  [Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/sig_b64_src.pdf'] { errno: -2, code: 'ENOENT', syscall: 'open', path: 'memory/__test_pdf_generate__/sig_b64_src.pdf' }
+
+test at tests/unit/tools_pdf_generate.test.js:607:3
+✖ requires at least one annotation (3.578834ms)
+  [Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/ann_src.pdf'] { errno: -2, code: 'ENOENT', syscall: 'open', path: 'memory/__test_pdf_generate__/ann_src.pdf' }
+
+test at tests/unit/tools_pdf_generate.test.js:620:3
+✖ requires annotation fields (1.324333ms)
+  [Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/ann_fields.pdf'] { errno: -2, code: 'ENOENT', syscall: 'open', path: 'memory/__test_pdf_generate__/ann_fields.pdf' }
+
+test at tests/unit/tools_pdf_generate.test.js:633:3
+✖ adds highlight annotation (1.0105ms)
+  [Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/ann_highlight_src.pdf'] { errno: -2, code: 'ENOENT', syscall: 'open', path: 'memory/__test_pdf_generate__/ann_highlight_src.pdf' }
+
+test at tests/unit/tools_pdf_generate.test.js:656:3
+✖ adds note annotation (1.035458ms)
+  [Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/ann_note_src.pdf'] { errno: -2, code: 'ENOENT', syscall: 'open', path: 'memory/__test_pdf_generate__/ann_note_src.pdf' }
+
+test at tests/unit/tools_pdf_generate.test.js:680:3
+✖ adds stamp annotation (1.027125ms)
+  [Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/ann_stamp_src.pdf'] { errno: -2, code: 'ENOENT', syscall: 'open', path: 'memory/__test_pdf_generate__/ann_stamp_src.pdf' }
+
+test at tests/unit/tools_pdf_generate.test.js:704:3
+✖ adds multiple annotations (0.974125ms)
+  [Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/ann_multi_src.pdf'] { errno: -2, code: 'ENOENT', syscall: 'open', path: 'memory/__test_pdf_generate__/ann_multi_src.pdf' }
+
+test at tests/unit/tools_pdf_generate.test.js:739:3
+✖ rejects unknown annotation type (1.144167ms)
+  [Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/ann_type_src.pdf'] { errno: -2, code: 'ENOENT', syscall: 'open', path: 'memory/__test_pdf_generate__/ann_type_src.pdf' }
+
+test at tests/unit/tools_pdf_generate.test.js:758:3
+✖ rejects out-of-range page (1.053834ms)
+  [Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/ann_page_src.pdf'] { errno: -2, code: 'ENOENT', syscall: 'open', path: 'memory/__test_pdf_generate__/ann_page_src.pdf' }
+
+test at tests/unit/tools_pdf_generate.test.js:777:3
+✖ returns base64 output (1.003125ms)
+  [Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/ann_b64_src.pdf'] { errno: -2, code: 'ENOENT', syscall: 'open', path: 'memory/__test_pdf_generate__/ann_b64_src.pdf' }
+
+test at tests/unit/tools_pdf_generate.test.js:802:3
+✖ adds watermark at top-left position (1.288584ms)
+  [Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/wm_tl_src.pdf'] { errno: -2, code: 'ENOENT', syscall: 'open', path: 'memory/__test_pdf_generate__/wm_tl_src.pdf' }
+
+test at tests/unit/tools_pdf_generate.test.js:816:3
+✖ adds watermark at top-right position (0.945125ms)
+  [Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/wm_tr_src.pdf'] { errno: -2, code: 'ENOENT', syscall: 'open', path: 'memory/__test_pdf_generate__/wm_tr_src.pdf' }
+
+test at tests/unit/tools_pdf_generate.test.js:830:3
+✖ adds watermark at bottom-left position (0.967834ms)
+  [Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/wm_bl_src.pdf'] { errno: -2, code: 'ENOENT', syscall: 'open', path: 'memory/__test_pdf_generate__/wm_bl_src.pdf' }
+
+test at tests/unit/tools_pdf_generate.test.js:844:3
+✖ adds watermark at bottom-right position (0.948792ms)
+  [Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/wm_br_src.pdf'] { errno: -2, code: 'ENOENT', syscall: 'open', path: 'memory/__test_pdf_generate__/wm_br_src.pdf' }
+
+test at tests/unit/tools_pdf_generate.test.js:858:3
+✖ returns error when image watermark fails to load (1.089292ms)
+  [Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/wm_imgfail_src.pdf'] { errno: -2, code: 'ENOENT', syscall: 'open', path: 'memory/__test_pdf_generate__/wm_imgfail_src.pdf' }
+
+test at tests/unit/tools_pdf_generate.test.js:896:3
+✖ returns error when image signature fails to load (1.63475ms)
+  [Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/sig_imgfail_src.pdf'] { errno: -2, code: 'ENOENT', syscall: 'open', path: 'memory/__test_pdf_generate__/sig_imgfail_src.pdf' }
+
+test at tests/unit/tools_pdf_generate.test.js:939:3
+✖ returns error when file exceeds max size (0.2515ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/split_large.pdf'
+      at async open (node:internal/fs/promises:1467:25)
+      at async writeFile (node:internal/fs/promises:2210:14)
+      at async TestContext.<anonymous> (file:///app/projects/madz.worktrees/7f8f8d8c486b2e97/tests/unit/tools_pdf_generate.test.js:941:4)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1905:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/split_large.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:966:3
+✖ returns error for invalid PDF file (0.530541ms)
+  [Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/invalid.pdf'] { errno: -2, code: 'ENOENT', syscall: 'open', path: 'memory/__test_pdf_generate__/invalid.pdf' }
+
+test at tests/unit/tools_pdf_generate.test.js:1052:3
+✖ rejects an image path outside the sandbox (5.496291ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(result.error.includes("Access denied"))
+  
+      at TestContext.<anonymous> (file:///app/projects/madz.worktrees/7f8f8d8c486b2e97/tests/unit/tools_pdf_generate.test.js:1060:11)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests/unit/tools_reflection.test.js:64:2
+✖ reads sessions from memory directory (42.540625ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  2 !== 1
+  
+      at TestContext.<anonymous> (file:///app/projects/madz.worktrees/7f8f8d8c486b2e97/tests/unit/tools_reflection.test.js:79:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1905:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 2,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/unit/tools_reflection.test.js:149:2
+✖ excludes sessions outside window (3 days) (19.169625ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  2 !== 1
+  
+      at TestContext.<anonymous> (file:///app/projects/madz.worktrees/7f8f8d8c486b2e97/tests/unit/tools_reflection.test.js:169:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 2,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/unit/tools_reflection.test.js:224:2
+✖ handles multiple ignore patterns (21.391709ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  2 !== 1
+  
+      at TestContext.<anonymous> (file:///app/projects/madz.worktrees/7f8f8d8c486b2e97/tests/unit/tools_reflection.test.js:250:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 2,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/unit/tools_reflection.test.js:254:2
+✖ does not filter when ignorePatterns is empty (14.198625ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  3 !== 2
+  
+      at TestContext.<anonymous> (file:///app/projects/madz.worktrees/7f8f8d8c486b2e97/tests/unit/tools_reflection.test.js:270:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 3,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/unit/tools_reflection.test.js:430:2
+✖ sorts by mtime and parses all files within the window (266.762167ms)
+  [Error: ENOENT: no such file or directory, open 'memory/__test_reflection__/session-012.md'] { errno: -2, code: 'ENOENT', syscall: 'open', path: 'memory/__test_reflection__/session-012.md' }

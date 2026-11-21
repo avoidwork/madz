@@ -2,6 +2,7 @@ import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import * as discovery from "./discovery.js";
 import * as identity from "./identity.js";
+import * as session from "./session.js";
 
 /**
  * Registry of Poppy actions, keyed by action name. Each action module exports
@@ -11,6 +12,7 @@ import * as identity from "./identity.js";
 export const ACTIONS = {
 	discover: discovery,
 	identity,
+	session,
 };
 
 /**
@@ -24,7 +26,7 @@ export const ACTIONS = {
  */
 export const poppySchema = z
 	.object({
-		action: z.enum(["discover", "identity"]).describe("The Poppy operation to perform"),
+		action: z.enum(["discover", "identity", "session"]).describe("The Poppy operation to perform"),
 		// discover
 		domain: z.string().optional().describe("The company domain to discover (e.g. example.com)"),
 		// identity
@@ -39,6 +41,13 @@ export const poppySchema = z
 		audience: z.string().optional().describe("The company's issuer (audience)"),
 		uri: z.string().optional().describe("A redirect URI to validate"),
 		doc: z.record(z.unknown()).optional().describe("A client metadata document to validate"),
+		// session
+		userId: z.string().optional().describe("The user ID (subject)"),
+		method: z.string().optional().describe("The HTTP method (htm)"),
+		url: z.string().optional().describe("The request URL (htu)"),
+		agentId: z.string().optional().describe("Optional agent ID"),
+		accessToken: z.string().optional().describe("Optional access token for the ath claim"),
+		delegation: z.string().optional().describe("The delegation JWT (for the poppy_dlg header)"),
 	})
 	.superRefine((data, ctx) => {
 		const { action } = data;
@@ -65,6 +74,13 @@ export const poppySchema = z
 		rejectField("audience", ["identity"]);
 		rejectField("uri", ["identity"]);
 		rejectField("doc", ["identity"]);
+		// session-only fields
+		rejectField("userId", ["session"]);
+		rejectField("method", ["session"]);
+		rejectField("url", ["session"]);
+		rejectField("agentId", ["session"]);
+		rejectField("accessToken", ["session"]);
+		rejectField("delegation", ["session"]);
 
 		if (action === "discover") {
 			if (!data.domain) {
@@ -80,6 +96,14 @@ export const poppySchema = z
 					code: z.ZodIssueCode.custom,
 					path: ["op"],
 					message: "op is required for the 'identity' action",
+				});
+			}
+		} else if (action === "session") {
+			if (!data.op) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["op"],
+					message: "op is required for the 'session' action",
 				});
 			}
 		}
@@ -108,6 +132,6 @@ export async function poppyImpl(input, options = {}) {
 export const poppy = tool(poppyImpl, {
 	name: "poppy",
 	description:
-		"Poppy (Personal Agent Protocol) tool. Dispatches on an `action` enum: `discover` fetches and validates a company's poppy.json at https://{domain}/.well-known/poppy.json over HTTPS, following redirects (each HTTPS, final path exactly /.well-known/poppy.json with no query), validates required fields (protocol_version, organization.name/domain, at least one of agent/apis/web), checks organization.domain equals the serving host (case-insensitive), rejects non-HTTPS and loopback/private/link-local URLs, returns a normalized representation, and caches per-domain with a TTL. `identity` manages the agent's client metadata document and signing keys (build_metadata, generate_key, sign_assertion, validate_redirect, validate_jwks, validate_metadata). Requires network:outbound.",
+		"Poppy (Personal Agent Protocol) tool. Dispatches on an `action` enum: `discover` fetches and validates a company's poppy.json at https://{domain}/.well-known/poppy.json over HTTPS, following redirects (each HTTPS, final path exactly /.well-known/poppy.json with no query), validates required fields (protocol_version, organization.name/domain, at least one of agent/apis/web), checks organization.domain equals the serving host (case-insensitive), rejects non-HTTPS and loopback/private/link-local URLs, returns a normalized representation, and caches per-domain with a TTL. `identity` manages the agent's client metadata document and signing keys (build_metadata, generate_key, sign_assertion, validate_redirect, validate_jwks, validate_metadata). `session` generates Poppy-Session JWTs signed with delegated keys and issues delegations (sign_session, issue_delegation). Requires network:outbound.",
 	schema: poppySchema,
 });
