@@ -10,6 +10,7 @@ import * as conversation from "./conversation.js";
 import * as browser from "./browser.js";
 import * as tasks from "./tasks.js";
 import * as extensions from "./extensions.js";
+import * as security from "./security.js";
 
 /**
  * Registry of Poppy actions, keyed by action name. Each action module exports
@@ -27,6 +28,7 @@ export const ACTIONS = {
 	browser,
 	tasks,
 	extensions,
+	security,
 };
 
 /**
@@ -52,6 +54,7 @@ export const poppySchema = z
 				"browser",
 				"tasks",
 				"extensions",
+				"security",
 			])
 			.describe("The Poppy operation to perform"),
 		// discover
@@ -128,6 +131,16 @@ export const poppySchema = z
 		error: z.unknown().optional().describe("The extension_required error body"),
 		name: z.string().optional().describe("The extension name"),
 		content: z.unknown().optional().describe("The extension content to validate"),
+		// security
+		key: z.string().optional().describe("The logical key for a vault operation"),
+		value: z.string().optional().describe("The secret value to store in the vault"),
+		aud: z.string().optional().describe("The token/assertion audience to validate"),
+		expectedAud: z
+			.string()
+			.optional()
+			.describe("The verified company identifier (expected audience)"),
+		blind: z.boolean().optional().describe("Whether to blind-sign the assertion/delegation"),
+		prompt: z.string().optional().describe("The prompt parameter value"),
 	})
 	.superRefine((data, ctx) => {
 		const { action } = data;
@@ -143,7 +156,16 @@ export const poppySchema = z
 		// discover-only fields
 		rejectField("domain", ["discover"]);
 		// identity/session/oauth/verify/api fields
-		rejectField("op", ["identity", "session", "oauth", "api", "conversation", "browser", "tasks"]);
+		rejectField("op", [
+			"identity",
+			"session",
+			"oauth",
+			"api",
+			"conversation",
+			"browser",
+			"tasks",
+			"security",
+		]);
 		rejectField("clientId", ["identity", "oauth"]);
 		rejectField("clientName", ["identity"]);
 		rejectField("jwksUri", ["identity"]);
@@ -168,7 +190,7 @@ export const poppySchema = z
 		rejectField("state", ["oauth"]);
 		rejectField("code", ["oauth"]);
 		rejectField("codeVerifier", ["oauth"]);
-		rejectField("crossDevice", ["oauth"]);
+		rejectField("crossDevice", ["oauth", "security"]);
 		rejectField("refreshToken", ["oauth"]);
 		rejectField("token", ["oauth"]);
 		rejectField("tokenTypeHint", ["oauth"]);
@@ -205,6 +227,13 @@ export const poppySchema = z
 		rejectField("error", ["extensions"]);
 		rejectField("name", ["extensions"]);
 		rejectField("content", ["extensions"]);
+		// security-only fields
+		rejectField("key", ["security"]);
+		rejectField("value", ["security"]);
+		rejectField("aud", ["security"]);
+		rejectField("expectedAud", ["security"]);
+		rejectField("blind", ["security"]);
+		rejectField("prompt", ["security"]);
 
 		if (action === "discover") {
 			if (!data.domain) {
@@ -286,6 +315,14 @@ export const poppySchema = z
 					message: "op is required for the 'extensions' action",
 				});
 			}
+		} else if (action === "security") {
+			if (!data.op) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["op"],
+					message: "op is required for the 'security' action",
+				});
+			}
 		}
 	});
 
@@ -312,6 +349,6 @@ export async function poppyImpl(input, options = {}) {
 export const poppy = tool(poppyImpl, {
 	name: "poppy",
 	description:
-		"Poppy (Personal Agent Protocol) tool. Dispatches on an `action` enum: `discover` fetches and validates a company's poppy.json; `identity` manages the agent's client metadata document and signing keys; `session` generates Poppy-Session JWTs and issues delegations; `oauth` performs Direct Sign-In (authorization code + PKCE) and Device Sign-In (device authorization grant), refresh token rotation, revocation, and DPoP; `verify` verifies incoming Poppy-Session JWTs, delegations, and access tokens on company-side endpoints; `browser` joins a company's browser session via the browser-session endpoint; `tasks` fetches a company's excluded tasks, published agent skills, and feedback endpoint; `extensions` parses the extensions field from poppy.json, builds the Poppy-Extensions header, handles extension_required responses, and validates extension content. Requires network:outbound.",
+		"Poppy (Personal Agent Protocol) tool. Dispatches on an `action` enum: `discover` fetches and validates a company's poppy.json; `identity` manages the agent's client metadata document and signing keys; `session` generates Poppy-Session JWTs and issues delegations; `oauth` performs Direct Sign-In (authorization code + PKCE) and Device Sign-In (device authorization grant), refresh token rotation, revocation, and DPoP; `verify` verifies incoming Poppy-Session JWTs, delegations, and access tokens on company-side endpoints; `browser` joins a company's browser session via the browser-session endpoint; `tasks` fetches a company's excluded tasks, published agent skills, and feedback endpoint; `extensions` parses the extensions field from poppy.json, builds the Poppy-Extensions header, handles extension_required responses, and validates extension content; `security` enforces Poppy security considerations — keeps secrets out of model context, treats company content as data, validates audiences, and manages delegated keys and sign-in risks. Requires network:outbound.",
 	schema: poppySchema,
 });
