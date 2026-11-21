@@ -108,7 +108,7 @@
     "ink-spinner": "^5.0.0",
     "ink-text-input": "^6.0.0",
     "ioredis": "^6.0.0",
-    "jose": "^5.10.0",
+    "jose": "^6.2.18",
     "js-yaml": "^5.5.0",
     "jsdom": "^31.0.1",
     "jsonpath-plus": "^11.2.2",
