@@ -67,6 +67,20 @@ export function buildShowUrl(baseUrl) {
 }
 
 /**
+ * Construct the LiteLLM `/model/info` URL from a base URL. LiteLLM's route is
+ * relative to the base host, ignoring any `/v1` prefix on the base URL.
+ * @param {string} baseUrl - The provider base URL (e.g. `https://host/v1`)
+ * @returns {string} The LiteLLM `/model/info` endpoint URL
+ */
+export function buildModelInfoUrl(baseUrl) {
+	const trimmed = baseUrl.replace(/\/+$/, "");
+	// Strip a trailing /v1 (and any path) so the LiteLLM route is relative to
+	// the host, not the OpenAI-compatible prefix.
+	const host = trimmed.replace(/\/v1$/i, "");
+	return `${host}/model/info`;
+}
+
+/**
  * Parse `num_ctx` from an Ollama model `parameters` string.
  * @param {string} parameters - The Ollama model parameters string
  * @returns {number|undefined} The parsed `num_ctx`, or `undefined`
@@ -210,6 +224,47 @@ export async function getModelContextLength(providerConfig = {}, options = {}) {
 		}
 		const numCtx = parseNumCtx(data?.parameters);
 		if (numCtx !== undefined) return numCtx;
+	} catch {
+		// Fall through to the next candidate.
+	}
+
+	// Candidate 3: LiteLLM native `/model/info` endpoint. LiteLLM proxies serve
+	// an OpenAI-compatible `/v1/models` that returns only minimal fields
+	// (`{id, object, created, owned_by}`) and do not implement Ollama's
+	// `/api/show`, so the context window is only available via `/model/info`.
+	// Each model entry carries `max_input_tokens` / `max_output_tokens` in its
+	// `model_info` object; the usable prompt budget is `max_input_tokens`.
+	let modelInfoUrl;
+	try {
+		modelInfoUrl = buildModelInfoUrl(baseUrl);
+	} catch {
+		return undefined;
+	}
+	try {
+		const headers = { Accept: "application/json" };
+		if (sendKey) headers.Authorization = `Bearer ${apiKey}`;
+		const res = await fetch(modelInfoUrl, {
+			headers,
+			signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
+		});
+		if (!res.ok) throw new Error(`model/info endpoint returned ${res.status}`);
+		const data = await res.json();
+		// LiteLLM's /model/info returns an array of model entries (some versions
+		// wrap it in `{ data: [...] }`). Match the configured model by
+		// `model_name` (or `model_info.model_name`), then read
+		// `max_input_tokens` (falling back to `max_output_tokens`) from the
+		// entry's `model_info` object.
+		const entries = Array.isArray(data) ? data : data?.data;
+		const entry = (entries || []).find(
+			(m) => m?.model_name === model || m?.model_info?.model_name === model,
+		);
+		if (entry) {
+			const modelInfo = entry.model_info ?? entry;
+			const maxInput = modelInfo?.max_input_tokens;
+			if (positive(maxInput)) return maxInput;
+			const maxOutput = modelInfo?.max_output_tokens;
+			if (positive(maxOutput)) return maxOutput;
+		}
 	} catch {
 		// Fall through to return undefined.
 	}
