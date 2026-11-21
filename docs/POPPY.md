@@ -1,6 +1,6 @@
 # Poppy (Personal Agent Protocol)
 
-`madz` implements the [Poppy (Personal Agent Protocol)](https://personalagentprotocol.org/docs/1.0/spec) so it can act as a personal agent that discovers companies, signs in on a user's behalf, and completes tasks across a company's APIs, agents, and web surfaces — all under a single, auditable session.
+`madz` implements [Poppy (Personal Agent Protocol)](https://personalagentprotocol.org/docs/1.0/spec) so it can act as a personal agent that discovers companies, signs in on a user's behalf, and completes tasks across a company's APIs, agents, and web surfaces — all under a single, auditable session.
 
 This document is the canonical reference for the Poppy integration. It covers every capability exposed by the `poppy` tool, the configuration documents involved, and end-to-end usage examples.
 
@@ -16,17 +16,17 @@ The `poppy` tool is registered in `src/tools/index.js` and gated behind the `net
 
 | Action | Purpose |
 | ------ | ------- |
-| `discover` | Fetch and validate a company's `poppy.json` |
-| `identity` | Manage the agent's client metadata document and signing keys |
-| `session` | Generate Poppy-Session JWTs and issue delegations |
-| `oauth` | Direct Sign-In (authorization code + PKCE) and Device Sign-In, refresh rotation, revocation, DPoP |
-| `verify` | Verify incoming Poppy-Session JWTs, delegations, and access tokens |
 | `api` | Call a company's OpenAPI and MCP APIs with Poppy headers |
-| `conversation` | Start, send, read, and stream messages with a company's agent |
 | `browser` | Join a company's browser session |
-| `tasks` | Fetch a company's excluded tasks, published skills, and feedback endpoint |
+| `conversation` | Start, send, read, and stream messages with a company's agent |
+| `discover` | Fetch and validate a company's `poppy.json` |
 | `extensions` | Parse and handle Poppy protocol extensions |
+| `identity` | Manage the agent's client metadata document and signing keys |
+| `oauth` | Direct Sign-In (authorization code + PKCE) and Device Sign-In, refresh rotation, revocation, DPoP |
 | `security` | Enforce Poppy security considerations |
+| `session` | Generate Poppy-Session JWTs and issue delegations |
+| `tasks` | Fetch a company's excluded tasks, published skills, and feedback endpoint |
+| `verify` | Verify incoming Poppy-Session JWTs, delegations, and access tokens |
 
 ## Configuration
 
