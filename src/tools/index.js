@@ -40,6 +40,7 @@ import { nosql } from "./nosql/index.js";
 import { env } from "./env/index.js";
 import { getConfig } from "./config/index.js";
 import { decision } from "./decision/index.js";
+import { poppy } from "./poppy/index.js";
 import { tool } from "@langchain/core/tools";
 import { MCPAdapter } from "@langchain/mcp-adapters";
 import { logger } from "../shared/logger.js";
@@ -96,6 +97,7 @@ export const TOOL_PERMISSIONS = {
 	code: ["filesystem:read", "filesystem:write"],
 	getConfig: ["filesystem:read"],
 	decision: ["network:outbound"],
+	poppy: ["network:outbound"],
 };
 
 /**
@@ -263,6 +265,7 @@ export const TOOL_CLASSIFICATIONS = {
 		"testing",
 		"performance",
 	],
+	poppy: ["orchestrator", "research", "coding", "security-audit"],
 };
 
 /**
@@ -331,6 +334,7 @@ export const ORCHESTRATOR_TOOLS = [
 	"jira",
 	"memory",
 	"process",
+	"poppy",
 	"image",
 	"reflectionSessions",
 	"sampling",
@@ -361,6 +365,7 @@ export const TOOLS = {
 	nosql,
 	env,
 	process: processTool,
+	poppy,
 	sampling,
 	agents,
 	searchSession,
