@@ -5,7 +5,7 @@ TBD - created by archiving change headless-browser-rendering. Update Purpose aft
 ## Requirements
 ### Requirement: Capture screenshot in headless Chromium
 
-The system SHALL provide a `screenshotWeb` tool that renders a URL in headless Chromium, saves the captured screenshot as a JPEG to disk under the configured screenshots directory, and returns the file path plus MIME type, so the agent can capture a rendered page and feed the saved file to `readImage` for vision analysis.
+The system SHALL provide a `screenshotWeb` tool that renders a URL in headless Chromium, saves the captured screenshot as a JPEG to disk under the configured screenshots directory, and returns the file path plus MIME type, so the agent can capture a rendered page and feed the saved file to the `image` tool's `read` action for vision analysis.
 
 #### Scenario: Successful screenshot capture
 - **WHEN** the tool is invoked with a valid URL

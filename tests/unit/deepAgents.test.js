@@ -335,12 +335,12 @@ describe("compactAgentContext", () => {
 		};
 	}
 
-	it("removes readImage ToolMessages with non-empty data", async () => {
+	it("removes image tool ToolMessages with non-empty data", async () => {
 		const { compactAgentContext } = await import("../../src/agent/deepAgents.js");
 		const messages = [
 			makeMessage("human", "Look at this image"),
 			makeMessage("tool", JSON.stringify({ ok: true, mimeType: "image/png", data: "aGVsbG8=" }), {
-				name: "readImage",
+				name: "image",
 			}),
 			makeMessage("ai", "I see the image"),
 		];
@@ -350,7 +350,7 @@ describe("compactAgentContext", () => {
 		assert.strictEqual(result.ok, true);
 		assert.strictEqual(result.removedVision, 1);
 		assert.strictEqual(result.remaining, 2);
-		// The readImage ToolMessage should be removed.
+		// The image tool ToolMessage should be removed.
 		assert.strictEqual(updated.messages.length, 3); // RemoveMessage sentinel + 2 messages
 		assert.strictEqual(updated.messages[1].content, "Look at this image");
 		assert.strictEqual(updated.messages[2].content, "I see the image");

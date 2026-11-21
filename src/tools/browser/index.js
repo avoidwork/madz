@@ -424,7 +424,7 @@ export const browser = tool(browserImpl, {
 		"Drive a real headless Chromium browser — click, type, fill, navigate, press keys, " +
 		"screenshot, extract DOM text, wait for selectors/network-idle, and evaluate JavaScript " +
 		"in page context. The screenshot action captures a JPEG, saves it to memory/screenshots/, " +
-		"and returns its path plus MIME type so readImage can read it for vision analysis. " +
+		"and returns its path plus MIME type so the image tool's read action can read it for vision analysis. " +
 		"Every HTTP(S) request the page makes (navigations, redirects, sub-resources) is checked " +
 		"against the configured allowlist; WebSocket connections are not. Extract and evaluate " +
 		"results are truncated to a configured size. Every call returns a sessionId; pass it back " +

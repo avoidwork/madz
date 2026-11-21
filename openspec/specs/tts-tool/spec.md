@@ -79,7 +79,7 @@ The `textToSpeech` tool SHALL validate the resolved output path against the sand
 - **THEN** it returns `{ ok: false, error: <descriptive message> }` and does not write the file
 
 ### Requirement: textToSpeech schema exposes openaiApiKey field
-The `textToSpeech` tool schema SHALL expose an optional `openaiApiKey` field, consistent with the `generateImage` tool.
+The `textToSpeech` tool schema SHALL expose an optional `openaiApiKey` field, consistent with the `image` tool's `generate` action.
 
 #### Scenario: Schema accepts openaiApiKey
 - **WHEN** the tool schema is inspected

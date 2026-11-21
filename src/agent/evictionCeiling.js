@@ -2,8 +2,8 @@ import { createFilesystemMiddleware } from "deepagents";
 import { loadConfig } from "../config/loader.js";
 
 /**
- * Character allowance for the JSON envelope that wraps the base64 payload in a
- * `readImage` ToolMessage: `{"ok":true,"mimeType":"image/png","data":"…"}`.
+ * Character allowance for the JSON envelope that wraps the base64 payload in an
+ * `image` tool ToolMessage (the `read` action's `image_url` content block).
  * The fixed keys are ~40 characters; 128 leaves generous headroom for a long
  * MIME type without letting the envelope itself push the message over the
  * ceiling.

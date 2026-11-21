@@ -37,10 +37,10 @@ The system SHALL expose a compaction path from the agent (`src/agent/deepAgents.
 - **THEN** the `compactContext` is threaded into `ConversationArea`
 
 ### Requirement: Compaction removes vision blocks
-The system SHALL walk the agent's message state and remove messages that contain a vision block — a `readImage` ToolMessage whose content JSON has a non-empty `data` field, and/or messages with `image_url` content blocks.
+The system SHALL walk the agent's message state and remove messages that contain a vision block — an `image` tool ToolMessage whose content JSON has a non-empty `data` field, and/or messages with `image_url` content blocks.
 
-#### Scenario: Remove readImage ToolMessage with base64 data
-- **WHEN** the agent's message state contains a `readImage` ToolMessage whose content JSON has a non-empty `data` field
+#### Scenario: Remove image tool ToolMessage with base64 data
+- **WHEN** the agent's message state contains an `image` tool ToolMessage whose content JSON has a non-empty `data` field
 - **THEN** the compaction routine removes that message
 
 #### Scenario: Remove message with image_url content block

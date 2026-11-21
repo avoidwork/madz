@@ -22,7 +22,7 @@ import {
 import { loadConfig } from "../../src/config/loader.js";
 
 /**
- * Build a `readImage`-shaped ToolMessage whose stringified content is exactly
+ * Build an `image`-shaped ToolMessage whose stringified content is exactly
  * `totalLength` characters (or the closest achievable length above it).
  * @param {number} totalLength - Desired stringified content length
  * @returns {ToolMessage} The tool message
@@ -35,7 +35,7 @@ function makeReadImageMessage(totalLength) {
 		mimeType: "image/png",
 		data: "A".repeat(dataLength),
 	});
-	return new ToolMessage({ content, name: "readImage", tool_call_id: "call_1", id: "msg_1" });
+	return new ToolMessage({ content, name: "image", tool_call_id: "call_1", id: "msg_1" });
 }
 
 /**
@@ -157,7 +157,7 @@ describe("eviction at the ceiling", () => {
 			backend: () => new StateBackend({ state: { files: {} } }),
 		});
 
-	it("does not evict a readImage result just under the ceiling", async () => {
+	it("does not evict an image result just under the ceiling", async () => {
 		const state = { files: {} };
 		const message = makeReadImageMessage(ceilingChars - 1);
 		const { evicted, content } = await runWrapToolCall(makeMiddleware(), message, state);

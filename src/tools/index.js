@@ -2,8 +2,7 @@ import { clarify } from "./clarify/index.js";
 import { cronJob } from "./cron/index.js";
 import { date } from "./date/index.js";
 import { agents } from "./agents/index.js";
-import { generateImage } from "./image/index.js";
-import { readImage } from "./image/readImage.js";
+import { image, imageImpl } from "./image/index.js";
 import { memory } from "./memory/index.js";
 import { sampling } from "./sampling/index.js";
 import { searchSession } from "./session/index.js";
@@ -56,8 +55,7 @@ export const TOOL_PERMISSIONS = {
 	createSkill: ["filesystem:write"],
 	skill: ["filesystem:read"],
 	date: [],
-	generateImage: ["network:outbound"],
-	readImage: ["filesystem:read"],
+	image: ["filesystem:read"],
 	memory: ["filesystem:read", "filesystem:write"],
 	todo: ["filesystem:read", "filesystem:write"],
 	file: ["filesystem:read", "filesystem:write"],
@@ -144,8 +142,7 @@ export const TOOL_CLASSIFICATIONS = {
 		"performance",
 		"coding",
 	],
-	generateImage: ["documentation"],
-	readImage: ["search", "research", "coding", "documentation", "debug"],
+	image: ["search", "research", "coding", "documentation", "debug"],
 	memory: [
 		"search",
 		"debug",
@@ -334,7 +331,7 @@ export const ORCHESTRATOR_TOOLS = [
 	"jira",
 	"memory",
 	"process",
-	"readImage",
+	"image",
 	"reflectionSessions",
 	"sampling",
 	"searchSession",
@@ -352,8 +349,7 @@ export const TOOLS = {
 	createSkill,
 	skill,
 	date,
-	generateImage,
-	readImage,
+	image,
 	memory,
 	todo,
 	file,
@@ -507,9 +503,24 @@ export async function buildToolConfig(options) {
 				continue;
 			}
 
-			case "generateImage": {
-				if (!hasAllPerms || !runtimeOptions.falApiKey) continue;
-				tools.push(TOOLS[toolName]);
+			case "image": {
+				if (!hasAllPerms) continue;
+				// The `image` tool registers with only `filesystem:read` so the
+				// local actions (read/resize/metadata/convert) are available in
+				// read-only sandboxes. The `generate` action additionally needs
+				// `network:outbound` and the FAL API key; gate it at runtime by
+				// injecting the resolved key and permission flag into the tool's
+				// options so the impl can reject `generate` when either is absent.
+				const imageTool = tool(
+					(input, options = {}) =>
+						imageImpl(input, {
+							...options,
+							falApiKey: runtimeOptions.falApiKey,
+							networkOutbound: enabledSet.has("network:outbound"),
+						}),
+					{ name: "image", description: TOOLS.image.description, schema: TOOLS.image.schema },
+				);
+				tools.push(imageTool);
 				continue;
 			}
 
