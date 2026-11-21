@@ -85,30 +85,27 @@ describe("orchestrator - cronJob access", () => {
 	});
 });
 
-describe("orchestrator - readImage access", () => {
-	it("ORCHESTRATOR_TOOLS should include readImage", () => {
-		ok(ORCHESTRATOR_TOOLS.includes("readImage"), "ORCHESTRATOR_TOOLS should include readImage");
+describe("orchestrator - image access", () => {
+	it("ORCHESTRATOR_TOOLS should include image", () => {
+		ok(ORCHESTRATOR_TOOLS.includes("image"), "ORCHESTRATOR_TOOLS should include image");
 	});
 
-	it("readImage should be classified for subagent types", () => {
-		ok(TOOL_CLASSIFICATIONS.readImage, "readImage should have a TOOL_CLASSIFICATIONS entry");
+	it("image should be classified for subagent types", () => {
+		ok(TOOL_CLASSIFICATIONS.image, "image should have a TOOL_CLASSIFICATIONS entry");
 		ok(
-			TOOL_CLASSIFICATIONS.readImage.includes("coding"),
-			"readImage should include coding in its classifications",
+			TOOL_CLASSIFICATIONS.image.includes("coding"),
+			"image should include coding in its classifications",
 		);
 		ok(
-			TOOL_CLASSIFICATIONS.readImage.includes("documentation"),
-			"readImage should include documentation in its classifications",
+			TOOL_CLASSIFICATIONS.image.includes("documentation"),
+			"image should include documentation in its classifications",
 		);
 	});
 
-	it("getToolsForAgentTypes should return readImage for coding type", async () => {
+	it("getToolsForAgentTypes should return image for coding type", async () => {
 		const tools = await loadTools();
 		const toolsForCoding = getToolsForAgentTypes(["coding"], tools);
-		ok(
-			toolsForCoding.includes("readImage"),
-			"getToolsForAgentTypes(['coding']) should include readImage",
-		);
+		ok(toolsForCoding.includes("image"), "getToolsForAgentTypes(['coding']) should include image");
 	});
 });
 

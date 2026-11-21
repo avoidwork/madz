@@ -3,8 +3,8 @@
  *
  * The replacement only works if deepagents' `mergeMiddlewareStack` displaces the
  * library's own FilesystemMiddleware rather than stacking a second copy. If a
- * second copy survived, its 20,000-token default would still evict a
- * `readImage` result and the bug would persist while looking fixed — so this
+ * second copy survived, its 20,000-token default would still evict an
+ * `image` tool result and the bug would persist while looking fixed — so this
  * asserts both the count and the behaviour of the assembled stack.
  */
 
@@ -47,7 +47,7 @@ describe("createDeepAgentsOrchestrator filesystem middleware", () => {
 		assert.strictEqual(
 			filesystem.length,
 			1,
-			"a second FilesystemMiddleware would keep evicting readImage results",
+			"a second FilesystemMiddleware would keep evicting image tool results",
 		);
 	});
 
@@ -83,7 +83,7 @@ describe("createDeepAgentsOrchestrator filesystem middleware", () => {
 		});
 		const message = new ToolMessage({
 			content,
-			name: "readImage",
+			name: "image",
 			tool_call_id: "call_1",
 			id: "msg_1",
 		});
@@ -99,7 +99,7 @@ describe("createDeepAgentsOrchestrator filesystem middleware", () => {
 			async () => message,
 		);
 
-		assert.ok(!result?.update?.files, "readImage result at the ceiling must not be evicted");
+		assert.ok(!result?.update?.files, "image tool result at the ceiling must not be evicted");
 		const out = result?.update?.messages?.[0] ?? result;
 		const parsed = JSON.parse(String(out.content));
 		assert.strictEqual(parsed.ok, true);

@@ -5,7 +5,7 @@
  * `general-purpose` subagent only. The 12 configured subagents receive just each
  * spec's own `middleware` array, so the replacement must be attached to every
  * definition we generate — otherwise they keep the library's 20,000-token
- * eviction default and destroy `readImage` results before the model sees them.
+ * eviction default and destroy `image` tool results before the model sees them.
  */
 
 import { describe, it } from "node:test";
@@ -31,7 +31,7 @@ const EXPECTED_AGENT_NAMES = [
 ];
 
 /**
- * Build a `readImage`-shaped ToolMessage of an exact stringified length.
+ * Build an `image`-shaped ToolMessage of an exact stringified length.
  * @param {number} totalLength - Desired stringified content length
  * @returns {ToolMessage} The tool message
  */
@@ -42,7 +42,7 @@ function makeReadImageMessage(totalLength) {
 		mimeType: "image/png",
 		data: "A".repeat(Math.max(0, totalLength - envelope.length)),
 	});
-	return new ToolMessage({ content, name: "readImage", tool_call_id: "call_1", id: "msg_1" });
+	return new ToolMessage({ content, name: "image", tool_call_id: "call_1", id: "msg_1" });
 }
 
 /**

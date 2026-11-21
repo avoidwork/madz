@@ -208,7 +208,7 @@ buildToolConfig({ permissions, allowedPaths, maxReadSize, registry, sessionsDir,
 │   ├── switch toolName:
 │   │   ├── clarify | sampling | process → always create (no perms gate)
 │   │   ├── searchWeb → if hasAllPerms && any search backend configured
-│   │   ├── generateImage → if hasAllPerms && falApiKey
+│   │   ├── image → if hasAllPerms
 │   │   ├── textToSpeech → if openaiApiKey
 │   │   ├── api → if hasAllPerms, via createApiTool(config?.api, { allowedPaths })
 │   │   ├── graphql | json | yaml | data | webhook → if hasAllPerms, plain instance
@@ -233,7 +233,7 @@ allTools = buildToolConfig(...)
 ├── orchestratorTools = allTools.filter(t => ORCHESTRATOR_TOOLS.includes(t.name))
 │   └── ORCHESTRATOR_TOOLS: clarify, cronJob, date, memory, process, reflectionSessions,
 │       searchSession, searchWeb, agents, sampling, createSkill,
-│       searchCode, indexCode, getConfig, readImage
+│       searchCode, indexCode, getConfig, image
 └── per subagent: getToolsForAgentTypes([agentName], TOOLS)
     └── TOOL_CLASSIFICATIONS[toolName] is an array of agent names;
         a tool is included when the agent's name appears in that array
@@ -390,8 +390,8 @@ TOOL_PERMISSIONS (src/tools/index.js) — tool registers only when ALL required 
 ├── cronJob → "network:outbound"
 ├── createSkill → "filesystem:write"
 ├── date → [] (always)
-├── generateImage → "network:outbound" + falApiKey
-├── readImage | agents | reflectionSessions | searchCode | json | yaml | getConfig
+├── image → "filesystem:read" + "network:outbound"
+├── agents | reflectionSessions | searchCode | json | yaml | getConfig
 │   → "filesystem:read"
 ├── memory | spreadsheet | generatePdf | webhook → "filesystem:read" + "filesystem:write"
 │   (generatePdf also "network:outbound")
@@ -465,12 +465,14 @@ textToSpeech tool:
 **Entry:** `src/tools/image/index.js`
 
 ```
-generateImage tool:
-├── validate FAL_API_KEY exists
-├── POST https://queue.fal.run/fal-ai/flux/klein (prompt + options)
-├── poll queue for completion
-├── download image URLs
-└── return { images: [{ url }], status }
+image tool:
+├── dispatch on action (read | resize | metadata | convert | generate)
+├── read → validate path, read file, downscale to image.maxDimension, return image_url block
+├── resize → resize to target width/height or max dimension, preserve aspect ratio
+├── metadata → return image metadata via sharp
+├── convert → convert to target format (png/jpeg/webp/etc.)
+└── generate → validate FAL_API_KEY exists, POST https://queue.fal.run/fal-ai/flux/klein,
+    return { ok, imageUrl?, error? }
 ```
 
 ## Clarify
@@ -772,7 +774,7 @@ index.js
 │     ├── tools/agents/ → workspace/loadAgents.js — AGENTS.md discovery
 │     ├── tools/reflection/ → reflectionSessions
 │     ├── tools/web/ → sandbox/urlFilter.js, fetch — searchWeb
-│     ├── tools/image/ → FAL_API_KEY — generateImage via queue.fal.run
+│     ├── tools/image/ → FAL_API_KEY — image tool (read/resize/metadata/convert/generate)
 │     ├── tools/tts/ → OPENAI_API_KEY — textToSpeech via OpenAI audio endpoint
 │     ├── tools/fileExtract/ → docx/pptx/xlsx/pdf extraction (docx, pptx, xlsx, pdf tools)
 │     ├── tools/pdf/ → generatePdf
@@ -788,7 +790,7 @@ index.js
 │     ├── tools/webhook/ → webhook tool
 │     ├── tools/dns/ → namecom tool (name.com API; NAMECOM_USERNAME/NAMECOM_TOKEN)
 │     ├── tools/config/ → getConfig
-│     └── tools/image readImage → filesystem:read
+│     └── tools/image → filesystem:read + network:outbound
 ├── sandbox/pathResolver.js → node:path  (live: tools/common.js)
 ├── sandbox/urlFilter.js → node:url  (live: tools/common.js, tools/web, tools/api, tools/graphql)
 ├── skills/registry.js → discoverer.js, validator.js, agentMapper.js

@@ -122,25 +122,25 @@ describe("tool registration - integration", () => {
 		assert.ok(toolNames.includes("searchWeb"));
 	});
 
-	it("registers image_generate with network:outbound and fal", async () => {
+	it("registers image with network:outbound and filesystem:read", async () => {
 		const tools = await buildToolConfig({
-			permissions: ["network:outbound"],
+			permissions: ["network:outbound", "filesystem:read"],
 			config: {
 				providers: { fal: { credentials: { apiKey: "sk-fake-fal" } } },
 				search: { exa: {} },
 			},
 		});
 		const toolNames = tools.map((t) => t.name);
-		assert.ok(toolNames.includes("generateImage"));
+		assert.ok(toolNames.includes("image"));
 	});
 
-	it("does not register image_generate without fal", async () => {
+	it("does not register image without filesystem:read", async () => {
 		const tools = await buildToolConfig({
 			permissions: ["network:outbound"],
 			config: { providers: { fal: {} }, search: { exa: {} } },
 		});
 		const toolNames = tools.map((t) => t.name);
-		assert.ok(!toolNames.includes("generateImage"));
+		assert.ok(!toolNames.includes("image"));
 	});
 
 	it("registers cronJob with network:outbound", async () => {

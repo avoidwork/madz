@@ -12,7 +12,7 @@ The system SHALL document five config keys in `config.yaml` that are read by liv
 
 #### Scenario: providers.fal is documented as an optional backend
 - **WHEN** `config.yaml` is loaded
-- **THEN** `providers.fal` is present as a documented (commented-out) optional backend that gates `generateImage` registration, and is not an empty stub implying it is configured
+- **THEN** `providers.fal` is present as a documented (commented-out) optional backend that gates the `image` tool's `generate` action registration, and is not an empty stub implying it is configured
 
 #### Scenario: memory.maxEntries is present with default 100
 - **WHEN** `config.yaml` is loaded

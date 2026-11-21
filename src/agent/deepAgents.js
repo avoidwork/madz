@@ -127,7 +127,7 @@ export async function createSubagentDefinitions(allTools, model, skillRegistry, 
 			// `middleware` (parent custom middleware reaches just the auto-injected
 			// `general-purpose` subagent). Without this, every configured subagent
 			// keeps deepagents' 20,000-token eviction default and destroys
-			// `readImage` results before the model can see them.
+			// `image` tool results before the model can see them.
 			// A fresh instance per subagent mirrors the library's own per-subagent
 			// `createSubagentDefaultMiddleware`.
 			middleware: [createEvictionAwareFilesystemMiddleware({ backend, model: agentModel })],
@@ -146,7 +146,7 @@ export async function createSubagentDefinitions(allTools, model, skillRegistry, 
  * Determine whether a message contains a vision block (base64 image data).
  *
  * A message is considered vision-bearing when it is either:
- * - A `readImage` ToolMessage whose content JSON has a non-empty `data` field
+ * - An `image` tool ToolMessage whose content JSON has a non-empty `data` field
  *   (the base64-encoded image payload), or
  * - A message whose content array contains an `image_url` content block.
  *
@@ -156,8 +156,8 @@ export async function createSubagentDefinitions(allTools, model, skillRegistry, 
 export function hasVisionBlock(message) {
 	const type = message?._getType?.() ?? message?.type ?? message?.role;
 
-	// A `readImage` ToolMessage whose content JSON has a non-empty `data` field.
-	if (type === "tool" && message.name === "readImage") {
+	// An `image` tool ToolMessage whose content JSON has a non-empty `data` field.
+	if (type === "tool" && message.name === "image") {
 		const content = message.content;
 		if (typeof content === "string") {
 			try {
@@ -295,7 +295,7 @@ export async function compactAgentContext(agent, config, sessionState, options =
 		}
 	}
 
-	// Filter out vision-bearing messages (readImage ToolMessages with base64
+	// Filter out vision-bearing messages (image tool ToolMessages with base64
 	// data and image_url content blocks) from the summarized set.
 	const filtered = (summarized || messages).filter((m) => !hasVisionBlock(m));
 	const removedVision = (summarized ? summarized.length : messages.length) - filtered.length;
@@ -522,8 +522,8 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	// Replacement for deepagents' FilesystemMiddleware with an eviction ceiling
 	// fixed to fit image payloads. The library evicts any ToolMessage whose
 	// stringified content exceeds `toolTokenLimitBeforeEvict * 4` characters
-	// (default 20,000 tokens -> 80,000 chars), which destroys `readImage`'s
-	// base64 JSON before the model can see it.
+	// (default 20,000 tokens -> 80,000 chars), which destroys the `image`
+	// tool's base64 JSON before the model can see it.
 	// Displaces the library default via same-name merge in `mergeMiddlewareStack`.
 	// The name is asserted in tests: if it drifts, a second copy stacks and the
 	// bug survives while looking fixed.

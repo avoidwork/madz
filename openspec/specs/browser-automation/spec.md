@@ -61,7 +61,7 @@ The system SHALL support a `screenshot` action that captures a full-page screens
 
 #### Scenario: Capture a screenshot
 - **WHEN** the `browser` tool is invoked with `action: "screenshot"`
-- **THEN** the tool returns a structured result containing a base64-encoded screenshot suitable for `readImage`
+- **THEN** the tool returns a structured result containing a base64-encoded screenshot suitable for the `image` tool's `read` action
 
 ### Requirement: Browser tool supports extracting DOM text
 The system SHALL support an `extract` action that returns the page's DOM text.

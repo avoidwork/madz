@@ -4,7 +4,7 @@ import { writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import sharp from "sharp";
-import { readImageImpl } from "../../../../src/tools/image/readImage.js";
+import { imageImpl } from "../../../../src/tools/image/index.js";
 
 let testDir;
 
@@ -18,7 +18,7 @@ after(() => {
 });
 
 describe("image screenshot -> read flow", () => {
-	it("a large screenshot is downscaled by readImage and returned as an image_url block", async () => {
+	it("a large screenshot is downscaled by the image read action and returned as an image_url block", async () => {
 		// Build a realistic large screenshot (wider than image.maxDimension default 3000)
 		const w = 4000;
 		const h = 2500;
@@ -35,13 +35,13 @@ describe("image screenshot -> read flow", () => {
 			.png()
 			.toBuffer();
 
-		// Save the raw screenshot and let readImage downscale it internally.
+		// Save the raw screenshot and let the image read action downscale it internally.
 		const filePath = join(testDir, "screenshot.png");
 		writeFileSync(filePath, raw);
 
-		const result = await readImageImpl({ path: filePath }, { allowedPaths: [testDir] });
+		const result = await imageImpl({ action: "read", path: filePath }, { allowedPaths: [testDir] });
 
-		assert.ok(Array.isArray(result), `readImage should succeed: ${result}`);
+		assert.ok(Array.isArray(result), `image read should succeed: ${result}`);
 		assert.strictEqual(result[0].type, "image_url");
 	});
 });

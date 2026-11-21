@@ -7,7 +7,7 @@ import { createAgent } from "langchain";
 import { ChatOpenAI } from "@langchain/openai";
 import { ToolMessage } from "@langchain/core/messages";
 import sharp from "sharp";
-import { readImage } from "../../src/tools/image/readImage.js";
+import { image } from "../../src/tools/image/index.js";
 import {
 	createEvictionAwareFilesystemMiddleware,
 	deriveToolTokenLimitBeforeEvict,
@@ -80,7 +80,7 @@ async function writePngNear(dir, target) {
 }
 
 /**
- * Build a `readImage`-shaped ToolMessage of an exact stringified length.
+ * Build an `image`-shaped ToolMessage of an exact stringified length.
  * @param {number} totalLength - Desired stringified content length
  * @param {string} toolCallId - Tool call id
  * @returns {ToolMessage} The tool message
@@ -94,7 +94,7 @@ function makeReadImageMessage(totalLength, toolCallId = "call_1") {
 	});
 	return new ToolMessage({
 		content,
-		name: "readImage",
+		name: "image",
 		tool_call_id: toolCallId,
 		id: `${toolCallId}-msg`,
 	});
@@ -148,7 +148,10 @@ const toolCallCompletion = (path) =>
 							{
 								id: "call_big",
 								type: "function",
-								function: { name: "readImage", arguments: JSON.stringify({ path }) },
+								function: {
+									name: "image",
+									arguments: JSON.stringify({ action: "read", path }),
+								},
 							},
 						],
 					},
@@ -169,13 +172,13 @@ const makeModel = () =>
 	});
 
 /**
- * End-to-end acceptance criterion for issue #1429: a real `readImage` whose
+ * End-to-end acceptance criterion for issue #1429: a real `image` tool whose
  * base64 payload is above deepagents' 80,000-char default must survive the
  * filesystem middleware's eviction check and reach the model as an image block
- * inside the tool message. Drives a REAL createAgent with the REAL readImage
- * tool and the REAL replacement middleware against a mocked fetch.
+ * inside the tool message. Drives a REAL createAgent with the REAL image tool
+ * and the REAL replacement middleware against a mocked fetch.
  */
-describe("integration - readImage survives eviction and reaches the model as vision", () => {
+describe("integration - image tool survives eviction and reaches the model as vision", () => {
 	let testDir;
 	let originalFetch;
 	let fetchCalls;
@@ -200,7 +203,7 @@ describe("integration - readImage survives eviction and reaches the model as vis
 		globalThis.fetch = originalFetch;
 	});
 
-	it("keeps a large readImage result intact and sends its image block to the model", async () => {
+	it("keeps a large image tool result intact and sends its image block to the model", async () => {
 		const { path, base64Length } = await writePngNear(testDir, TARGET_BASE64_CHARS - 128);
 		assert.ok(
 			base64Length > 20000 * 4,
@@ -216,7 +219,7 @@ describe("integration - readImage survives eviction and reaches the model as vis
 
 		const agent = createAgent({
 			model: makeModel(),
-			tools: [readImage],
+			tools: [image],
 			middleware: [createEvictionAwareFilesystemMiddleware({})],
 		});
 
@@ -226,9 +229,9 @@ describe("integration - readImage survives eviction and reaches the model as vis
 
 		// 1. The persisted ToolMessage is still an intact image block.
 		const toolMessage = result.messages.find(
-			(m) => (m._getType?.() ?? m.type) === "tool" && m.name === "readImage",
+			(m) => (m._getType?.() ?? m.type) === "tool" && m.name === "image",
 		);
-		assert.ok(toolMessage, "expected a readImage ToolMessage in the transcript");
+		assert.ok(toolMessage, "expected an image tool ToolMessage in the transcript");
 		assert.ok(Array.isArray(toolMessage.content), "tool result must not be eviction prose");
 		const url = toolMessage.content[0].image_url.url;
 		const data = url.slice(url.indexOf(",") + 1);
