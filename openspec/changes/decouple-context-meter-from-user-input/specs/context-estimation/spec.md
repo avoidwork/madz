@@ -1,0 +1,18 @@
+# Spec Delta
+
+## MODIFIED Requirements
+
+### Requirement: TUI context counter uses the model tokenizer
+The TUI context counter SHALL compute the context size by calling `model.getNumTokensFromMessages(messages)` on the message array sourced from `getContextMessages()`, falling back to `sessionState.getConversation()` when the accessor is unavailable. The counter SHALL NOT recompute on user submit by appending the just-typed HumanMessage; it SHALL reflect the provider-reported input token count from the latest real model call.
+
+#### Scenario: Counter uses the model tokenizer on the context messages
+- **WHEN** the TUI computes the context size for a session
+- **THEN** it calls `model.getNumTokensFromMessages(messages)` on the message array from `getContextMessages()`
+
+#### Scenario: Counter falls back to sessionState when accessor is unavailable
+- **WHEN** `getContextMessages()` is unavailable or returns no messages
+- **THEN** the context counter falls back to `sessionState.getConversation()`
+
+#### Scenario: Counter does not react to user submit
+- **WHEN** the user submits a message before any provider response
+- **THEN** the context counter does not recompute by appending the just-typed HumanMessage
