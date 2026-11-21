@@ -16,6 +16,9 @@ import { logger } from "../shared/logger.js";
 /** Overhead in tokens measured on the latest real model call; null until measured. */
 let overhead = null;
 
+/** Provider-reported input tokens on the latest real model call; null until measured. */
+let inputTokens = null;
+
 /**
  * Record the request overhead measured on a real model call.
  * @param {number} tokens - Provider input tokens minus tokenizer message tokens
@@ -31,6 +34,34 @@ export function setContextOverhead(tokens) {
  */
 export function getContextOverhead() {
 	return overhead;
+}
+
+/**
+ * Record the provider-reported input tokens measured on a real model call.
+ * @param {number} tokens - Provider-reported input tokens
+ * @returns {void}
+ */
+export function setContextInputTokens(tokens) {
+	inputTokens = Number.isFinite(tokens) && tokens > 0 ? tokens : null;
+}
+
+/**
+ * Get the provider-reported input tokens measured on the latest real model call.
+ * @returns {number | null} Input tokens, or null before the first measured call
+ */
+export function getContextInputTokens() {
+	return inputTokens;
+}
+
+/**
+ * Reset the calibration state (overhead and provider-reported input tokens).
+ * Used when the context changes in a way that invalidates prior measurements,
+ * e.g. starting a new session or compacting the context window.
+ * @returns {void}
+ */
+export function resetContextCalibration() {
+	overhead = null;
+	inputTokens = null;
 }
 
 /**
@@ -78,12 +109,15 @@ export function createContextCalibrationMiddleware(options = {}) {
 		async wrapModelCall(request, handler) {
 			const result = await handler(request);
 			const real = readInputTokens(result);
-			if (real > 0 && typeof model?.getNumTokensFromMessages === "function") {
-				try {
-					const { totalCount } = await model.getNumTokensFromMessages(request.messages ?? []);
-					setContextOverhead(real - totalCount);
-				} catch (err) {
-					logger.warn({ error: err?.message }, "[context] calibration skipped");
+			if (real > 0) {
+				setContextInputTokens(real);
+				if (typeof model?.getNumTokensFromMessages === "function") {
+					try {
+						const { totalCount } = await model.getNumTokensFromMessages(request.messages ?? []);
+						setContextOverhead(real - totalCount);
+					} catch (err) {
+						logger.warn({ error: err?.message }, "[context] calibration skipped");
+					}
 				}
 			}
 			return result;

@@ -2,9 +2,11 @@
 
 ## Purpose
 TBD - created by archiving change tui-context-meter-search. Update Purpose after archive.
+
 ## Requirements
+
 ### Requirement: Status bar renders a context-window utilization meter
-The TUI status bar SHALL render a visual context-window utilization meter instead of a bare token count, showing the proportion of the context window used. The meter SHALL display a bar of block characters (e.g. `[▮▮▮▯▯▯] 62%`) and a percentage label.
+The TUI status bar SHALL render a visual context-window utilization meter instead of a bare token count, showing the proportion of the context window used. The meter SHALL display a bar of block characters (e.g. `[▮▮▮▯▯▯] 62%`) and a percentage label. The meter SHALL be driven by the provider-reported input token count from the latest real model call, not by a local tokenizer estimate, and SHALL NOT react to the user's typed or submitted input.
 
 #### Scenario: Meter renders at 0% utilization
 - **WHEN** `contextSize` is 0 and `contextWindow` is a positive value
@@ -22,6 +24,18 @@ The TUI status bar SHALL render a visual context-window utilization meter instea
 - **WHEN** `contextWindow` is 0 or not configured
 - **THEN** the status bar renders the bare `formatSize(contextSize)` number instead of a meter
 
+#### Scenario: Meter does not react to user submit
+- **WHEN** the user types and submits a message before any provider response
+- **THEN** the context meter does not change based on the user's typed/submitted input
+
+#### Scenario: Meter reflects provider-reported input tokens
+- **WHEN** a real model call completes and reports input tokens
+- **THEN** the context meter updates to reflect the provider-reported input token count
+
+#### Scenario: Meter holds during streaming
+- **WHEN** a stream is in flight
+- **THEN** the context meter holds at the last provider-reported value rather than estimating content tokens live
+
 ### Requirement: Meter is colored by context utilization
 The meter SHALL be colored using the existing `getContextUtilizationColor(contextSize, contextWindow)` helper, which returns cyan for 0-60% utilization, orange for 61-80%, and red for 81-100%.
 
@@ -36,4 +50,3 @@ The meter SHALL be colored using the existing `getContextUtilizationColor(contex
 #### Scenario: Meter is red at high utilization
 - **WHEN** utilization is 81-100%
 - **THEN** the meter renders in red
-

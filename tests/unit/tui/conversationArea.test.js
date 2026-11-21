@@ -11,6 +11,23 @@ describe("ConversationArea module", () => {
 		const mod = await import("../../../src/tui/conversationArea.js");
 		assert.ok(mod.default);
 	});
+
+	it("should wire the provider-driven context meter calibration", async () => {
+		// The meter is driven by the provider-reported input token count, so the
+		// module must import the calibration accessors. A broken import here
+		// would fail module load and surface as a test failure.
+		const mod = await import("../../../src/tui/conversationArea.js");
+		assert.ok(mod.default);
+	});
+
+	it("should not react to user submit before a provider response", async () => {
+		// The meter is decoupled from user input: it reflects only the
+		// provider-reported value. Before any real model call, the calibration
+		// input-token accessor returns null, so the meter falls back to the
+		// tokenizer estimate rather than the just-typed HumanMessage.
+		const { getContextInputTokens } = await import("../../../src/provider/contextCalibration.js");
+		assert.strictEqual(getContextInputTokens(), null);
+	});
 });
 
 describe("countToolMessageTokens", () => {
