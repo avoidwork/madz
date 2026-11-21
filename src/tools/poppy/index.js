@@ -5,6 +5,7 @@ import * as identity from "./identity.js";
 import * as session from "./session.js";
 import * as oauth from "./oauth.js";
 import * as verify from "./verify.js";
+import * as api from "./api.js";
 
 /**
  * Registry of Poppy actions, keyed by action name. Each action module exports
@@ -17,6 +18,7 @@ export const ACTIONS = {
 	session,
 	oauth,
 	verify,
+	api,
 };
 
 /**
@@ -31,7 +33,7 @@ export const ACTIONS = {
 export const poppySchema = z
 	.object({
 		action: z
-			.enum(["discover", "identity", "session", "oauth", "verify"])
+			.enum(["discover", "identity", "session", "oauth", "verify", "api"])
 			.describe("The Poppy operation to perform"),
 		// discover
 		domain: z.string().optional().describe("The company domain to discover (e.g. example.com)"),
@@ -71,6 +73,18 @@ export const poppySchema = z
 		poll: z.boolean().optional().describe("Whether to poll the device flow for tokens"),
 		// verify
 		session: z.string().optional().describe("The Poppy-Session JWT to verify"),
+		// api
+		task: z.string().optional().describe("The task to match against an API"),
+		apiType: z.string().optional().describe("The API type (openapi or mcp)"),
+		endpoint: z.string().optional().describe("The API endpoint URL"),
+		path: z.string().optional().describe("The request path for an OpenAPI call"),
+		body: z.unknown().optional().describe("The request body"),
+		version: z.string().optional().describe("The Poppy protocol version"),
+		extensions: z.record(z.string(), z.array(z.unknown())).optional().describe("Poppy extensions"),
+		grantedScopes: z.string().optional().describe("The granted scopes"),
+		idempotencyKey: z.string().optional().describe("The idempotency key for safe retries"),
+		poppyJson: z.unknown().optional().describe("The parsed poppy.json document"),
+		tokenEndpoint: z.string().optional().describe("The token endpoint for MCP token requests"),
 	})
 	.superRefine((data, ctx) => {
 		const { action } = data;
@@ -85,8 +99,8 @@ export const poppySchema = z
 		};
 		// discover-only fields
 		rejectField("domain", ["discover"]);
-		// identity/session/oauth/verify fields
-		rejectField("op", ["identity", "session", "oauth"]);
+		// identity/session/oauth/verify/api fields
+		rejectField("op", ["identity", "session", "oauth", "api"]);
 		rejectField("clientId", ["identity", "oauth"]);
 		rejectField("clientName", ["identity"]);
 		rejectField("jwksUri", ["identity"]);
@@ -99,7 +113,7 @@ export const poppySchema = z
 		rejectField("doc", ["identity"]);
 		// session/verify fields
 		rejectField("userId", ["session"]);
-		rejectField("method", ["session", "verify"]);
+		rejectField("method", ["session", "verify", "api"]);
 		rejectField("url", ["session", "verify"]);
 		rejectField("agentId", ["session"]);
 		rejectField("accessToken", ["session", "verify"]);
@@ -107,7 +121,7 @@ export const poppySchema = z
 		// oauth-only fields
 		rejectField("issuer", ["oauth"]);
 		rejectField("redirectUri", ["oauth"]);
-		rejectField("scope", ["oauth"]);
+		rejectField("scope", ["oauth", "api"]);
 		rejectField("state", ["oauth"]);
 		rejectField("code", ["oauth"]);
 		rejectField("codeVerifier", ["oauth"]);
@@ -118,6 +132,18 @@ export const poppySchema = z
 		rejectField("poll", ["oauth"]);
 		// verify-only fields
 		rejectField("session", ["verify"]);
+		// api-only fields
+		rejectField("task", ["api"]);
+		rejectField("apiType", ["api"]);
+		rejectField("endpoint", ["api"]);
+		rejectField("path", ["api"]);
+		rejectField("body", ["api"]);
+		rejectField("version", ["api"]);
+		rejectField("extensions", ["api"]);
+		rejectField("grantedScopes", ["api"]);
+		rejectField("idempotencyKey", ["api"]);
+		rejectField("poppyJson", ["api"]);
+		rejectField("tokenEndpoint", ["api"]);
 
 		if (action === "discover") {
 			if (!data.domain) {
@@ -157,6 +183,14 @@ export const poppySchema = z
 					code: z.ZodIssueCode.custom,
 					path: ["session"],
 					message: "session is required for the 'verify' action",
+				});
+			}
+		} else if (action === "api") {
+			if (!data.op) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["op"],
+					message: "op is required for the 'api' action",
 				});
 			}
 		}
