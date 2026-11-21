@@ -4,7 +4,7 @@ import { writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import sharp from "sharp";
-import { image, imageImpl } from "../../../../src/tools/image/index.js";
+import { image, imageImpl, imageSchema } from "../../../../src/tools/image/index.js";
 
 let testDir;
 
@@ -30,6 +30,116 @@ describe("image tool", () => {
 		const result = await imageImpl({ action: "bogus" });
 		assert.strictEqual(result.ok, false);
 		assert.match(result.error, /Unknown image action/);
+	});
+});
+
+describe("image tool - schema validation", () => {
+	it("requires path for read", () => {
+		const result = imageSchema.safeParse({ action: "read" });
+		assert.strictEqual(result.success, false);
+		assert.match(result.error.issues[0].message, /path is required/);
+	});
+
+	it("requires path for metadata", () => {
+		const result = imageSchema.safeParse({ action: "metadata" });
+		assert.strictEqual(result.success, false);
+		assert.match(result.error.issues[0].message, /path is required/);
+	});
+
+	it("requires path, output, and a dimension for resize", () => {
+		const result = imageSchema.safeParse({ action: "resize" });
+		assert.strictEqual(result.success, false);
+		const messages = result.error.issues.map((i) => i.message);
+		assert.ok(messages.some((m) => /path is required/.test(m)));
+		assert.ok(messages.some((m) => /output is required/.test(m)));
+		assert.ok(messages.some((m) => /width, height, or maxDimension/.test(m)));
+	});
+
+	it("requires path, output, and format for convert", () => {
+		const result = imageSchema.safeParse({ action: "convert" });
+		assert.strictEqual(result.success, false);
+		const messages = result.error.issues.map((i) => i.message);
+		assert.ok(messages.some((m) => /path is required/.test(m)));
+		assert.ok(messages.some((m) => /output is required/.test(m)));
+		assert.ok(messages.some((m) => /format is required/.test(m)));
+	});
+
+	it("requires prompt for generate", () => {
+		const result = imageSchema.safeParse({ action: "generate" });
+		assert.strictEqual(result.success, false);
+		assert.match(result.error.issues[0].message, /prompt is required/);
+	});
+
+	it("rejects an invalid convert format", () => {
+		const result = imageSchema.safeParse({
+			action: "convert",
+			path: "a.png",
+			output: "b.png",
+			format: "bogus",
+		});
+		assert.strictEqual(result.success, false);
+	});
+
+	it("accepts a valid convert with a known format", () => {
+		const result = imageSchema.safeParse({
+			action: "convert",
+			path: "a.png",
+			output: "b.webp",
+			format: "webp",
+		});
+		assert.strictEqual(result.success, true);
+	});
+
+	it("rejects a falApiKey field (secret must not pass through the model)", () => {
+		const result = imageSchema.safeParse({
+			action: "generate",
+			prompt: "a cat",
+			falApiKey: "sk-fake",
+		});
+		// The flat schema strips unknown keys by default, so a falApiKey in the
+		// input is silently dropped rather than accepted as a first-class field.
+		assert.strictEqual(result.success, true);
+		assert.strictEqual(result.data.falApiKey, undefined);
+	});
+
+	it("rejects width on a read action", () => {
+		const result = imageSchema.safeParse({ action: "read", path: "a.png", width: 100 });
+		assert.strictEqual(result.success, false);
+		assert.match(result.error.issues[0].message, /only valid for the 'resize' action/);
+	});
+
+	it("rejects format on a resize action", () => {
+		const result = imageSchema.safeParse({
+			action: "resize",
+			path: "a.png",
+			output: "b.png",
+			width: 100,
+			format: "webp",
+		});
+		assert.strictEqual(result.success, false);
+		assert.match(result.error.issues[0].message, /only valid for the 'convert' action/);
+	});
+
+	it("rejects maxDimension combined with width", () => {
+		const result = imageSchema.safeParse({
+			action: "resize",
+			path: "a.png",
+			output: "b.png",
+			width: 100,
+			maxDimension: 200,
+		});
+		assert.strictEqual(result.success, false);
+		assert.match(result.error.issues[0].message, /maxDimension cannot be combined/);
+	});
+
+	it("accepts a valid resize with maxDimension only", () => {
+		const result = imageSchema.safeParse({
+			action: "resize",
+			path: "a.png",
+			output: "b.png",
+			maxDimension: 200,
+		});
+		assert.strictEqual(result.success, true);
 	});
 });
 

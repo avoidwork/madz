@@ -467,12 +467,15 @@ textToSpeech tool:
 ```
 image tool:
 ├── dispatch on action (read | resize | metadata | convert | generate)
-├── read → validate path, read file, downscale to image.maxDimension, return image_url block
+├── schema: flat object with action enum + superRefine per-action validation
+│   (path required for read/metadata; path+output+dimension for resize;
+│    path+output+format for convert; prompt for generate)
+├── read → validate path, read file, downscale to config image.maxDimension, return image_url block
 ├── resize → resize to target width/height or max dimension, preserve aspect ratio
 ├── metadata → return image metadata via sharp
 ├── convert → convert to target format (png/jpeg/webp/etc.)
-└── generate → validate FAL_API_KEY exists, POST https://queue.fal.run/fal-ai/flux/klein,
-    return { ok, imageUrl?, error? }
+└── generate → validate FAL_API_KEY exists (resolved server-side, never passed by the model),
+    POST https://queue.fal.run/fal-ai/flux/klein, return { ok, imageUrl?, error? }
 ```
 
 ## Clarify

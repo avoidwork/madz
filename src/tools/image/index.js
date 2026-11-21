@@ -29,7 +29,8 @@ const MIME_TYPES = {
 const MIME_TYPES_SET = new Set(Object.values(MIME_TYPES));
 
 // Supported output formats for the convert action.
-const CONVERT_FORMATS = new Set(["png", "jpeg", "jpg", "webp", "gif", "avif", "tiff", "bmp"]);
+const CONVERT_FORMAT_LIST = ["png", "jpeg", "jpg", "webp", "gif", "avif", "tiff", "bmp"];
+const CONVERT_FORMATS = new Set(CONVERT_FORMAT_LIST);
 
 /**
  * Detect the MIME type of an image from its file extension.
@@ -117,8 +118,10 @@ async function generateWithFal(apiKey, prompt, timeout) {
 
 /**
  * Read an image file from disk and return its base64-encoded contents.
- * Validates the path against the sandbox allowlist. Images larger than
- * `image.maxDimension` are downscaled. Uses async `node:fs/promises`.
+ * Validates the path against the sandbox allowlist. Images larger than the
+ * configured `image.maxDimension` are downscaled (the config value always
+ * governs the read action; there is no per-call `maxDimension` input for
+ * `read`). Uses async `node:fs/promises`.
  * @param {object} input - Tool input
  * @param {object} [options] - Runtime options for test injection
  * @param {string[]} [options.allowedPaths] - Sandbox-allowed paths
@@ -224,7 +227,9 @@ async function resizeAction(input, options = {}) {
  * @param {object} input - Tool input
  * @param {object} [options] - Runtime options for test injection
  * @param {string[]} [options.allowedPaths] - Sandbox-allowed paths
- * @returns {Promise<{ ok: boolean, metadata?: object, error?: string }>} Structured result
+ * @returns {Promise<{ ok: true, metadata: { width?: number, height?: number, format?: string, ... } }|{ ok: false, error: string }>}
+ *   On success, `metadata` is sharp's metadata object (width, height, format,
+ *   space, channels, density, etc.). On failure, `{ ok: false, error }`.
  */
 async function metadataAction(input, options = {}) {
 	const { path: filePath } = input;
@@ -370,30 +375,141 @@ export async function imageImpl(input, options = {}) {
 	}
 }
 
-const ImageSchema = z.object({
-	action: z
-		.enum(["read", "resize", "metadata", "convert", "generate"])
-		.describe("The image operation to perform"),
-	path: z.string().optional().describe("Path to the source image file"),
-	output: z.string().optional().describe("Path to write the output image"),
-	width: z.number().int().positive().optional().describe("Target width in pixels"),
-	height: z.number().int().positive().optional().describe("Target height in pixels"),
-	maxDimension: z.number().int().positive().optional().describe("Max width/height in pixels"),
-	format: z.string().optional().describe("Target format for conversion (png, jpeg, webp, etc.)"),
-	prompt: z.string().max(1000).optional().describe("Text description of the image to generate"),
-	falApiKey: z.string().optional().describe("FAL.ai API key"),
-	timeout: z
-		.number()
-		.int()
-		.min(5000)
-		.max(60000)
-		.optional()
-		.describe("Request timeout in ms (default: 30000)"),
-});
+/**
+ * Zod schema for the `image` tool input.
+ *
+ * A single flat object with an `action` enum so the serialized JSON schema is
+ * a plain object rather than a top-level `oneOf`. Per-action field validity is
+ * enforced in `superRefine` against the action's own requirements. This keeps
+ * every provider (including GitHub Copilot, which rejects top-level `oneOf`
+ * tool schemas) happy.
+ *
+ * The `falApiKey` field is intentionally absent: the FAL key is resolved
+ * server-side from config/env and injected into the tool's runtime options, so
+ * the secret never passes through the model's context or the transcript.
+ */
+export const imageSchema = z
+	.object({
+		action: z
+			.enum(["read", "resize", "metadata", "convert", "generate"])
+			.describe("The image operation to perform"),
+		path: z.string().optional().describe("Path to the source image file"),
+		output: z.string().optional().describe("Path to write the output image"),
+		width: z.number().int().positive().optional().describe("Target width in pixels"),
+		height: z.number().int().positive().optional().describe("Target height in pixels"),
+		maxDimension: z.number().int().positive().optional().describe("Max width/height in pixels"),
+		format: z
+			.enum(CONVERT_FORMAT_LIST)
+			.optional()
+			.describe("Target format for conversion (png, jpeg, jpg, webp, gif, avif, tiff, bmp)"),
+		prompt: z.string().max(1000).optional().describe("Text description of the image to generate"),
+		timeout: z
+			.number()
+			.int()
+			.min(5000)
+			.max(60000)
+			.optional()
+			.describe("Request timeout in ms (default: 30000)"),
+	})
+	.superRefine((data, ctx) => {
+		const { action } = data;
+		// Reject fields that only apply to a different action, so the schema
+		// makes it explicit which parameters belong to which action.
+		const rejectField = (field, allowedActions) => {
+			if (data[field] !== undefined && !allowedActions.includes(action)) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: [field],
+					message: `'${field}' is only valid for the '${allowedActions.join("' or '")}' action`,
+				});
+			}
+		};
+		rejectField("output", ["resize", "convert"]);
+		rejectField("width", ["resize"]);
+		rejectField("height", ["resize"]);
+		rejectField("maxDimension", ["resize"]);
+		rejectField("format", ["convert"]);
+		rejectField("prompt", ["generate"]);
+		rejectField("timeout", ["generate"]);
+
+		if (action === "read" || action === "metadata") {
+			if (!data.path) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["path"],
+					message: `path is required for the '${action}' action`,
+				});
+			}
+		} else if (action === "resize") {
+			if (!data.path) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["path"],
+					message: "path is required for the 'resize' action",
+				});
+			}
+			if (!data.output) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["output"],
+					message: "output is required for the 'resize' action",
+				});
+			}
+			if (!data.width && !data.height && !data.maxDimension) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["width"],
+					message: "a width, height, or maxDimension is required for the 'resize' action",
+				});
+			}
+			// maxDimension is the "fit inside" constraint and takes precedence
+			// over an explicit width/height; reject the ambiguous combination.
+			if (
+				data.maxDimension !== undefined &&
+				(data.width !== undefined || data.height !== undefined)
+			) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["maxDimension"],
+					message: "maxDimension cannot be combined with width or height",
+				});
+			}
+		} else if (action === "convert") {
+			if (!data.path) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["path"],
+					message: "path is required for the 'convert' action",
+				});
+			}
+			if (!data.output) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["output"],
+					message: "output is required for the 'convert' action",
+				});
+			}
+			if (!data.format) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["format"],
+					message: "format is required for the 'convert' action",
+				});
+			}
+		} else if (action === "generate") {
+			if (!data.prompt) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["prompt"],
+					message: "prompt is required for the 'generate' action",
+				});
+			}
+		}
+	});
 
 export const image = tool(imageImpl, {
 	name: "image",
 	description:
 		"Unified image tool. Dispatches on an `action` enum: `read` (read an image from disk and return a base64 data-URI image_url content block for LLM vision analysis, downscaling to image.maxDimension), `resize` (resize to a target width/height or max dimension preserving aspect ratio), `metadata` (return image metadata via sharp), `convert` (convert to another format), and `generate` (generate an image from a text prompt via FAL.ai FLUX Klein, returning a public image URL). The read action validates the path against the sandbox allowlist. The generate action requires network:outbound permission and the FAL API key.",
-	schema: ImageSchema,
+	schema: imageSchema,
 });
