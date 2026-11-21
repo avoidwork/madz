@@ -158,7 +158,7 @@ export async function issueDelegation(options) {
  * to generate a Poppy-Session JWT or issue a delegation. Delegated keys are
  * bound to a single user ID; using a delegated key for a different user is
  * rejected.
- * @param {object} input - Action input
+ * @param {object} input - Tool input
  * @param {string} input.op - The session operation to perform
  * @param {object} [options] - Runtime options
  * @param {Map<string, string>} [options.keyRegistry] - Map of delegated key thumbprint to user ID
@@ -168,9 +168,9 @@ export async function execute(input, options = {}) {
 	const { op } = input;
 	switch (op) {
 		case "sign_session":
-			return signSessionAction(input, options);
+			return signSession(input, options);
 		case "issue_delegation":
-			return issueDelegationAction(input, options);
+			return issueDelegationOp(input, options);
 		default:
 			return { ok: false, error: `Unknown session operation: ${op}` };
 	}
@@ -179,7 +179,7 @@ export async function execute(input, options = {}) {
 /**
  * Sign a Poppy-Session JWT with a delegated key, enforcing per-user key
  * isolation.
- * @param {object} input - Action input
+ * @param {object} input - Tool input
  * @param {string} input.clientId - The agent's client_id (issuer)
  * @param {string} input.audience - The company identifier (audience)
  * @param {string} input.userId - The user ID (subject)
@@ -193,7 +193,7 @@ export async function execute(input, options = {}) {
  * @param {Map<string, string>} [options.keyRegistry] - Map of delegated key thumbprint to user ID
  * @returns {Promise<{ok: boolean, data?: object, error?: string}>} Result
  */
-async function signSessionAction(input, options = {}) {
+async function signSession(input, options = {}) {
 	const parsed = SessionInputSchema.safeParse(input);
 	if (!parsed.success) {
 		return {
@@ -239,7 +239,7 @@ async function signSessionAction(input, options = {}) {
 
 /**
  * Issue a Poppy delegation JWT signed by a key in `jwks_uri`.
- * @param {object} input - Action input
+ * @param {object} input - Tool input
  * @param {string} input.clientId - The agent's client_id (issuer)
  * @param {string} input.audience - The company identifier (audience)
  * @param {string} input.userId - The user ID (subject)
@@ -248,7 +248,7 @@ async function signSessionAction(input, options = {}) {
  * @param {object} [options] - Runtime options
  * @returns {Promise<{ok: boolean, data?: object, error?: string}>} Result
  */
-async function issueDelegationAction(input, _options = {}) {
+async function issueDelegationOp(input, _options = {}) {
 	const parsed = DelegationInputSchema.safeParse(input);
 	if (!parsed.success) {
 		return {

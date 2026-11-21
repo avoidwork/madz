@@ -398,7 +398,7 @@ export async function discoverPoppy(domain, options = {}) {
  * Execute the `discover` action of the Poppy tool. Fetches and validates a
  * company's `poppy.json` document at `/.well-known/poppy.json`, returning a
  * normalized representation for downstream layers.
- * @param {object} input - Action input
+ * @param {object} input - Tool input
  * @param {string} input.domain - The company domain to discover
  * @param {object} [options] - Runtime options
  * @param {boolean} [options.allowPrivate=false] - Permit loopback/private addresses
