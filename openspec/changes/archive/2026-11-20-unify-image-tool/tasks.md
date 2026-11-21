@@ -40,10 +40,10 @@
 
 ## 5. Verify
 
-- [ ] 5.1 Run `npm run test` and confirm all tests pass.
-- [ ] 5.2 Run `npm run lint` and confirm lint passes.
-- [ ] 5.3 Run `npm run coverage` and confirm coverage is maintained.
-- [ ] 5.4 Run `npm start` and confirm the application starts without crashing.
+- [x] 5.1 Run `npm run test` and confirm all tests pass.
+- [x] 5.2 Run `npm run lint` and confirm lint passes.
+- [x] 5.3 Run `npm run coverage` and confirm coverage is maintained.
+- [x] 5.4 Run `npm start` and confirm the application starts without crashing.
 
 ## Workflow follow-up
 
