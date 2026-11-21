@@ -6,6 +6,7 @@ import * as session from "./session.js";
 import * as oauth from "./oauth.js";
 import * as verify from "./verify.js";
 import * as api from "./api.js";
+import * as conversation from "./conversation.js";
 
 /**
  * Registry of Poppy actions, keyed by action name. Each action module exports
@@ -19,6 +20,7 @@ export const ACTIONS = {
 	oauth,
 	verify,
 	api,
+	conversation,
 };
 
 /**
@@ -33,7 +35,7 @@ export const ACTIONS = {
 export const poppySchema = z
 	.object({
 		action: z
-			.enum(["discover", "identity", "session", "oauth", "verify", "api"])
+			.enum(["discover", "identity", "session", "oauth", "verify", "api", "conversation"])
 			.describe("The Poppy operation to perform"),
 		// discover
 		domain: z.string().optional().describe("The company domain to discover (e.g. example.com)"),
@@ -85,6 +87,20 @@ export const poppySchema = z
 		idempotencyKey: z.string().optional().describe("The idempotency key for safe retries"),
 		poppyJson: z.unknown().optional().describe("The parsed poppy.json document"),
 		tokenEndpoint: z.string().optional().describe("The token endpoint for MCP token requests"),
+		// conversation
+		id: z.string().optional().describe("The conversation ID"),
+		message: z.unknown().optional().describe("The message body"),
+		requestId: z.string().optional().describe("The request ID for safe retries"),
+		wait: z.number().optional().describe("The wait query parameter"),
+		cursor: z.string().optional().describe("The cursor query parameter"),
+		parentConversationId: z
+			.string()
+			.optional()
+			.describe("The parent conversation ID for a direct conversation"),
+		userRequestedEventId: z
+			.string()
+			.optional()
+			.describe("The user-requested event ID for a direct conversation"),
 	})
 	.superRefine((data, ctx) => {
 		const { action } = data;
@@ -100,7 +116,7 @@ export const poppySchema = z
 		// discover-only fields
 		rejectField("domain", ["discover"]);
 		// identity/session/oauth/verify/api fields
-		rejectField("op", ["identity", "session", "oauth", "api"]);
+		rejectField("op", ["identity", "session", "oauth", "api", "conversation"]);
 		rejectField("clientId", ["identity", "oauth"]);
 		rejectField("clientName", ["identity"]);
 		rejectField("jwksUri", ["identity"]);
@@ -116,7 +132,7 @@ export const poppySchema = z
 		rejectField("method", ["session", "verify", "api"]);
 		rejectField("url", ["session", "verify"]);
 		rejectField("agentId", ["session"]);
-		rejectField("accessToken", ["session", "verify"]);
+		rejectField("accessToken", ["session", "verify", "conversation"]);
 		rejectField("delegation", ["session"]);
 		// oauth-only fields
 		rejectField("issuer", ["oauth"]);
@@ -130,12 +146,12 @@ export const poppySchema = z
 		rejectField("token", ["oauth"]);
 		rejectField("tokenTypeHint", ["oauth"]);
 		rejectField("poll", ["oauth"]);
-		// verify-only fields
-		rejectField("session", ["verify"]);
+		// verify/conversation fields
+		rejectField("session", ["verify", "conversation"]);
 		// api-only fields
 		rejectField("task", ["api"]);
 		rejectField("apiType", ["api"]);
-		rejectField("endpoint", ["api"]);
+		rejectField("endpoint", ["api", "conversation"]);
 		rejectField("path", ["api"]);
 		rejectField("body", ["api"]);
 		rejectField("version", ["api"]);
@@ -144,6 +160,14 @@ export const poppySchema = z
 		rejectField("idempotencyKey", ["api"]);
 		rejectField("poppyJson", ["api"]);
 		rejectField("tokenEndpoint", ["api"]);
+		// conversation-only fields
+		rejectField("id", ["conversation"]);
+		rejectField("message", ["conversation"]);
+		rejectField("requestId", ["conversation"]);
+		rejectField("wait", ["conversation"]);
+		rejectField("cursor", ["conversation"]);
+		rejectField("parentConversationId", ["conversation"]);
+		rejectField("userRequestedEventId", ["conversation"]);
 
 		if (action === "discover") {
 			if (!data.domain) {
@@ -191,6 +215,14 @@ export const poppySchema = z
 					code: z.ZodIssueCode.custom,
 					path: ["op"],
 					message: "op is required for the 'api' action",
+				});
+			}
+		} else if (action === "conversation") {
+			if (!data.op) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["op"],
+					message: "op is required for the 'conversation' action",
 				});
 			}
 		}
