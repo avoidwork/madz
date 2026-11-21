@@ -114,6 +114,12 @@ To enable V8 garbage collection outside the container (the Docker image already 
 
 Inside the TUI, `/help` lists every command. The ones you will use most: `/new`, `/clear`, `/compact`, `/sessions`, `/memories`, `/skills`, `/subagents`, `/projects`, and `@` to autocomplete file paths. Terminal interface details live in [docs/TUI.md](docs/TUI.md).
 
+## Poppy (Personal Agent Protocol)
+
+`madz` implements the [Poppy (Personal Agent Protocol)](https://personalagentprotocol.org/docs/1.0/spec) so it can act as a personal agent that discovers companies, signs in on a user's behalf, and completes tasks across a company's APIs, agents, and web surfaces — all under a single, auditable session. The integration is exposed through a single `poppy` tool that dispatches on an `action` enum covering discovery, identity, sessions, OAuth, APIs, conversations, browser join, task coverage, extensions, and security.
+
+See [docs/POPPY.md](docs/POPPY.md) for the full reference, configuration examples, and usage examples.
+
 ## Documentation
 
 | Topic | Where |
@@ -122,6 +128,7 @@ Inside the TUI, `/help` lists every command. The ones you will use most: `/new`,
 | Providers, agents, built-in tools, MCP, skills, permissions, memory, sandbox, telemetry, vector search, cron | [docs/FEATURES.md](docs/FEATURES.md) |
 | Every `config.yaml` key, logging, status bar, summarization, rate limiting | [docs/CONFIGURATION.md](docs/CONFIGURATION.md) |
 | Testing, local setup, writing skills, directory layout | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) |
+| Poppy (Personal Agent Protocol) reference and examples | [docs/POPPY.md](docs/POPPY.md) |
 | Tutorial, architecture, flows, TUI, streaming, security | [docs/README.md](docs/README.md) |
 
 ## Contributing
