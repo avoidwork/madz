@@ -107,24 +107,6 @@ describe("orchestrator - image access", () => {
 		const toolsForCoding = getToolsForAgentTypes(["coding"], tools);
 		ok(toolsForCoding.includes("image"), "getToolsForAgentTypes(['coding']) should include image");
 	});
-
-	it("ORCHESTRATOR_TOOLS should include generateImage", () => {
-		ok(
-			ORCHESTRATOR_TOOLS.includes("generateImage"),
-			"ORCHESTRATOR_TOOLS should include generateImage",
-		);
-	});
-
-	it("generateImage should be classified for documentation", () => {
-		ok(
-			TOOL_CLASSIFICATIONS.generateImage,
-			"generateImage should have a TOOL_CLASSIFICATIONS entry",
-		);
-		ok(
-			TOOL_CLASSIFICATIONS.generateImage.includes("documentation"),
-			"generateImage should include documentation in its classifications",
-		);
-	});
 });
 
 describe("orchestrator - git access", () => {

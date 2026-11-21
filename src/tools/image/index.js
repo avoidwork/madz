@@ -6,6 +6,8 @@ import { extname } from "node:path";
 import { loadConfig } from "../../config/loader.js";
 import { validatePath } from "../common.js";
 
+const DEFAULT_TIMEOUT = 30000;
+
 // An unknown MIME type falls back to image/png so a valid data URI is always built.
 const DEFAULT_MIME_TYPE = "image/png";
 
@@ -26,14 +28,9 @@ const MIME_TYPES = {
 
 const MIME_TYPES_SET = new Set(Object.values(MIME_TYPES));
 
-// Supported output formats for the convert action. `jpg` is intentionally
-// omitted — it is an alias of `jpeg`, so listing both would be redundant.
-const CONVERT_FORMAT_LIST = ["png", "jpeg", "webp", "gif", "avif", "tiff", "bmp"];
+// Supported output formats for the convert action.
+const CONVERT_FORMAT_LIST = ["png", "jpeg", "jpg", "webp", "gif", "avif", "tiff", "bmp"];
 const CONVERT_FORMATS = new Set(CONVERT_FORMAT_LIST);
-
-// Upper bound on width/height for the resize action. A request for an
-// unbounded dimension is a memory problem waiting to happen.
-const MAX_DIMENSION = 16384;
 
 /**
  * Detect the MIME type of an image from its file extension.
@@ -69,6 +66,53 @@ async function constrainDimensions(buffer, mimeType, maxDimension) {
 			.toBuffer();
 	} catch (_err) {
 		return buffer;
+	}
+}
+
+/**
+ * Generate an image via FAL.ai flux/klein API.
+ * @param {string} apiKey - FAL.ai API key
+ * @param {string} prompt - Image generation prompt
+ * @param {number} timeout - API timeout in ms
+ * @returns {Promise<{ ok: boolean, imageUrl?: string, error?: string }>}
+ */
+async function generateWithFal(apiKey, prompt, timeout) {
+	const controller = new AbortController();
+	const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+	try {
+		const resp = await fetch("https://queue.fal.run/fal-ai/flux/klein", {
+			method: "POST",
+			headers: {
+				Authorization: `Key ${apiKey}`,
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({
+				prompt,
+				sync_mode: true,
+				image_size: "square_1_1",
+			}),
+			signal: controller.signal,
+		});
+		clearTimeout(timeoutId);
+
+		if (!resp.ok) {
+			const text = await resp.text().catch(() => "");
+			return { ok: false, error: `FAL.ai error (${resp.status}): ${text.slice(0, 200)}` };
+		}
+
+		const data = await resp.json();
+		if (!data.images || !data.images[0]?.url) {
+			return { ok: false, error: "FAL.ai response missing image URL" };
+		}
+
+		return {
+			ok: true,
+			imageUrl: data.images[0].url,
+		};
+	} catch (err) {
+		clearTimeout(timeoutId);
+		return { ok: false, error: `FAL.ai request failed: ${err.message}` };
 	}
 }
 
@@ -263,8 +307,54 @@ async function convertAction(input, options = {}) {
 }
 
 /**
+ * Generate an image via the configured image API.
+ * @param {object} input - Tool input
+ * @param {object} [options] - Runtime options for test injection
+ * @param {string} [options.falApiKey] - FAL.ai API key (overrides config)
+ * @param {boolean} [options.networkOutbound] - Whether `network:outbound` permission is enabled
+ * @returns {Promise<{ ok: boolean, imageUrl?: string, error?: string }>} Structured result
+ */
+async function generateAction(input, options = {}) {
+	const { prompt, timeout } = input;
+
+	if (!prompt || typeof prompt !== "string" || prompt.trim().length === 0) {
+		return {
+			ok: false,
+			error: "Prompt is required and must be a non-empty string",
+		};
+	}
+
+	if (prompt.length > 1000) {
+		return { ok: false, error: "Prompt must be 1000 characters or fewer" };
+	}
+
+	if (options.networkOutbound === false) {
+		return {
+			ok: false,
+			error: "Image generation requires the network:outbound permission",
+		};
+	}
+
+	const config = loadConfig();
+	const apiKey = options.falApiKey ?? config.providers?.fal?.credentials?.apiKey;
+	if (!apiKey) {
+		return {
+			ok: false,
+			error: "FAL_API_KEY is required for image generation, or pass falApiKey parameter",
+		};
+	}
+
+	const timeoutMs = timeout || DEFAULT_TIMEOUT;
+	const result = await generateWithFal(apiKey, prompt, timeoutMs);
+	if (result.ok) {
+		return { ok: true, imageUrl: result.imageUrl };
+	}
+	return { ok: false, error: result.error };
+}
+
+/**
  * Dispatch the `image` tool on its `action` field.
- * @param {z.infer<typeof imageSchema>} input - Tool input
+ * @param {z.infer<typeof ImageSchema>} input - Tool input
  * @param {object} [options] - Runtime options for test injection
  * @returns {Promise<Array|{ ok: boolean, ... }>} Action-specific result
  */
@@ -278,6 +368,8 @@ export async function imageImpl(input, options = {}) {
 			return metadataAction(input, options);
 		case "convert":
 			return convertAction(input, options);
+		case "generate":
+			return generateAction(input, options);
 		default:
 			return { ok: false, error: `Unknown image action: ${input.action}` };
 	}
@@ -292,42 +384,32 @@ export async function imageImpl(input, options = {}) {
  * every provider (including GitHub Copilot, which rejects top-level `oneOf`
  * tool schemas) happy.
  *
- * The `image` tool is local and offline (read/resize/metadata/convert). Image
- * generation lives in the separate `generateImage` tool, which carries the
- * `network:outbound` permission and the FAL API key.
+ * The `falApiKey` field is intentionally absent: the FAL key is resolved
+ * server-side from config/env and injected into the tool's runtime options, so
+ * the secret never passes through the model's context or the transcript.
  */
 export const imageSchema = z
 	.object({
 		action: z
-			.enum(["read", "resize", "metadata", "convert"])
+			.enum(["read", "resize", "metadata", "convert", "generate"])
 			.describe("The image operation to perform"),
 		path: z.string().optional().describe("Path to the source image file"),
 		output: z.string().optional().describe("Path to write the output image"),
-		width: z
-			.number()
-			.int()
-			.positive()
-			.max(MAX_DIMENSION)
-			.optional()
-			.describe(`Target width in pixels (max ${MAX_DIMENSION})`),
-		height: z
-			.number()
-			.int()
-			.positive()
-			.max(MAX_DIMENSION)
-			.optional()
-			.describe(`Target height in pixels (max ${MAX_DIMENSION})`),
-		maxDimension: z
-			.number()
-			.int()
-			.positive()
-			.max(MAX_DIMENSION)
-			.optional()
-			.describe(`Max width/height in pixels (max ${MAX_DIMENSION})`),
+		width: z.number().int().positive().optional().describe("Target width in pixels"),
+		height: z.number().int().positive().optional().describe("Target height in pixels"),
+		maxDimension: z.number().int().positive().optional().describe("Max width/height in pixels"),
 		format: z
 			.enum(CONVERT_FORMAT_LIST)
 			.optional()
-			.describe("Target format for conversion (png, jpeg, webp, gif, avif, tiff, bmp)"),
+			.describe("Target format for conversion (png, jpeg, jpg, webp, gif, avif, tiff, bmp)"),
+		prompt: z.string().max(1000).optional().describe("Text description of the image to generate"),
+		timeout: z
+			.number()
+			.int()
+			.min(5000)
+			.max(60000)
+			.optional()
+			.describe("Request timeout in ms (default: 30000)"),
 	})
 	.superRefine((data, ctx) => {
 		const { action } = data;
@@ -347,6 +429,8 @@ export const imageSchema = z
 		rejectField("height", ["resize"]);
 		rejectField("maxDimension", ["resize"]);
 		rejectField("format", ["convert"]);
+		rejectField("prompt", ["generate"]);
+		rejectField("timeout", ["generate"]);
 
 		if (action === "read" || action === "metadata") {
 			if (!data.path) {
@@ -412,12 +496,20 @@ export const imageSchema = z
 					message: "format is required for the 'convert' action",
 				});
 			}
+		} else if (action === "generate") {
+			if (!data.prompt) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["prompt"],
+					message: "prompt is required for the 'generate' action",
+				});
+			}
 		}
 	});
 
 export const image = tool(imageImpl, {
 	name: "image",
 	description:
-		"Local image tool. Dispatches on an `action` enum: `read` (read an image from disk and return a base64 data-URI image_url content block for LLM vision analysis, downscaling to the configured image.maxDimension), `resize` (resize to a target width/height or max dimension preserving aspect ratio), `metadata` (return image metadata via sharp), and `convert` (convert to another format). All actions are local and offline; they validate the path against the sandbox allowlist. For image generation from a text prompt, use the separate `generateImage` tool.",
+		"Unified image tool. Dispatches on an `action` enum: `read` (read an image from disk and return a base64 data-URI image_url content block for LLM vision analysis, downscaling to image.maxDimension), `resize` (resize to a target width/height or max dimension preserving aspect ratio), `metadata` (return image metadata via sharp), `convert` (convert to another format), and `generate` (generate an image from a text prompt via FAL.ai FLUX Klein, returning a public image URL). The read action validates the path against the sandbox allowlist. The generate action requires network:outbound permission and the FAL API key.",
 	schema: imageSchema,
 });

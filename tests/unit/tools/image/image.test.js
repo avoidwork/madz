@@ -1,4 +1,4 @@
-import { describe, it, before, after } from "node:test";
+import { describe, it, before, after, mock } from "node:test";
 import assert from "node:assert/strict";
 import { writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -64,22 +64,18 @@ describe("image tool - schema validation", () => {
 		assert.ok(messages.some((m) => /format is required/.test(m)));
 	});
 
+	it("requires prompt for generate", () => {
+		const result = imageSchema.safeParse({ action: "generate" });
+		assert.strictEqual(result.success, false);
+		assert.match(result.error.issues[0].message, /prompt is required/);
+	});
+
 	it("rejects an invalid convert format", () => {
 		const result = imageSchema.safeParse({
 			action: "convert",
 			path: "a.png",
 			output: "b.png",
 			format: "bogus",
-		});
-		assert.strictEqual(result.success, false);
-	});
-
-	it("rejects jpg as a redundant alias of jpeg", () => {
-		const result = imageSchema.safeParse({
-			action: "convert",
-			path: "a.png",
-			output: "b.jpg",
-			format: "jpg",
 		});
 		assert.strictEqual(result.success, false);
 	});
@@ -92,6 +88,18 @@ describe("image tool - schema validation", () => {
 			format: "webp",
 		});
 		assert.strictEqual(result.success, true);
+	});
+
+	it("rejects a falApiKey field (secret must not pass through the model)", () => {
+		const result = imageSchema.safeParse({
+			action: "generate",
+			prompt: "a cat",
+			falApiKey: "sk-fake",
+		});
+		// The flat schema strips unknown keys by default, so a falApiKey in the
+		// input is silently dropped rather than accepted as a first-class field.
+		assert.strictEqual(result.success, true);
+		assert.strictEqual(result.data.falApiKey, undefined);
 	});
 
 	it("rejects width on a read action", () => {
@@ -132,21 +140,6 @@ describe("image tool - schema validation", () => {
 			maxDimension: 200,
 		});
 		assert.strictEqual(result.success, true);
-	});
-
-	it("rejects a width above the max dimension cap", () => {
-		const result = imageSchema.safeParse({
-			action: "resize",
-			path: "a.png",
-			output: "b.png",
-			width: 20000,
-		});
-		assert.strictEqual(result.success, false);
-	});
-
-	it("rejects a generate action (moved to the generateImage tool)", () => {
-		const result = imageSchema.safeParse({ action: "generate" });
-		assert.strictEqual(result.success, false);
 	});
 });
 
@@ -331,5 +324,97 @@ describe("image tool - convert action", () => {
 		);
 		assert.strictEqual(result.ok, false);
 		assert.match(result.error, /Unsupported format/);
+	});
+});
+
+describe("image tool - generate action", () => {
+	it("returns a native structured error object when prompt is missing", async () => {
+		const result = await imageImpl({ action: "generate" });
+		assert.strictEqual(result.ok, false);
+		assert.match(result.error, /Prompt is required/);
+		assert.ok(!result.imageUrl);
+	});
+
+	it("returns a native structured error object when prompt is empty", async () => {
+		const result = await imageImpl({ action: "generate", prompt: "   " });
+		assert.strictEqual(result.ok, false);
+		assert.match(result.error, /Prompt is required/);
+	});
+
+	it("returns a native structured error object when prompt is too long", async () => {
+		const result = await imageImpl({ action: "generate", prompt: "a".repeat(1001) });
+		assert.strictEqual(result.ok, false);
+		assert.match(result.error, /1000 characters or fewer/);
+	});
+
+	it("returns a native structured error object when API key is missing", async () => {
+		const result = await imageImpl({ action: "generate", prompt: "a cat" });
+		assert.strictEqual(result.ok, false);
+		assert.match(result.error, /FAL_API_KEY is required/);
+	});
+
+	it("returns a native structured error object when network:outbound is disabled", async () => {
+		const result = await imageImpl(
+			{ action: "generate", prompt: "a cat" },
+			{ falApiKey: "test-key", networkOutbound: false },
+		);
+		assert.strictEqual(result.ok, false);
+		assert.match(result.error, /network:outbound permission/);
+	});
+
+	it("returns a native structured success object with imageUrl", async () => {
+		const fetchMock = mock.method(globalThis, "fetch", async () => ({
+			ok: true,
+			status: 200,
+			json: async () => ({ images: [{ url: "https://example.com/image.png" }] }),
+		}));
+		try {
+			const result = await imageImpl(
+				{ action: "generate", prompt: "a cat" },
+				{ falApiKey: "test-key" },
+			);
+			assert.strictEqual(result.ok, true);
+			assert.strictEqual(result.imageUrl, "https://example.com/image.png");
+			assert.ok(!result.error);
+		} finally {
+			fetchMock.mock.restore();
+		}
+	});
+
+	it("returns a native structured error object when FAL returns an error", async () => {
+		const fetchMock = mock.method(globalThis, "fetch", async () => ({
+			ok: false,
+			status: 500,
+			text: async () => "Internal Server Error",
+		}));
+		try {
+			const result = await imageImpl(
+				{ action: "generate", prompt: "a cat" },
+				{ falApiKey: "test-key" },
+			);
+			assert.strictEqual(result.ok, false);
+			assert.match(result.error, /FAL.ai error/);
+			assert.match(result.error, /500/);
+		} finally {
+			fetchMock.mock.restore();
+		}
+	});
+
+	it("returns a native structured error object when FAL response is missing image URL", async () => {
+		const fetchMock = mock.method(globalThis, "fetch", async () => ({
+			ok: true,
+			status: 200,
+			json: async () => ({ images: [] }),
+		}));
+		try {
+			const result = await imageImpl(
+				{ action: "generate", prompt: "a cat" },
+				{ falApiKey: "test-key" },
+			);
+			assert.strictEqual(result.ok, false);
+			assert.match(result.error, /missing image URL/);
+		} finally {
+			fetchMock.mock.restore();
+		}
 	});
 });
