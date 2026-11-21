@@ -10,6 +10,7 @@ The documentation for the madz AI harness. This directory is organized for reade
 | **Configure it** (LLM provider, decision model, projects, vector search) | [GETTING_STARTED.md](./GETTING_STARTED.md)            |
 | **Run it in Docker / set env vars**                                      | [DOCKER.md](./DOCKER.md)                              |
 | **Look up a feature, tool, or agent**                                    | [FEATURES.md](./FEATURES.md)                          |
+| **Use the Poppy (Personal Agent Protocol) integration**                  | [POPPY.md](./POPPY.md)                                |
 | **Look up a config key**                                                 | [CONFIGURATION.md](./CONFIGURATION.md)                |
 | **Set up for development / write skills**                                | [DEVELOPMENT.md](./DEVELOPMENT.md)                    |
 | **Look up a bundled skill**                                              | [SKILLS.md](./SKILLS.md)                              |
@@ -30,6 +31,7 @@ The documentation for the madz AI harness. This directory is organized for reade
 | [GETTING_STARTED.md](./GETTING_STARTED.md) | Novice → Intermediate   | Docker           | Configuration decisions: LLM provider, decision model, project context, vector search |
 | [DOCKER.md](./DOCKER.md)                   | Operator                | Docker           | Building, running, SSH, environment variables                                         |
 | [FEATURES.md](./FEATURES.md)               | All                     | Nothing          | Providers, agents, tools, MCP, skills, memory, sandbox, vector search, cron           |
+| [POPPY.md](./POPPY.md)                     | All                     | Nothing          | Poppy (Personal Agent Protocol) integration, configuration, and usage examples         |
 | [CONFIGURATION.md](./CONFIGURATION.md)     | Operator                | Nothing          | `config.yaml` reference, logging, status bar, summarization                           |
 | [DEVELOPMENT.md](./DEVELOPMENT.md)         | Contributor             | Node.js          | Testing, setup, extending skills, directory layout                                    |
 | [SKILLS.md](./SKILLS.md)                   | All                     | Nothing          | The bundled skills shipped in `.skills/`                                              |
