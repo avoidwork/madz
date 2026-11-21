@@ -1,7 +1,17 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { discoverAction } from "./discovery.js";
-import { identityAction } from "./identity.js";
+import * as discovery from "./discovery.js";
+import * as identity from "./identity.js";
+
+/**
+ * Registry of Poppy actions, keyed by action name. Each action module exports
+ * an `execute` function that the dispatcher routes to, mirroring the sql/nosql
+ * driver/engine pattern.
+ */
+export const ACTIONS = {
+	discover: discovery,
+	identity,
+};
 
 /**
  * Zod schema for the `poppy` tool input.
@@ -82,14 +92,11 @@ export const poppySchema = z
  * @returns {Promise<{ok: boolean, data?: object, error?: string}>} Result
  */
 export async function poppyImpl(input, options = {}) {
-	switch (input.action) {
-		case "discover":
-			return discoverAction(input, options);
-		case "identity":
-			return identityAction(input, options);
-		default:
-			return { ok: false, error: `Unknown poppy action: ${input.action}` };
+	const actionModule = ACTIONS[input.action];
+	if (!actionModule) {
+		return { ok: false, error: `Unknown poppy action: ${input.action}` };
 	}
+	return actionModule.execute(input, options);
 }
 
 /**

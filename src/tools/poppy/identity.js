@@ -245,16 +245,17 @@ async function loadKey(keyDir, keyId) {
 }
 
 /**
- * The `identity` action of the Poppy tool. Dispatches on a sub-action to
- * manage the agent's client metadata document and signing keys. Key material is
- * persisted server-side (in `options.keyDir`) and never exposed to the model.
+ * Execute the `identity` action of the Poppy tool. Dispatches on a sub-action
+ * to manage the agent's client metadata document and signing keys. Key material
+ * is persisted server-side (in `options.keyDir`) and never exposed to the
+ * model.
  * @param {object} input - Action input
  * @param {string} input.op - The identity operation to perform
  * @param {object} [options] - Runtime options
  * @param {string} [options.keyDir] - Directory for persisted private keys
  * @returns {Promise<{ok: boolean, data?: object, error?: string}>} Result
  */
-export async function identityAction(input, options = {}) {
+export async function execute(input, options = {}) {
 	const { op } = input;
 	switch (op) {
 		case "build_metadata":

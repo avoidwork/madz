@@ -395,9 +395,9 @@ export async function discoverPoppy(domain, options = {}) {
 }
 
 /**
- * The `discover` action of the Poppy tool. Fetches and validates a company's
- * `poppy.json` document at `/.well-known/poppy.json`, returning a normalized
- * representation for downstream layers.
+ * Execute the `discover` action of the Poppy tool. Fetches and validates a
+ * company's `poppy.json` document at `/.well-known/poppy.json`, returning a
+ * normalized representation for downstream layers.
  * @param {object} input - Action input
  * @param {string} input.domain - The company domain to discover
  * @param {object} [options] - Runtime options
@@ -406,7 +406,7 @@ export async function discoverPoppy(domain, options = {}) {
  * @param {string} [options.implementedVersion="1.0"] - Version this agent implements
  * @returns {Promise<{ok: boolean, data?: object, source?: string, error?: string}>} Result
  */
-export async function discoverAction(input, options = {}) {
+export async function execute(input, options = {}) {
 	const { domain } = input;
 	if (!domain || typeof domain !== "string" || domain.trim().length === 0) {
 		return { ok: false, error: "Domain is required" };

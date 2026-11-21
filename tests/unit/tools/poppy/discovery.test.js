@@ -9,7 +9,7 @@ import {
 	normalizeDocument,
 	fetchPoppy,
 	discoverPoppy,
-	discoverAction,
+	execute,
 } from "../../../../src/tools/poppy/discovery.js";
 import { poppy } from "../../../../src/tools/poppy/index.js";
 
@@ -307,15 +307,15 @@ describe("poppy - discoverPoppy", () => {
 	});
 });
 
-describe("poppy - discoverAction", () => {
+describe("poppy - execute", () => {
 	it("requires a domain", async () => {
-		const result = await discoverAction({});
+		const result = await execute({});
 		assert.strictEqual(result.ok, false);
 		assert.match(result.error, /Domain is required/);
 	});
 
 	it("rejects an empty domain", async () => {
-		const result = await discoverAction({ domain: "  " });
+		const result = await execute({ domain: "  " });
 		assert.strictEqual(result.ok, false);
 	});
 });
