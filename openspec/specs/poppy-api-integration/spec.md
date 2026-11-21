@@ -25,7 +25,7 @@ The system SHALL discover `openapi` and `mcp` entries from a company's `poppy.js
 - **THEN** the system returns an error
 
 ### Requirement: OpenAPI endpoints are called with Poppy headers and access token
-The system SHALL call an OpenAPI endpoint with the `Poppy-Session` header, `Poppy-Version`, `Poppy-Extensions`, and access token as needed, over HTTPS.
+The system SHALL call an OpenAPI endpoint with the `Poppy-Session` header, `Poppy-Version`, `Poppy-Extensions`, and access token as needed, over HTTPS. The `Poppy-Extensions` header is an RFC 9651 List of Strings declaring each supported extension with one version.
 
 #### Scenario: OpenAPI call includes session and version headers
 - **WHEN** an OpenAPI endpoint is called with a session JWT and protocol version
@@ -37,7 +37,7 @@ The system SHALL call an OpenAPI endpoint with the `Poppy-Session` header, `Popp
 
 #### Scenario: OpenAPI call includes extensions header
 - **WHEN** extensions are configured for the OpenAPI call
-- **THEN** the request includes the `Poppy-Extensions` header
+- **THEN** the request includes the `Poppy-Extensions` header as an RFC 9651 List of Strings with one version per declared extension
 
 #### Scenario: Non-HTTPS OpenAPI URL is rejected
 - **WHEN** an OpenAPI endpoint URL is not HTTPS
