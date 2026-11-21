@@ -17,6 +17,9 @@ const embedders = new Map();
  */
 function enqueue(key, fn) {
 	const prev = queues.get(key) ?? Promise.resolve();
+	// Intentional swallow: a prior queued task's rejection must not block the
+	// next task in the serialization queue. The rejection is handled by the
+	// task's own caller; the queue only needs to know the prior task settled.
 	const run = prev.catch(() => {}).then(fn);
 	const tail = run.catch(() => {});
 	queues.set(key, tail);
