@@ -108,6 +108,8 @@ A company publishes its Poppy capabilities in a `poppy.json` document at `https:
 | `redirect_uris` | Valid redirect URIs. HTTPS on the same domain as `client_id`, or loopback URIs per RFC 8252 §7.3. |
 | `token_endpoint_auth_method` | Must be `private_key_jwt`. |
 
+**The CIMD does not need to be served by madz itself.** The document is static, and `jwks_uri` serves only public keys — the private signing keys never leave madz. So the `client_id` and `jwks_uri` URLs can be hosted by any third-party static host (a CDN, GitHub Pages, S3, a reverse proxy) on a domain madz controls. madz only needs to hold the private keys and sign locally; it does not need to run a persistent server to publish its identity. The only requirement is that both URLs are HTTPS and on the same domain, and that the public JWKS is kept in sync with madz's current keys (companies cache the key set, so a removed key stops being accepted once their caches expire).
+
 ## Capabilities
 
 ### Discovery
