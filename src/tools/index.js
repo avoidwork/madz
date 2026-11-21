@@ -40,7 +40,7 @@ import { nosql } from "./nosql/index.js";
 import { env } from "./env/index.js";
 import { getConfig } from "./config/index.js";
 import { decision } from "./decision/index.js";
-import { poppy } from "./poppy/index.js";
+import { poppy, poppyImpl } from "./poppy/index.js";
 import { tool } from "@langchain/core/tools";
 import { MCPAdapter } from "@langchain/mcp-adapters";
 import { logger } from "../shared/logger.js";
@@ -430,6 +430,7 @@ export const CONSUMED_RUNTIME_OPTION_KEYS = [
 	"openaiApiKey",
 	"falApiKey",
 	"samplingEnabled",
+	"poppyKeyDir",
 ];
 
 export async function buildToolConfig(options) {
@@ -461,6 +462,8 @@ export async function buildToolConfig(options) {
 		falApiKey: falCredentials?.apiKey,
 		// Resolved sampling enable flag from config.agent.sampling
 		samplingEnabled: config?.agent?.sampling !== false,
+		// Directory for persisted Poppy signing keys (from config.memory.toolsDir)
+		poppyKeyDir: config?.memory?.toolsDir,
 	};
 
 	for (const [toolName, requiredPerms] of Object.entries(TOOL_PERMISSIONS)) {
@@ -526,6 +529,23 @@ export async function buildToolConfig(options) {
 					{ name: "image", description: TOOLS.image.description, schema: TOOLS.image.schema },
 				);
 				tools.push(imageTool);
+				continue;
+			}
+
+			case "poppy": {
+				if (!hasAllPerms) continue;
+				// Inject the key directory so the `identity` action can persist
+				// and load private signing keys server-side. The key material is
+				// never exposed to the model.
+				const poppyTool = tool(
+					(input, options = {}) =>
+						poppyImpl(input, {
+							...options,
+							keyDir: runtimeOptions.poppyKeyDir,
+						}),
+					{ name: "poppy", description: TOOLS.poppy.description, schema: TOOLS.poppy.schema },
+				);
+				tools.push(poppyTool);
 				continue;
 			}
 

@@ -7,6 +7,7 @@ import {
 	deriveJwksUri,
 	exportPublicJwks,
 	generateSigningKey,
+	identityAction,
 	signClientAssertion,
 	validateClientMetadata,
 	validateJwksUri,
@@ -261,6 +262,209 @@ describe("poppy identity - signClientAssertion", () => {
 				}),
 			/Unsupported/,
 		);
+	});
+});
+
+describe("poppy identity - identityAction", () => {
+	it("builds a client metadata document", async () => {
+		const result = await identityAction({
+			op: "build_metadata",
+			clientId: CLIENT_ID,
+			clientName: "Example Agent",
+			jwksUri: JWKS_URI,
+			redirectUris: ["https://agent.example.com/oauth/callback"],
+		});
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.data.client_id, CLIENT_ID);
+		assert.strictEqual(result.data.token_endpoint_auth_method, "private_key_jwt");
+	});
+
+	it("rejects build_metadata with missing fields", async () => {
+		const result = await identityAction({ op: "build_metadata", clientId: CLIENT_ID });
+		assert.strictEqual(result.ok, false);
+	});
+
+	it("generates a key and persists it", async () => {
+		const result = await identityAction(
+			{ op: "generate_key", alg: "ES256", keyId: "test-key" },
+			{ keyDir: "/tmp/poppy-test-keys" },
+		);
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.data.alg, "ES256");
+		assert.ok(result.data.jwks.keys.length > 0);
+	});
+
+	it("rejects an unsupported algorithm", async () => {
+		const result = await identityAction({ op: "generate_key", alg: "RS256" });
+		assert.strictEqual(result.ok, false);
+	});
+
+	it("signs an assertion with a persisted key", async () => {
+		await identityAction(
+			{ op: "generate_key", alg: "ES256", keyId: "sign-key" },
+			{ keyDir: "/tmp/poppy-test-keys" },
+		);
+		const result = await identityAction(
+			{
+				op: "sign_assertion",
+				clientId: CLIENT_ID,
+				audience: "https://auth.example.com",
+				keyId: "sign-key",
+			},
+			{ keyDir: "/tmp/poppy-test-keys" },
+		);
+		assert.strictEqual(result.ok, true);
+		assert.ok(result.data.jwt);
+	});
+
+	it("rejects sign_assertion without a persisted key", async () => {
+		const result = await identityAction(
+			{
+				op: "sign_assertion",
+				clientId: CLIENT_ID,
+				audience: "https://auth.example.com",
+				keyId: "missing",
+			},
+			{ keyDir: "/tmp/poppy-test-keys" },
+		);
+		assert.strictEqual(result.ok, false);
+	});
+
+	it("validates a redirect URI", async () => {
+		const result = await identityAction({
+			op: "validate_redirect",
+			uri: "https://agent.example.com/oauth/callback",
+			clientId: CLIENT_ID,
+		});
+		assert.strictEqual(result.ok, true);
+	});
+
+	it("validates a jwks_uri", async () => {
+		const result = await identityAction({
+			op: "validate_jwks",
+			jwksUri: JWKS_URI,
+			clientId: CLIENT_ID,
+		});
+		assert.strictEqual(result.ok, true);
+	});
+
+	it("validates a client metadata document", async () => {
+		const doc = buildClientMetadata({
+			clientId: CLIENT_ID,
+			clientName: "Example Agent",
+			jwksUri: JWKS_URI,
+			redirectUris: ["https://agent.example.com/oauth/callback"],
+		});
+		const result = await identityAction({ op: "validate_metadata", doc });
+		assert.strictEqual(result.ok, true);
+	});
+
+	it("rejects sign_assertion without clientId or audience", async () => {
+		const result = await identityAction(
+			{ op: "sign_assertion", clientId: CLIENT_ID },
+			{ keyDir: "/tmp/poppy-test-keys" },
+		);
+		assert.strictEqual(result.ok, false);
+		assert.match(result.error, /clientId and audience are required/);
+	});
+
+	it("rejects sign_assertion without a keyDir", async () => {
+		const result = await identityAction({
+			op: "sign_assertion",
+			clientId: CLIENT_ID,
+			audience: "https://auth.example.com",
+		});
+		assert.strictEqual(result.ok, false);
+		assert.match(result.error, /keyDir is required/);
+	});
+
+	it("rejects validate_redirect without uri or clientId", async () => {
+		const result = await identityAction({
+			op: "validate_redirect",
+			uri: "https://agent.example.com/cb",
+		});
+		assert.strictEqual(result.ok, false);
+		assert.match(result.error, /uri and clientId are required/);
+	});
+
+	it("rejects validate_jwks without jwksUri or clientId", async () => {
+		const result = await identityAction({ op: "validate_jwks", jwksUri: JWKS_URI });
+		assert.strictEqual(result.ok, false);
+		assert.match(result.error, /jwksUri and clientId are required/);
+	});
+
+	it("rejects validate_metadata without a doc", async () => {
+		const result = await identityAction({ op: "validate_metadata" });
+		assert.strictEqual(result.ok, false);
+		assert.match(result.error, /doc is required/);
+	});
+
+	it("rejects an unknown operation", async () => {
+		const result = await identityAction({ op: "nope" });
+		assert.strictEqual(result.ok, false);
+	});
+
+	it("rejects sign_assertion without clientId or audience", async () => {
+		const result = await identityAction({ op: "sign_assertion" });
+		assert.strictEqual(result.ok, false);
+		assert.match(result.error, /clientId and audience are required/);
+	});
+
+	it("rejects sign_assertion without a keyDir", async () => {
+		const result = await identityAction({
+			op: "sign_assertion",
+			clientId: CLIENT_ID,
+			audience: "https://auth.example.com",
+		});
+		assert.strictEqual(result.ok, false);
+		assert.match(result.error, /keyDir is required/);
+	});
+
+	it("rejects validate_redirect without uri or clientId", async () => {
+		const result = await identityAction({ op: "validate_redirect" });
+		assert.strictEqual(result.ok, false);
+		assert.match(result.error, /uri and clientId are required/);
+	});
+
+	it("rejects validate_jwks without jwksUri or clientId", async () => {
+		const result = await identityAction({ op: "validate_jwks" });
+		assert.strictEqual(result.ok, false);
+		assert.match(result.error, /jwksUri and clientId are required/);
+	});
+
+	it("rejects validate_metadata without a doc", async () => {
+		const result = await identityAction({ op: "validate_metadata" });
+		assert.strictEqual(result.ok, false);
+		assert.match(result.error, /doc is required/);
+	});
+
+	it("returns an error when key persistence fails", async () => {
+		// Create a file, then use it as a parent dir so mkdir throws.
+		const { writeFile } = await import("node:fs/promises");
+		const blocker = `/tmp/poppy-test-keys-blocker-${Date.now()}`;
+		await writeFile(blocker, "x", "utf8");
+		const result = await identityAction(
+			{ op: "generate_key", alg: "ES256", keyId: "bad-key" },
+			{ keyDir: `${blocker}/sub` },
+		);
+		assert.strictEqual(result.ok, false);
+	});
+
+	it("returns an error when the persisted key cannot be imported", async () => {
+		// Write an invalid PEM so deserializePrivateKey throws.
+		const { mkdir, writeFile } = await import("node:fs/promises");
+		await mkdir("/tmp/poppy-test-keys-invalid", { recursive: true });
+		await writeFile("/tmp/poppy-test-keys-invalid/bad.pem", "not-a-pem", "utf8");
+		const result = await identityAction(
+			{
+				op: "sign_assertion",
+				clientId: CLIENT_ID,
+				audience: "https://auth.example.com",
+				keyId: "bad",
+			},
+			{ keyDir: "/tmp/poppy-test-keys-invalid" },
+		);
+		assert.strictEqual(result.ok, false);
 	});
 });
 
