@@ -1,18 +1,6 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { poppyImpl } from "./discovery.js";
-import {
-	ClientMetadataSchema,
-	SUPPORTED_ALGS,
-	buildClientMetadata,
-	deriveJwksUri,
-	exportPublicJwks,
-	generateSigningKey,
-	signClientAssertion,
-	validateClientMetadata,
-	validateJwksUri,
-	validateRedirectUri,
-} from "./identity.js";
 
 /**
  * Poppy (Personal Agent Protocol) discovery tool. Fetches and validates a
@@ -29,16 +17,3 @@ export const poppy = tool(poppyImpl, {
 		domain: z.string().min(1).describe("The company domain to discover (e.g. example.com)"),
 	}),
 });
-
-export {
-	ClientMetadataSchema,
-	SUPPORTED_ALGS,
-	buildClientMetadata,
-	deriveJwksUri,
-	exportPublicJwks,
-	generateSigningKey,
-	signClientAssertion,
-	validateClientMetadata,
-	validateJwksUri,
-	validateRedirectUri,
-};
