@@ -215,16 +215,27 @@ describe("poppy - fetchPoppy", () => {
 	});
 
 	it("rejects a final URL with a query string", async () => {
-		const fetchMock = mock.method(globalThis, "fetch", async () => ({
-			status: 200,
-			ok: true,
-			headers: new Map(),
-			text: async () => JSON.stringify(VALID_DOC),
-		}));
-		// Force a query by mocking the URL construction via a redirect.
+		let calls = 0;
+		const fetchMock = mock.method(globalThis, "fetch", async () => {
+			calls++;
+			if (calls === 1) {
+				return {
+					status: 302,
+					ok: false,
+					headers: new Map([["location", "https://example.com/.well-known/poppy.json?token=abc"]]),
+					text: async () => "",
+				};
+			}
+			return {
+				status: 200,
+				ok: true,
+				headers: new Map(),
+				text: async () => JSON.stringify(VALID_DOC),
+			};
+		});
 		const result = await fetchPoppy("example.com");
-		// Default fetch has no query; assert it succeeds normally.
-		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.ok, false);
+		assert.match(result.error, /query/);
 		fetchMock.mock.restore();
 	});
 
