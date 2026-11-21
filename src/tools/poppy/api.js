@@ -2,6 +2,7 @@ import { z } from "zod";
 import { MCPAdapter } from "@langchain/mcp-adapters";
 import { fetchJson } from "./common.js";
 import { validateUrl } from "./discovery.js";
+import { buildExtensionsHeader } from "./extensions.js";
 
 /** Poppy protocol version sent as the `Poppy-Version` header. */
 const POPPY_VERSION = "1.0";
@@ -108,7 +109,10 @@ export function buildHeaders(input) {
 		headers["Poppy-Version"] = POPPY_VERSION;
 	}
 	if (input.extensions && Object.keys(input.extensions).length > 0) {
-		headers["Poppy-Extensions"] = JSON.stringify(input.extensions);
+		const header = buildExtensionsHeader(input.extensions);
+		if (header) {
+			headers["Poppy-Extensions"] = header;
+		}
 	}
 	if (input.idempotencyKey) {
 		headers["Idempotency-Key"] = input.idempotencyKey;
