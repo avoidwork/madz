@@ -3,6 +3,7 @@ import { z } from "zod";
 import * as discovery from "./discovery.js";
 import * as identity from "./identity.js";
 import * as session from "./session.js";
+import * as oauth from "./oauth.js";
 
 /**
  * Registry of Poppy actions, keyed by action name. Each action module exports
@@ -13,6 +14,7 @@ export const ACTIONS = {
 	discover: discovery,
 	identity,
 	session,
+	oauth,
 };
 
 /**
@@ -26,7 +28,9 @@ export const ACTIONS = {
  */
 export const poppySchema = z
 	.object({
-		action: z.enum(["discover", "identity", "session"]).describe("The Poppy operation to perform"),
+		action: z
+			.enum(["discover", "identity", "session", "oauth"])
+			.describe("The Poppy operation to perform"),
 		// discover
 		domain: z.string().optional().describe("The company domain to discover (e.g. example.com)"),
 		// identity
@@ -48,6 +52,21 @@ export const poppySchema = z
 		agentId: z.string().optional().describe("Optional agent ID"),
 		accessToken: z.string().optional().describe("Optional access token for the ath claim"),
 		delegation: z.string().optional().describe("The delegation JWT (for the poppy_dlg header)"),
+		// oauth
+		issuer: z.string().optional().describe("The company's OAuth issuer URL"),
+		redirectUri: z.string().optional().describe("The redirect URI for Direct Sign-In"),
+		scope: z.string().optional().describe("The requested OAuth scope"),
+		state: z.string().optional().describe("The CSRF state for Direct Sign-In"),
+		code: z.string().optional().describe("The authorization code for Direct Sign-In exchange"),
+		codeVerifier: z.string().optional().describe("The PKCE code verifier"),
+		crossDevice: z
+			.boolean()
+			.optional()
+			.describe("Whether to enforce prompt=consent for cross-device Direct Sign-In"),
+		refreshToken: z.string().optional().describe("The refresh token to rotate"),
+		token: z.string().optional().describe("The token to revoke"),
+		tokenTypeHint: z.string().optional().describe("The token type hint for revocation"),
+		poll: z.boolean().optional().describe("Whether to poll the device flow for tokens"),
 	})
 	.superRefine((data, ctx) => {
 		const { action } = data;
@@ -81,6 +100,18 @@ export const poppySchema = z
 		rejectField("agentId", ["session"]);
 		rejectField("accessToken", ["session"]);
 		rejectField("delegation", ["session"]);
+		// oauth-only fields
+		rejectField("issuer", ["oauth"]);
+		rejectField("redirectUri", ["oauth"]);
+		rejectField("scope", ["oauth"]);
+		rejectField("state", ["oauth"]);
+		rejectField("code", ["oauth"]);
+		rejectField("codeVerifier", ["oauth"]);
+		rejectField("crossDevice", ["oauth"]);
+		rejectField("refreshToken", ["oauth"]);
+		rejectField("token", ["oauth"]);
+		rejectField("tokenTypeHint", ["oauth"]);
+		rejectField("poll", ["oauth"]);
 
 		if (action === "discover") {
 			if (!data.domain) {
@@ -104,6 +135,14 @@ export const poppySchema = z
 					code: z.ZodIssueCode.custom,
 					path: ["op"],
 					message: "op is required for the 'session' action",
+				});
+			}
+		} else if (action === "oauth") {
+			if (!data.op) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["op"],
+					message: "op is required for the 'oauth' action",
 				});
 			}
 		}
@@ -132,6 +171,6 @@ export async function poppyImpl(input, options = {}) {
 export const poppy = tool(poppyImpl, {
 	name: "poppy",
 	description:
-		"Poppy (Personal Agent Protocol) tool. Dispatches on an `action` enum: `discover` fetches and validates a company's poppy.json; `identity` manages the agent's client metadata document and signing keys; `session` generates Poppy-Session JWTs and issues delegations. Requires network:outbound.",
+		"Poppy (Personal Agent Protocol) tool. Dispatches on an `action` enum: `discover` fetches and validates a company's poppy.json; `identity` manages the agent's client metadata document and signing keys; `session` generates Poppy-Session JWTs and issues delegations; `oauth` performs Direct Sign-In (authorization code + PKCE) and Device Sign-In (device authorization grant), refresh token rotation, revocation, and DPoP. Requires network:outbound.",
 	schema: poppySchema,
 });
