@@ -4,6 +4,7 @@ import {
 	getModelContextLength,
 	buildModelsUrl,
 	buildShowUrl,
+	buildModelInfoUrl,
 	parseNumCtx,
 } from "../../../src/provider/modelInfo.js";
 
@@ -28,6 +29,20 @@ describe("buildShowUrl", () => {
 
 	it("uses the base host when no /v1 prefix", () => {
 		assert.strictEqual(buildShowUrl("https://host"), "https://host/api/show");
+	});
+});
+
+describe("buildModelInfoUrl", () => {
+	it("strips a trailing /v1 prefix", () => {
+		assert.strictEqual(buildModelInfoUrl("https://host/v1"), "https://host/model/info");
+	});
+
+	it("uses the base host when no /v1 prefix", () => {
+		assert.strictEqual(buildModelInfoUrl("https://host"), "https://host/model/info");
+	});
+
+	it("strips trailing slashes before appending", () => {
+		assert.strictEqual(buildModelInfoUrl("https://host/v1/"), "https://host/model/info");
 	});
 });
 
@@ -286,6 +301,58 @@ describe("getModelContextLength", () => {
 			credentials: { apiKey: "sk-test" },
 		});
 		assert.strictEqual(result, undefined);
+	});
+
+	it("returns max_input_tokens from the LiteLLM /model/info endpoint", async () => {
+		mock.method(globalThis, "fetch", async () => ({
+			ok: true,
+			json: async () => [{ model_name: "llama3.1", model_info: { max_input_tokens: 131072 } }],
+		}));
+		const result = await getModelContextLength({
+			base_url: "https://host/v1",
+			model: "llama3.1",
+			credentials: { apiKey: "sk-test" },
+		});
+		assert.strictEqual(result, 131072);
+	});
+
+	it("returns max_output_tokens when max_input_tokens is absent", async () => {
+		mock.method(globalThis, "fetch", async () => ({
+			ok: true,
+			json: async () => [{ model_name: "llama3.1", model_info: { max_output_tokens: 8192 } }],
+		}));
+		const result = await getModelContextLength({
+			base_url: "https://host/v1",
+			model: "llama3.1",
+			credentials: { apiKey: "sk-test" },
+		});
+		assert.strictEqual(result, 8192);
+	});
+
+	it("returns undefined when the LiteLLM /model/info response has no context fields", async () => {
+		mock.method(globalThis, "fetch", async () => ({
+			ok: true,
+			json: async () => [{ model_name: "llama3.1", model_info: {} }],
+		}));
+		const result = await getModelContextLength({
+			base_url: "https://host/v1",
+			model: "llama3.1",
+			credentials: { apiKey: "sk-test" },
+		});
+		assert.strictEqual(result, undefined);
+	});
+
+	it("matches the configured model by model_info.model_name", async () => {
+		mock.method(globalThis, "fetch", async () => ({
+			ok: true,
+			json: async () => [{ model_info: { model_name: "llama3.1", max_input_tokens: 131072 } }],
+		}));
+		const result = await getModelContextLength({
+			base_url: "https://host/v1",
+			model: "llama3.1",
+			credentials: { apiKey: "sk-test" },
+		});
+		assert.strictEqual(result, 131072);
 	});
 
 	it("falls back to the configured contextWindow for azure-openai", async () => {
