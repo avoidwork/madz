@@ -116,7 +116,7 @@ export const poppySchema = z
 		// discover-only fields
 		rejectField("domain", ["discover"]);
 		// identity/session/oauth/verify/api fields
-		rejectField("op", ["identity", "session", "oauth", "api"]);
+		rejectField("op", ["identity", "session", "oauth", "api", "conversation"]);
 		rejectField("clientId", ["identity", "oauth"]);
 		rejectField("clientName", ["identity"]);
 		rejectField("jwksUri", ["identity"]);
@@ -132,7 +132,7 @@ export const poppySchema = z
 		rejectField("method", ["session", "verify", "api"]);
 		rejectField("url", ["session", "verify"]);
 		rejectField("agentId", ["session"]);
-		rejectField("accessToken", ["session", "verify"]);
+		rejectField("accessToken", ["session", "verify", "conversation"]);
 		rejectField("delegation", ["session"]);
 		// oauth-only fields
 		rejectField("issuer", ["oauth"]);
@@ -146,12 +146,12 @@ export const poppySchema = z
 		rejectField("token", ["oauth"]);
 		rejectField("tokenTypeHint", ["oauth"]);
 		rejectField("poll", ["oauth"]);
-		// verify-only fields
-		rejectField("session", ["verify"]);
+		// verify/conversation fields
+		rejectField("session", ["verify", "conversation"]);
 		// api-only fields
 		rejectField("task", ["api"]);
 		rejectField("apiType", ["api"]);
-		rejectField("endpoint", ["api"]);
+		rejectField("endpoint", ["api", "conversation"]);
 		rejectField("path", ["api"]);
 		rejectField("body", ["api"]);
 		rejectField("version", ["api"]);

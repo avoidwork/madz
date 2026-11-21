@@ -459,3 +459,32 @@ describe("poppy conversation - execute", () => {
 		assert.strictEqual(result.ok, false);
 	});
 });
+
+describe("poppy conversation - tool registration", () => {
+	it("registers the conversation action in the poppy tool ACTIONS registry", async () => {
+		const { ACTIONS } = await import("../../../../src/tools/poppy/index.js");
+		assert.ok(ACTIONS.conversation);
+		assert.strictEqual(typeof ACTIONS.conversation.execute, "function");
+	});
+
+	it("accepts a conversation action in the poppy tool schema", async () => {
+		const { poppySchema } = await import("../../../../src/tools/poppy/index.js");
+		const result = poppySchema.safeParse({
+			action: "conversation",
+			op: "start",
+			endpoint: "https://example.com/conv",
+			session: "jwt",
+			accessToken: "tok",
+		});
+		assert.strictEqual(result.success, true);
+	});
+
+	it("requires op for the conversation action", async () => {
+		const { poppySchema } = await import("../../../../src/tools/poppy/index.js");
+		const result = poppySchema.safeParse({
+			action: "conversation",
+			endpoint: "https://example.com/conv",
+		});
+		assert.strictEqual(result.success, false);
+	});
+});
