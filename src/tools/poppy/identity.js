@@ -249,7 +249,7 @@ async function loadKey(keyDir, keyId) {
  * to manage the agent's client metadata document and signing keys. Key material
  * is persisted server-side (in `options.keyDir`) and never exposed to the
  * model.
- * @param {object} input - Action input
+ * @param {object} input - Tool input
  * @param {string} input.op - The identity operation to perform
  * @param {object} [options] - Runtime options
  * @param {string} [options.keyDir] - Directory for persisted private keys
@@ -259,17 +259,17 @@ export async function execute(input, options = {}) {
 	const { op } = input;
 	switch (op) {
 		case "build_metadata":
-			return buildMetadataAction(input, options);
+			return buildMetadata(input, options);
 		case "generate_key":
-			return generateKeyAction(input, options);
+			return generateKey(input, options);
 		case "sign_assertion":
-			return signAssertionAction(input, options);
+			return signAssertion(input, options);
 		case "validate_redirect":
-			return validateRedirectAction(input, options);
+			return validateRedirect(input, options);
 		case "validate_jwks":
-			return validateJwksAction(input, options);
+			return validateJwks(input, options);
 		case "validate_metadata":
-			return validateMetadataAction(input, options);
+			return validateMetadata(input, options);
 		default:
 			return { ok: false, error: `Unknown identity operation: ${op}` };
 	}
@@ -277,7 +277,7 @@ export async function execute(input, options = {}) {
 
 /**
  * Build the agent's client metadata document (CIMD).
- * @param {object} input - Action input
+ * @param {object} input - Tool input
  * @param {string} input.clientId - The agent's client_id URL
  * @param {string} input.clientName - The agent's display name
  * @param {string} input.jwksUri - The public JWKS URL
@@ -285,7 +285,7 @@ export async function execute(input, options = {}) {
  * @param {string} [input.logoUri] - Optional logo URL
  * @returns {{ok: boolean, data?: object, error?: string}} Result
  */
-function buildMetadataAction(input) {
+function buildMetadata(input) {
 	const { clientId, clientName, jwksUri, redirectUris, logoUri } = input;
 	if (
 		!clientId ||
@@ -303,14 +303,14 @@ function buildMetadataAction(input) {
 /**
  * Generate a signing key pair, persist the private key server-side, and return
  * the public JWKS. The private key is never returned to the model.
- * @param {object} input - Action input
+ * @param {object} input - Tool input
  * @param {string} [input.alg="ES256"] - The signing algorithm
  * @param {string} [input.keyId="default"] - Identifier for the persisted key
  * @param {object} [options] - Runtime options
  * @param {string} [options.keyDir] - Directory for persisted private keys
  * @returns {Promise<{ok: boolean, data?: object, error?: string}>} Result
  */
-async function generateKeyAction(input, options = {}) {
+async function generateKey(input, options = {}) {
 	const alg = input.alg ?? "ES256";
 	const keyId = input.keyId ?? "default";
 	if (!SUPPORTED_ALGS.includes(alg)) {
@@ -331,7 +331,7 @@ async function generateKeyAction(input, options = {}) {
 
 /**
  * Sign a client assertion (RFC 7523) with a persisted private key.
- * @param {object} input - Action input
+ * @param {object} input - Tool input
  * @param {string} input.clientId - The agent's client_id (issuer/subject)
  * @param {string} input.audience - The company's issuer (audience)
  * @param {string} [input.alg="ES256"] - The signing algorithm
@@ -340,7 +340,7 @@ async function generateKeyAction(input, options = {}) {
  * @param {string} [options.keyDir] - Directory for persisted private keys
  * @returns {Promise<{ok: boolean, data?: object, error?: string}>} Result
  */
-async function signAssertionAction(input, options = {}) {
+async function signAssertion(input, options = {}) {
 	const { clientId, audience } = input;
 	const alg = input.alg ?? "ES256";
 	const keyId = input.keyId ?? "default";
@@ -365,12 +365,12 @@ async function signAssertionAction(input, options = {}) {
 
 /**
  * Validate a redirect URI against the Poppy rules.
- * @param {object} input - Action input
+ * @param {object} input - Tool input
  * @param {string} input.uri - The redirect URI to validate
  * @param {string} input.clientId - The agent's client_id URL
  * @returns {{ok: boolean, data?: object, error?: string}} Result
  */
-function validateRedirectAction(input) {
+function validateRedirect(input) {
 	const { uri, clientId } = input;
 	if (!uri || !clientId) {
 		return { ok: false, error: "uri and clientId are required" };
@@ -381,12 +381,12 @@ function validateRedirectAction(input) {
 
 /**
  * Validate a jwks_uri against the Poppy rules.
- * @param {object} input - Action input
+ * @param {object} input - Tool input
  * @param {string} input.jwksUri - The public JWKS URL
  * @param {string} input.clientId - The agent's client_id URL
  * @returns {{ok: boolean, data?: object, error?: string}} Result
  */
-function validateJwksAction(input) {
+function validateJwks(input) {
 	const { jwksUri, clientId } = input;
 	if (!jwksUri || !clientId) {
 		return { ok: false, error: "jwksUri and clientId are required" };
@@ -397,11 +397,11 @@ function validateJwksAction(input) {
 
 /**
  * Validate a client metadata document against the CIMD schema.
- * @param {object} input - Action input
+ * @param {object} input - Tool input
  * @param {object} input.doc - The client metadata document to validate
  * @returns {{ok: boolean, data?: object, error?: string}} Result
  */
-function validateMetadataAction(input) {
+function validateMetadata(input) {
 	const { doc } = input;
 	if (!doc) {
 		return { ok: false, error: "doc is required" };
