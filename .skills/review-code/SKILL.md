@@ -1,10 +1,10 @@
 ---
 name: review-code
-description: Audits each directory in ./src for bugs, security vulnerabilities, and performance issues using a deterministic rule catalog with fixed severities and a weighted scoring rubric. Generates one consolidated issue per directory via /create-issue. Use when auditing a Node.js ./src tree for code quality.
+description: Audits a directory tree for bugs, security vulnerabilities, and performance issues across the languages installed in the project Dockerfile (JavaScript/TypeScript, Python, Ruby, Go, Java, Rust, Terraform, Shell). Uses a deterministic per-language rule catalog with fixed severities and a weighted scoring rubric. Generates one consolidated issue per directory via /create-issue. Use when auditing a codebase for language-specific code quality.
 license: BSD 3-Clause
-compatibility: Node.js project with ./src directory structure
+compatibility: Node.js project with ./src directory structure; supports JS/TS, Python, Ruby, Go, Java, Rust, Terraform, and Shell
 metadata:
-  version: 3.0.0
+  version: 4.0.0
   target: ./src
   agent: code-review
 ---
@@ -13,51 +13,59 @@ metadata:
 
 > **⚠️ EXECUTION RULE:** Every code block in this skill is a shell command to **execute**. Do not print them as text, explain them, or treat them as examples — run them directly.
 
-Audit the `./src` directory tree for bugs, security vulnerabilities, and performance issues. Directories are independent — each gets its own issue.
+Audit a directory tree for bugs, security vulnerabilities, and performance issues. Directories are independent — each gets its own issue.
 
-The audit is **deterministic**: every finding is produced by a fixed rule from the catalog below, each rule carries a fixed severity, and overall health is a computed score. No subjective severity judgment is required.
+The audit is **language-agnostic** and **deterministic**: files are classified by language, each language has a fixed rule catalog with fixed severities, and overall health is a computed score. No subjective severity judgment is required.
+
+---
+
+## Language Support
+
+The skill supports the languages installed in the project's `Dockerfile`. Each language has its own rule catalog in `references/` (progressive disclosure — load the relevant file only when auditing that language).
+
+| Language | Extensions | Rule catalog |
+|----------|------------|--------------|
+| JavaScript / TypeScript | `.js`, `.jsx`, `.ts`, `.tsx`, `.mjs`, `.cjs` | `references/javascript.md` |
+| Python | `.py`, `.pyi` | `references/python.md` |
+| Ruby | `.rb` | `references/ruby.md` |
+| Go | `.go` | `references/go.md` |
+| Java | `.java` | `references/java.md` |
+| Rust | `.rs` | `references/rust.md` |
+| Terraform | `.tf`, `.hcl` | `references/terraform.md` |
+| Shell | `.sh`, `.bash` | `references/shell.md` |
+
+**Load the rule catalog for each language you encounter.** Read the corresponding `references/<language>.md` before auditing files of that language. Do not audit a language without its catalog.
 
 ---
 
 ## Deterministic Audit Method
 
-### Rule Catalog
+### Universal Rules
 
-Every finding maps to exactly one rule. **Severity is a property of the rule, never a judgment call.** Do not re-grade a finding — the rule's severity is authoritative.
+The following rules apply to **every** language and are defined here. Language-specific rules live in the per-language catalogs.
 
 | ID | Category | Rule | Severity | Detection |
 |----|----------|------|----------|-----------|
-| SEC-001 | security | Hardcoded secret (`password`/`api_key`/`token`/`secret`/`access_key` = literal) | critical | `grep -rnE '(password\|api[_-]?key\|token\|secret\|access[_-]?key)\s*=\s*["'"'][^"'"']+["'"']'` |
-| SEC-002 | security | `eval()` / `new Function()` / `__import__()` | critical | `grep -rnE 'eval\(|new Function\(|__import__\('` |
-| SEC-003 | security | SQL injection (string concat in query) | high | `grep -rnE '(query\|sql)\s*.*\+\s*(req\|body\|params\|query)'` |
-| SEC-004 | security | Route missing auth middleware | critical | structural check (see below) |
 | SEC-005 | security | Unsafe URL scheme (`file://`, `gopher://`, `dict://`) | high | `grep -rnE '(file\|gopher\|dict)://'` |
-| SEC-006 | security | Plaintext secret stored outside `process.env` | high | `grep -rnE '(password\|secret\|api[_-]?key)\s*=\s*["'"']'` |
-| BUG-001 | bug | Silent catch block | medium | `grep -rnE 'catch\s*\([^)]*\)\s*\{\s*\}'` |
-| BUG-002 | bug | Unhandled promise (`.then(` without `.catch(`) | high | `grep -rnE '\.then\('` minus `.catch(` |
-| BUG-003 | bug | `console.log` in production code | low | `grep -rn 'console\.log'` |
-| BUG-004 | bug | Mutating a list while iterating | medium | structural check (see below) |
-| BUG-005 | bug | Blocking I/O (`readFileSync`/`writeFileSync`) in async | medium | `grep -rnE 'readFileSync\|writeFileSync'` |
-| BUG-006 | bug | Unbounded loop (`while (true)`) | medium | `grep -rnE 'while\s*\(\s*true\s*\)'` |
-| PERF-001 | performance | Synchronous file I/O in async function | medium | `grep -rnE 'readFileSync\|writeFileSync'` |
-| PERF-002 | performance | Wildcard import (`import *`) | low | `grep -rnE 'import\s*\*\s*from'` |
 | QUAL-001 | quality | Dead / unreachable code | low | structural check (see below) |
-| QUAL-002 | quality | Missing JSDoc on public function | low | structural check (see below) |
+| QUAL-002 | quality | Missing doc comment on public symbol | low | structural check (see below) |
 | QUAL-003 | quality | Copy-paste block > 3 lines | low | structural check (see below) |
 
-**Structural rules** (SEC-004, BUG-004, QUAL-001/002/003) cannot be detected by a single grep. For these, apply the concrete detection criteria below. Each criterion is checkable — if the file does not satisfy the criterion, do **not** record a finding. Absence of evidence is not a finding.
+**Structural rules** (QUAL-001/002/003) cannot be detected by a single grep. Apply the concrete detection criteria below. Each criterion is checkable — if the file does not satisfy the criterion, do **not** record a finding. Absence of evidence is not a finding.
 
 | Rule | Detection criteria (all must hold) |
 |------|-----------------------------------|
-| SEC-004 | A route handler is defined (e.g., `app.get/post/put/delete(...)` or `router.get/post/...`) AND the handler does not reference the auth middleware (e.g., `auth`, `authenticate`, `requireAuth`, `verifyToken`) in its argument list or body. |
-| BUG-004 | A `for...of`, `for...in`, `forEach`, or `while` loop iterates over an array/collection AND the loop body calls `push`, `pop`, `shift`, `unshift`, `splice`, `sort`, or `reverse` on the same collection being iterated. |
 | QUAL-001 | A statement or block is unreachable: it follows an unconditional `return`, `throw`, `break`, or `continue` in the same block, or a function has a `return`/`throw` on every path followed by trailing code. |
-| QUAL-002 | A top-level `export function`/`export const`/`export class` (or a module-level function) has no JSDoc comment (`/** ... */`) immediately preceding it. |
+| QUAL-002 | A top-level `export function`/`export const`/`export class` (or a module-level function/class) has no doc comment (`/** ... */`, `"""..."""`, `# ...`, or `// ...`) immediately preceding it. |
 | QUAL-003 | Two or more blocks of 4+ consecutive lines are byte-identical (ignoring whitespace) within the same file. |
+
+### Per-Language Rules
+
+Each `references/<language>.md` file defines the language-specific rules (e.g., unhandled promises in JS, mutable default args in Python, ignored errors in Go, `unwrap()` in Rust). **Severity is a property of each rule — never a judgment call.** Do not re-grade a finding.
 
 ### Detection
 
-For each file, run every grep rule in the catalog. Record findings as `(rule_id, file, count)`. **Never include matched line content in output** — see the security gotcha below.
+For each file, determine its language by extension, load that language's catalog, and run every rule in it. Record findings as `(rule_id, file, count)`. **Never include matched line content in output** — see the security gotcha below.
 
 ```bash
 # Run a single rule across a file; capture count only
@@ -227,30 +235,45 @@ For each directory in the queue:
    echo "Processing: $CURRENT_PHASE"
    ```
 
-2. **Enumerate files.** List all files in the target directory:
+2. **Enumerate files.** List all files in the target directory across all supported languages:
    ```bash
-   # Recurse into subdirectories, excluding common patterns
+   # Recurse into subdirectories, excluding common patterns and build artifacts
    find "$CURRENT_PHASE" -type f \
      ! -path '*/node_modules/*' \
      ! -path '*/.git/*' \
      ! -path '*/__tests__/*' \
+     ! -path '*/test/*' \
+     ! -path '*/tests/*' \
      ! -path '*/.next/*' \
      ! -path '*/dist/*' \
      ! -path '*/build/*' \
+     ! -path '*/target/*' \
+     ! -path '*/vendor/*' \
+     ! -path '*/__pycache__/*' \
      ! -name '*.test.*' \
      ! -name '*.spec.*' \
      ! -name '*.d.ts' \
      ! -name '*.js.map' \
-     \( -name '*.js' -o -name '*.ts' -o -name '*.jsx' -o -name '*.tsx' \)
+     ! -name '*.min.*' \
+     \( -name '*.js' -o -name '*.jsx' -o -name '*.ts' -o -name '*.tsx' -o -name '*.mjs' -o -name '*.cjs' \
+        -o -name '*.py' -o -name '*.pyi' \
+        -o -name '*.rb' \
+        -o -name '*.go' \
+        -o -name '*.java' \
+        -o -name '*.rs' \
+        -o -name '*.tf' -o -name '*.hcl' \
+        -o -name '*.sh' -o -name '*.bash' \)
    ```
 
-3. **Audit each file.** For each file, run every rule in the catalog. Record `(rule_id, file, count)` for each rule that matches. Apply structural rules by direct inspection.
+3. **Classify each file by language.** Map each file's extension to a language per the Language Support table. Load that language's rule catalog from `references/`.
 
-4. **Compute the score.** Sum the finding counts by severity, then apply the fixed weights per the **Scoring** section above (the formula is defined there — do not redefine it).
+4. **Audit each file.** For each file, run every rule in its language's catalog plus the universal rules. Record `(rule_id, file, count)` for each rule that matches. Apply structural rules by direct inspection.
 
-5. **Assign the grade.** Use the decision tool rubric if available; otherwise use the deterministic grade mapping.
+5. **Compute the score.** Sum the finding counts by severity, then apply the fixed weights per the **Scoring** section above (the formula is defined there — do not redefine it).
 
-6. **Create Issue.** Invoke the `create-issue` skill with a synthesized description:
+6. **Assign the grade.** Use the decision tool rubric if available; otherwise use the deterministic grade mapping.
+
+7. **Create Issue.** Invoke the `create-issue` skill with a synthesized description:
    ```
    create-issue Audit findings for $CURRENT_PHASE: Grade <GRADE> (score <SCORE>). Found N critical, N high, N medium, N low issues. See audit results below for details.
    ```
@@ -268,9 +291,9 @@ For each directory in the queue:
    echo "ISSUE_NUMBER=$ISSUE_NUMBER"
    ```
 
-   **After creating the issue (or failing to), continue to Step 7.** Do not stop or wait for further input — the pipeline proceeds automatically.
+   **After creating the issue (or failing to), continue to Step 8.** Do not stop or wait for further input — the pipeline proceeds automatically.
 
-7. **Update Issue Body.** Append a structured audit table to the issue. Collect findings into a temp file, then write them to the issue:
+8. **Update Issue Body.** Append a structured audit table to the issue. Collect findings into a temp file, then write them to the issue:
 
    ```bash
    AUDIT_FILE=$(mktemp)
@@ -279,7 +302,7 @@ For each directory in the queue:
    printf "| Rule | File | Severity | Summary |\n|------|------|----------|---------|\n" > "$AUDIT_FILE"
 
    # Append each finding as a table row (populated from the audit results collected above)
-   # Example: printf "| SEC-001 | src/foo.js | critical | Hardcoded secret pattern (N occurrences) |\n" >> "$AUDIT_FILE"
+   # Example: printf "| SEC-001 | src/foo.py | critical | Hardcoded secret pattern (N occurrences) |\n" >> "$AUDIT_FILE"
 
    gh issue edit "$ISSUE_NUMBER" --body-file "$AUDIT_FILE" --repo "$REPO"
 
@@ -294,7 +317,7 @@ For each directory in the queue:
    rm -f "$AUDIT_FILE"
    ```
 
-8. **Update State.** Mark the directory as completed in the state file:
+9. **Update State.** Mark the directory as completed in the state file:
     ```bash
     # Use | as sed delimiter to safely handle directory paths containing /
     ESCAPED_PHASE=$(echo "$CURRENT_PHASE" | sed 's/[|&]/\\&/g')
@@ -305,9 +328,9 @@ For each directory in the queue:
     echo "[Findings stored here]" >> "$STATE_FILE"
     ```
 
-9. **Report Output.** Use the standard Output Format below.
+10. **Report Output.** Use the standard Output Format below.
 
-10. **Advance.** Move to the next directory in the queue. If none remain, delete the state file (`rm -f "$STATE_FILE"`) and report completion.
+11. **Advance.** Move to the next directory in the queue. If none remain, delete the state file (`rm -f "$STATE_FILE"`) and report completion.
 
 ---
 
@@ -315,13 +338,16 @@ For each directory in the queue:
 
 1. **STATE PERSISTENCE.** Always save state after processing each directory. Always read state before starting a new directory.
 2. **ONE ISSUE PER DIRECTORY.** Do not combine multiple directories into a single issue.
-3. **DETERMINISM.** Severity comes from the rule catalog, never from judgment. Score and grade come from the fixed weights and mapping. Do not re-grade or re-weight.
-4. **STOP CONDITION.** Terminate when all directories in the phase queue have been processed.
+3. **LANGUAGE CATALOGS.** Always load the per-language rule catalog before auditing files of that language. Do not audit a language without its catalog.
+4. **DETERMINISM.** Severity comes from the rule catalog, never from judgment. Score and grade come from the fixed weights and mapping. Do not re-grade or re-weight.
+5. **STOP CONDITION.** Terminate when all directories in the phase queue have been processed.
 
 ## Error Handling
 
 - **State file not found:** If the state file doesn't exist on resume, begin fresh from Phase 0.
 - **Directory not found:** If a directory in the phase queue doesn't exist, skip it and log a warning.
+- **Unknown language:** If a file's extension is not in the Language Support table, skip it and log a warning. Do not guess a language.
+- **Missing rule catalog:** If a language's `references/<language>.md` is missing, skip that language's files and log a warning. Do not audit without a catalog.
 - **gh CLI not authenticated:** Suggest running `gh auth login`.
 - **Network error:** Retry once, then report the failure and skip the current directory.
 - **create-issue failure:** Log the error, skip issue creation for this directory, and continue. Do not abort the audit.
@@ -332,9 +358,10 @@ For each directory in the queue:
 
 - **Security findings must never include raw secret values.** The audit table only reports rule ID, pattern type, and count — never the matched line content. Writing secrets to a GitHub issue exposes them to anyone with repo access.
 - **State file cleanup is critical.** Always delete the state file at the start of a new audit and at the end when complete. Stale state files cause incorrect resume behavior.
-- **`gh` CLI must be authenticated before starting.** The audit will fail silently at Step 7 if `gh` is not logged in. Run `gh auth login` first.
-- **Structural rules need confirmation.** Do not record a finding for SEC-004, BUG-004, QUAL-001/002/003 unless you confirmed it by direct inspection. Absence of evidence is not a finding.
-- **Do not double-count.** A single line may match multiple rules (e.g., `readFileSync` matches both BUG-005 and PERF-001). Record each rule independently; the weighted score accounts for the overlap.
+- **`gh` CLI must be authenticated before starting.** The audit will fail silently at Step 8 if `gh` is not logged in. Run `gh auth login` first.
+- **Structural rules need confirmation.** Do not record a finding for QUAL-001/002/003 unless you confirmed it by direct inspection. Absence of evidence is not a finding.
+- **Do not double-count.** A single line may match multiple rules (e.g., `readFileSync` matches both a blocking-I/O and a sync-I/O rule). Record each rule independently; the weighted score accounts for the overlap.
+- **Language best practices.** Each per-language catalog includes language-specific best practices. Apply them when auditing that language — they are part of the rule set, not optional commentary.
 
 ## Output Format
 
@@ -344,6 +371,7 @@ Each phase response must include:
 ## Audit: [directory path]
 - **Status:** completed | blocked | no-issues
 - **Grade:** [A|B|C|D|F] (score: [N]/100)
+- **Languages:** [comma-separated list of languages audited]
 - **Files Audited:** [count]
 - **Issues Found:** [count] (critical: N, high: N, medium: N, low: N)
 - **Details:**
