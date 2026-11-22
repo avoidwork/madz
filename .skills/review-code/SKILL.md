@@ -273,7 +273,20 @@ For each directory in the queue:
 
 6. **Assign the grade.** Use the decision tool rubric if available; otherwise use the deterministic grade mapping.
 
-7. **Create Issue.** Invoke the `create-issue` skill with a synthesized description:
+7. **Report Output.** Display the audit results using the standard Output Format below. Do **not** file an issue yet.
+
+8. **Prompt to file issues.** Use the `clarify` tool to ask whether to file a GitHub issue for this directory's findings. Do **not** invoke `create-issue` automatically — the user decides.
+
+   ```
+   Question: "File a GitHub issue for the audit findings in $CURRENT_PHASE?"
+   Type: choice
+   Options: yes, no
+   ```
+
+   - If the answer is **no**, skip issue creation and body update. Proceed to Step 10 (Update State).
+   - If the answer is **yes**, proceed to Step 9.
+
+9. **Create Issue** (only if the user chose yes). Invoke the `create-issue` skill with a synthesized description:
    ```
    create-issue Audit findings for $CURRENT_PHASE: Grade <GRADE> (score <SCORE>). Found N critical, N high, N medium, N low issues. See audit results below for details.
    ```
@@ -291,9 +304,9 @@ For each directory in the queue:
    echo "ISSUE_NUMBER=$ISSUE_NUMBER"
    ```
 
-   **After creating the issue (or failing to), continue to Step 8.** Do not stop or wait for further input — the pipeline proceeds automatically.
+   **After creating the issue (or failing to), continue to Step 10.** Do not stop or wait for further input — the pipeline proceeds automatically.
 
-8. **Update Issue Body.** Append a structured audit table to the issue. Collect findings into a temp file, then write them to the issue:
+10. **Update Issue Body** (only if an issue was created). Append a structured audit table to the issue. Collect findings into a temp file, then write them to the issue:
 
    ```bash
    AUDIT_FILE=$(mktemp)
@@ -317,7 +330,7 @@ For each directory in the queue:
    rm -f "$AUDIT_FILE"
    ```
 
-9. **Update State.** Mark the directory as completed in the state file:
+11. **Update State.** Mark the directory as completed in the state file:
     ```bash
     # Use | as sed delimiter to safely handle directory paths containing /
     ESCAPED_PHASE=$(echo "$CURRENT_PHASE" | sed 's/[|&]/\\&/g')
@@ -328,9 +341,7 @@ For each directory in the queue:
     echo "[Findings stored here]" >> "$STATE_FILE"
     ```
 
-10. **Report Output.** Use the standard Output Format below.
-
-11. **Advance.** Move to the next directory in the queue. If none remain, delete the state file (`rm -f "$STATE_FILE"`) and report completion.
+12. **Advance.** Move to the next directory in the queue. If none remain, delete the state file (`rm -f "$STATE_FILE"`) and report completion.
 
 ---
 
@@ -351,6 +362,7 @@ For each directory in the queue:
 - **gh CLI not authenticated:** Suggest running `gh auth login`.
 - **Network error:** Retry once, then report the failure and skip the current directory.
 - **create-issue failure:** Log the error, skip issue creation for this directory, and continue. Do not abort the audit.
+- **clarify declined:** If the user declines to file an issue, skip issue creation and body update for that directory, update state, and continue to the next directory.
 - **Partial audit:** If some directories succeed and others fail, report what was accomplished. Never leave the audit half-done.
 - **Rate limit:** If GitHub API returns 403 rate limit, wait 60 seconds and retry once.
 
@@ -358,7 +370,7 @@ For each directory in the queue:
 
 - **Security findings must never include raw secret values.** The audit table only reports rule ID, pattern type, and count — never the matched line content. Writing secrets to a GitHub issue exposes them to anyone with repo access.
 - **State file cleanup is critical.** Always delete the state file at the start of a new audit and at the end when complete. Stale state files cause incorrect resume behavior.
-- **`gh` CLI must be authenticated before starting.** The audit will fail silently at Step 8 if `gh` is not logged in. Run `gh auth login` first.
+- **`gh` CLI must be authenticated before starting.** The audit will fail silently at Step 10 if `gh` is not logged in. Run `gh auth login` first.
 - **Structural rules need confirmation.** Do not record a finding for QUAL-001/002/003 unless you confirmed it by direct inspection. Absence of evidence is not a finding.
 - **Do not double-count.** A single line may match multiple rules (e.g., `readFileSync` matches both a blocking-I/O and a sync-I/O rule). Record each rule independently; the weighted score accounts for the overlap.
 - **Language best practices.** Each per-language catalog includes language-specific best practices. Apply them when auditing that language — they are part of the rule set, not optional commentary.
@@ -377,6 +389,6 @@ Each phase response must include:
 - **Details:**
   - [key-finding-1]
   - [key-finding-2]
-- **Action Items:** [issue created with ID or "No issues detected"]
+- **Action Items:** [issue created with ID, "No issues detected", or "Awaiting user decision on filing"]
 - **Next Steps:** [next directory name or "All phases complete"]
 ```
