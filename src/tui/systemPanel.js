@@ -7,7 +7,7 @@ import { partial } from "filesize";
 const format = partial({ precision: 3 });
 
 /** Default refresh interval (ms) for live system info updates. */
-const DEFAULT_REFRESH_MS = 5000;
+const DEFAULT_REFRESH_MS = 1000;
 
 /**
  * Format a byte count as a human-readable string using the `filesize` module.
