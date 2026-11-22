@@ -34,8 +34,8 @@ export function gatherSystemInfo() {
 
 	let disk = { available: false };
 	try {
-		if (typeof fs.statfs === "function") {
-			const stat = fs.statfs(process.cwd());
+		if (typeof fs.statfsSync === "function") {
+			const stat = fs.statfsSync(process.cwd());
 			disk = {
 				available: true,
 				total: stat.blocks * stat.bsize,
