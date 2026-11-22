@@ -256,7 +256,7 @@ export function SystemPanel({ onViewChange, activeView, refreshMs = DEFAULT_REFR
 		wide
 			? React.createElement(
 					Box,
-					{ flexDirection: "column", gap: 1 },
+					{ flexDirection: "column" },
 					row(systemSection, cpuSection),
 					row(memorySection, diskSection),
 					row(processSection, networkSection),
