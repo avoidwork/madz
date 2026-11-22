@@ -11,6 +11,9 @@
 /** @type {string} The active project cwd, or "" when no project is active. */
 let activeProjectCwd = "";
 
+/** @type {string} The worktree-scoped cwd, or "" when no worktree is active. */
+let worktreeCwd = "";
+
 /**
  * Get the active project working directory.
  * @returns {string} The active project cwd, or "" if none is set
@@ -25,4 +28,20 @@ export function getProjectCwd() {
  */
 export function setProjectCwd(cwd) {
 	activeProjectCwd = cwd || "";
+}
+
+/**
+ * Get the worktree-scoped working directory.
+ * @returns {string} The worktree-scoped cwd, or "" if none is set
+ */
+export function getWorktreeCwd() {
+	return worktreeCwd;
+}
+
+/**
+ * Set the worktree-scoped working directory.
+ * @param {string} cwd - The worktree directory path, or "" to clear it
+ */
+export function setWorktreeCwd(cwd) {
+	worktreeCwd = cwd || "";
 }

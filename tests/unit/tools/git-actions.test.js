@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { git, gitImpl } from "../../../src/tools/git/index.js";
+import { getWorktreeCwd, setProjectCwd } from "../../../src/workspace/project.js";
 
 let dir;
 let remoteDir;
@@ -291,6 +292,37 @@ describe("tools - git actions (real repo)", () => {
 		await g({ action: "worktree", sub: "unlock", path: wtPath });
 		const rm = await g({ action: "worktree", sub: "remove", path: wtPath });
 		assert.equal(rm.ok, true);
+	});
+
+	it("worktree add scopes the git tool cwd and remove restores it", async () => {
+		setProjectCwd(dir);
+		const wtPath = path.join(os.tmpdir(), `madz wtcwd ${Date.now()}`);
+		const add = await g({ action: "worktree", sub: "add", path: wtPath, branch: "wtcwd-branch" });
+		assert.equal(add.ok, true, add.error);
+		assert.equal(getWorktreeCwd(), path.resolve(dir, wtPath));
+		const rm = await g({ action: "worktree", sub: "remove", path: wtPath });
+		assert.equal(rm.ok, true, rm.error);
+		assert.equal(getWorktreeCwd(), "");
+	});
+
+	it("worktree remove failure restores the git tool cwd", async () => {
+		setProjectCwd(dir);
+		const wtPath = path.join(os.tmpdir(), `madz wtcwd-fail ${Date.now()}`);
+		const add = await g({
+			action: "worktree",
+			sub: "add",
+			path: wtPath,
+			branch: "wtcwd-fail-branch",
+		});
+		assert.equal(add.ok, true, add.error);
+		assert.equal(getWorktreeCwd(), path.resolve(dir, wtPath));
+		// Make the worktree dirty so removal fails without --force.
+		fs.writeFileSync(path.join(wtPath, "dirty.txt"), "dirty\n");
+		const rm = await g({ action: "worktree", sub: "remove", path: wtPath });
+		assert.equal(rm.ok, false);
+		assert.equal(getWorktreeCwd(), "");
+		// Clean up the dirty worktree.
+		await g({ action: "worktree", sub: "remove", path: wtPath, force: true });
 	});
 
 	it("checkout and branch delete recover from a stale worktree", async () => {

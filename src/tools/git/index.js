@@ -4,7 +4,7 @@ import { execFile } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { loadConfig } from "../../config/loader.js";
-import { getProjectCwd } from "../../workspace/project.js";
+import { getProjectCwd, getWorktreeCwd, setWorktreeCwd } from "../../workspace/project.js";
 
 const config = loadConfig();
 
@@ -1018,12 +1018,16 @@ const handlers = {
 					args.push("--detach", input.path);
 					if (input.ref) args.push(input.ref);
 				}
-				return run(args, cwd, () => ({
-					ok: true,
-					path: input.path,
-					branch: input.branch || null,
-					ref: input.ref || null,
-				}));
+				return run(args, cwd, () => {
+					const resolvedPath = path.resolve(cwd, input.path);
+					setWorktreeCwd(resolvedPath);
+					return {
+						ok: true,
+						path: input.path,
+						branch: input.branch || null,
+						ref: input.ref || null,
+					};
+				});
 			}
 			case "remove": {
 				if (!input.path) return { ok: false, error: "worktree remove requires a path" };
@@ -1034,6 +1038,7 @@ const handlers = {
 				if (res.code !== 0) {
 					const stderr = res.stderr.trim() || res.stdout.trim();
 					if (/contains modified or untracked files/.test(stderr)) {
+						setWorktreeCwd("");
 						return {
 							ok: false,
 							error: stderr,
@@ -1042,6 +1047,7 @@ const handlers = {
 					}
 					return fail(res, cwd);
 				}
+				setWorktreeCwd("");
 				return { ok: true, path: input.path, removed: true };
 			}
 			case "list":
@@ -1496,7 +1502,7 @@ const handlers = {
  * @param {string} [options.cwd] - Working directory for git commands. This is a
  *   direct-call-only override: the LangChain `tool()` wrapper passes
  *   `RunnableConfig` as `options`, which never contains `cwd`. Production calls
- *   always resolve via `getProjectCwd() || config.cwd || process.cwd()`.
+ *   always resolve via `getWorktreeCwd() || getProjectCwd() || config.cwd || process.cwd()`.
  * @returns {Promise<object>} Result of the operation
  */
 export async function gitImpl(input = {}, options = {}) {
@@ -1512,7 +1518,7 @@ export async function gitImpl(input = {}, options = {}) {
 	const invalid = validateInput(input);
 	if (invalid) return { ok: false, error: invalid, kind: "invalid-input" };
 
-	const cwd = options.cwd || getProjectCwd() || config.cwd || process.cwd();
+	const cwd = options.cwd || getWorktreeCwd() || getProjectCwd() || config.cwd || process.cwd();
 	return handlers[action](input, cwd);
 }
 
