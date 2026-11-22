@@ -6,6 +6,9 @@ import { partial } from "filesize";
 
 const format = partial({ precision: 3 });
 
+/** Default refresh interval (ms) for live system info updates. */
+const DEFAULT_REFRESH_MS = 5000;
+
 /**
  * Format a byte count as a human-readable string using the `filesize` module.
  * @param {number} bytes - The byte count.
@@ -70,21 +73,27 @@ export async function gatherSystemInfo() {
  * Props:
  *   onViewChange  - Callback to switch back to conversation view
  *   activeView    - The current active view name (from PANELS)
+ *   refreshMs     - Live refresh interval in milliseconds (defaults to DEFAULT_REFRESH_MS)
  */
-export function SystemPanel({ onViewChange, activeView }) {
+export function SystemPanel({ onViewChange, activeView, refreshMs = DEFAULT_REFRESH_MS }) {
 	const isActive = activeView === "system";
 	const [info, setInfo] = useState(null);
 
 	// Gather system info asynchronously
 	useEffect(() => {
 		let cancelled = false;
-		gatherSystemInfo().then((result) => {
-			if (!cancelled) setInfo(result);
-		});
+		const load = () => {
+			gatherSystemInfo().then((result) => {
+				if (!cancelled) setInfo(result);
+			});
+		};
+		load();
+		const interval = setInterval(load, refreshMs);
 		return () => {
 			cancelled = true;
+			clearInterval(interval);
 		};
-	}, []);
+	}, [refreshMs]);
 
 	// Escape returns to conversation view
 	useInput(
