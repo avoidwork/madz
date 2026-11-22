@@ -1,5 +1,5 @@
 ---
-name: audit-code
+name: review-code
 description: Audits each directory in ./src for bugs, security vulnerabilities, and performance issues. Generates one consolidated issue per directory via /create-issue.
 license: BSD 3-Clause
 compatibility: Node.js project with ./src directory structure
@@ -9,7 +9,7 @@ metadata:
   agent: code-review
 ---
 
-# Audit Code
+# Review Code
 
 > **⚠️ EXECUTION RULE:** Every code block in this skill is a shell command to **execute**. Do not print them as text, explain them, or treat them as examples — run them directly.
 
@@ -21,13 +21,13 @@ Use a state file to persist progress across responses. The state file is cleaned
 
 ### State File Location
 
-The state file path is provided in the chain context (the text after `/audit-code`). If no path is provided, default to an example name like `audit-state.md` — the agent decides where to place it.
+The state file path is provided in the chain context (the text after `/review-code`). If no path is provided, default to an example name like `review-state.md` — the agent decides where to place it.
 
 To prevent collisions when multiple instances run, include a session identifier in the path:
 
 ```bash
 SESSION_ID=$(head -c 8 /dev/urandom 2>/dev/null | od -An -tx1 | tr -d ' \n' || echo $RANDOM$RANDOM$RANDOM)
-STATE_FILE="${STATE_FILE_PATH:-audit-state-${SESSION_ID}.md}"
+STATE_FILE="${STATE_FILE_PATH:-review-state-${SESSION_ID}.md}"
 ```
 
 ### State File Format
