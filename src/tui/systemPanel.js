@@ -114,7 +114,6 @@ export function SystemPanel({ onViewChange, activeView }) {
 		Box,
 		{ flexDirection: "column", paddingX: 1, flexGrow: 1 },
 		React.createElement(Text, { bold: true, color: "white" }, " System"),
-		React.createElement(Text, { color: "gray" }, " Escape back"),
 		React.createElement(Text, {}, ` Platform: ${info.platform} ${info.release}`),
 		React.createElement(Text, {}, ` Node: ${info.nodeVersion}`),
 		React.createElement(
