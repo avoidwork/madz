@@ -230,6 +230,14 @@ export function SystemPanel({ onViewChange, activeView, refreshMs = DEFAULT_REFR
 		React.createElement(Text, {}, ` Interfaces: ${netLine}`),
 	);
 
+	// Pair related sections on the same row when the terminal is wide enough.
+	const row = (...sections) =>
+		React.createElement(
+			Box,
+			{ flexDirection: "row", gap: 1 },
+			sections.map((s) => React.createElement(Box, { flexGrow: 1 }, s)),
+		);
+
 	return React.createElement(
 		Box,
 		{ flexDirection: "column", paddingX: 1, flexGrow: 1 },
@@ -242,21 +250,10 @@ export function SystemPanel({ onViewChange, activeView, refreshMs = DEFAULT_REFR
 		columns
 			? React.createElement(
 					Box,
-					{ flexDirection: "row", gap: 1 },
-					React.createElement(
-						Box,
-						{ flexDirection: "column", flexGrow: 1 },
-						systemSection,
-						cpuSection,
-						memorySection,
-					),
-					React.createElement(
-						Box,
-						{ flexDirection: "column", flexGrow: 1 },
-						diskSection,
-						processSection,
-						networkSection,
-					),
+					{ flexDirection: "column", gap: 1 },
+					row(systemSection, cpuSection),
+					row(memorySection, diskSection),
+					row(processSection, networkSection),
 				)
 			: React.createElement(
 					Box,
