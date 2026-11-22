@@ -97,7 +97,13 @@ export async function gatherSystemInfo() {
 function Section({ title, color = "cyan", children }) {
 	return React.createElement(
 		Box,
-		{ flexDirection: "column", marginBottom: 1, borderStyle: "round", borderColor: color },
+		{
+			flexDirection: "column",
+			width: "100%",
+			marginBottom: 1,
+			borderStyle: "round",
+			borderColor: color,
+		},
 		React.createElement(Text, { bold: true, color }, ` ${title}`),
 		React.createElement(Box, { flexDirection: "column", paddingX: 1, paddingY: 1 }, children),
 	);
