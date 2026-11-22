@@ -209,11 +209,20 @@ export function buildReverseMap(schema, path = [], map = new Map()) {
 			// Unions and effects: try to extract inner types
 			const options = inner._def.options || (typeName === "effects" ? [inner._def.schema] : []);
 			if (options) {
+				let hasObject = false;
 				for (const opt of options) {
 					const optInner = _getInnerType(opt);
 					if (optInner && optInner._def && optInner._def.type === "object") {
+						hasObject = true;
 						buildReverseMap(optInner, currentPath, map);
 					}
+				}
+				// Scalar unions (e.g. `z.union([z.literal(""), z.string().url()])`)
+				// have no object members; register the leaf path so env-var
+				// materialization still resolves the config value.
+				if (!hasObject) {
+					const envName = _pathToEnvName(currentPath);
+					map.set(envName, currentPath.join("."));
 				}
 			}
 		}
@@ -314,6 +323,19 @@ export function syncEnv(raw, knownSections = KNOWN_SECTIONS) {
 
 		// Look up the env var in the reverse map
 		let dotPath = reverseMap.get(envName);
+
+		// Indexed array env vars (e.g., POPPY_REDIRECT_URIS_0): strip a
+		// trailing numeric segment and look up the base path in the reverse
+		// map, then append the index to materialize the array element.
+		if (!dotPath) {
+			const indexedMatch = envName.match(/^(.*)_(\d+)$/);
+			if (indexedMatch) {
+				const basePath = reverseMap.get(indexedMatch[1]);
+				if (basePath) {
+					dotPath = `${basePath}.${indexedMatch[2]}`;
+				}
+			}
+		}
 
 		// Fallback: check record patterns for dynamic key matching
 		if (!dotPath) {

@@ -98,6 +98,12 @@ nosql:
     db: 0                # REDIS_DB
 persistence:
   mode: sqlite
+poppy:
+  clientId: ""     # agent's client_id URL (POPPY_CLIENT_ID)
+  clientName: ""   # agent's display name (POPPY_CLIENT_NAME)
+  jwksUri: ""      # public JWKS URL (POPPY_JWKS_URI)
+  redirectUris: [] # valid redirect URIs (POPPY_REDIRECT_URIS_0, _1, ...)
+  logoUri: ""      # optional logo URL (POPPY_LOGO_URI)
 providers:
   azure:
     apiVersion:

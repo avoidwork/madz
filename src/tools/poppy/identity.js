@@ -260,6 +260,7 @@ export async function execute(input, options = {}) {
 	switch (op) {
 		case "build_metadata":
 			return buildMetadata(input, options);
+
 		case "generate_key":
 			return generateKey(input, options);
 		case "sign_assertion":
@@ -277,16 +278,25 @@ export async function execute(input, options = {}) {
 
 /**
  * Build the agent's client metadata document (CIMD).
+ * Sources values from `input` first, falling back to the resolved `poppy`
+ * config section (via `options.poppyConfig`) when input params are absent.
  * @param {object} input - Tool input
- * @param {string} input.clientId - The agent's client_id URL
- * @param {string} input.clientName - The agent's display name
- * @param {string} input.jwksUri - The public JWKS URL
- * @param {string[]} input.redirectUris - Valid redirect URIs
+ * @param {string} [input.clientId] - The agent's client_id URL
+ * @param {string} [input.clientName] - The agent's display name
+ * @param {string} [input.jwksUri] - The public JWKS URL
+ * @param {string[]} [input.redirectUris] - Valid redirect URIs
  * @param {string} [input.logoUri] - Optional logo URL
+ * @param {object} [options] - Runtime options
+ * @param {object} [options.poppyConfig] - Resolved `poppy` config section
  * @returns {{ok: boolean, data?: object, error?: string}} Result
  */
-function buildMetadata(input) {
-	const { clientId, clientName, jwksUri, redirectUris, logoUri } = input;
+function buildMetadata(input, options = {}) {
+	const config = options.poppyConfig || {};
+	const clientId = input.clientId || config.clientId;
+	const clientName = input.clientName || config.clientName;
+	const jwksUri = input.jwksUri || config.jwksUri;
+	const redirectUris = input.redirectUris || config.redirectUris;
+	const logoUri = input.logoUri || config.logoUri;
 	if (
 		!clientId ||
 		!clientName ||

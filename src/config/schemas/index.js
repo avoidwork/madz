@@ -26,3 +26,4 @@ export { NosqlConfigSchema } from "./nosql.js";
 export { JiraSchema } from "./jira.js";
 export { ConfluenceSchema } from "./confluence.js";
 export { McpSchema } from "./mcp.js";
+export { PoppyConfigSchema } from "./poppy.js";

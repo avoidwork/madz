@@ -28,6 +28,7 @@ import { NosqlConfigSchema } from "./schemas/nosql.js";
 import { JiraSchema } from "./schemas/jira.js";
 import { ConfluenceSchema } from "./schemas/confluence.js";
 import { McpSchema } from "./schemas/mcp.js";
+import { PoppyConfigSchema } from "./schemas/poppy.js";
 
 // Re-export individual schemas for backward compatibility
 export {
@@ -51,6 +52,7 @@ export {
 	AzureProviderConfigSchema,
 	BedrockProviderConfigSchema,
 	LoopDetectionSchema,
+	PoppyConfigSchema,
 };
 
 // --- Root config ---
@@ -92,6 +94,7 @@ export const ConfigSchema = z.object({
 	sql: SqlConfigSchema.default({}),
 	nosql: NosqlConfigSchema.default({}),
 	mcp: McpSchema,
+	poppy: PoppyConfigSchema.default({}),
 });
 
 // Derive defaults from Zod schema — config.yaml is the source of truth,
