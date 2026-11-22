@@ -4,6 +4,9 @@ import {
 	checkLoop,
 	hasDuplicateSentence,
 	hasRepeatedWords,
+	hasSimilarSentence,
+	normalize,
+	similarity,
 	takeSentences,
 	takeWords,
 } from "../../../src/stream/loopCheck.js";
@@ -111,6 +114,71 @@ describe("hasDuplicateSentence", () => {
 
 	it("does not lowercase: a differently-cased sentence is a different sentence", () => {
 		assert.strictEqual(hasDuplicateSentence(["Ok then.", "ok then.", "OK THEN."], 2), false);
+	});
+});
+
+describe("normalize", () => {
+	it("lowercases, strips punctuation, and collapses whitespace", () => {
+		assert.strictEqual(
+			normalize("The Skill, Says: Branch Creation!"),
+			"the skill says branch creation",
+		);
+		assert.strictEqual(normalize("  a   b.  \n c d?  "), "a b c d");
+	});
+
+	it("returns an empty string for punctuation-only input", () => {
+		assert.strictEqual(normalize("..."), "");
+	});
+});
+
+describe("similarity", () => {
+	it("returns 1 for identical normalized sentences", () => {
+		assert.strictEqual(
+			similarity("the skill says branch creation", "the skill says branch creation"),
+			1,
+		);
+	});
+
+	it("returns a high value for garbled variants of the same content", () => {
+		const a = normalize("the skill savs branch creation happens BEFORE staging");
+		const b = normalize("the skill says branch creation happens BEFUKE staging");
+		assert.ok(similarity(a, b) >= 0.85, `similarity ${similarity(a, b)}`);
+	});
+
+	it("returns a low value for distinct sentences", () => {
+		const a = normalize("the quick brown fox jumps over the lazy dog");
+		const b = normalize("completely unrelated content about weather patterns");
+		assert.ok(similarity(a, b) < 0.5, `similarity ${similarity(a, b)}`);
+	});
+
+	it("returns 0 when either sentence has no tokens", () => {
+		assert.strictEqual(similarity("", "the skill says branch creation"), 0);
+		assert.strictEqual(similarity("the skill says branch creation", ""), 0);
+	});
+});
+
+describe("hasSimilarSentence", () => {
+	it("flags garbled repetition above the similarity threshold", () => {
+		const sentences = [
+			"The skill savs branch creation happens BEFORE staging.",
+			"The skill says branch creation happens BEFUKE staging.",
+			"The skill says branch creation happens BEFORE staging.",
+		];
+		assert.strictEqual(hasSimilarSentence(sentences, 2, 0.85), true);
+	});
+
+	it("does not flag distinct sentences", () => {
+		const list = Array.from({ length: 30 }, (_, i) => `Sentence number ${i} is unique.`);
+		assert.strictEqual(hasSimilarSentence(list, 2, 0.85), false);
+	});
+
+	it("does not flag below the similarity threshold", () => {
+		const sentences = [
+			"The quick brown fox jumps over the lazy dog.",
+			"Completely unrelated content about weather patterns.",
+			"Another entirely different sentence here.",
+		];
+		assert.strictEqual(hasSimilarSentence(sentences, 2, 0.85), false);
 	});
 });
 

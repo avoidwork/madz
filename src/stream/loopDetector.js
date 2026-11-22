@@ -56,6 +56,7 @@ export async function destroyPool() {
  * @param {number} [options.windowSize=20] - Recent completed sentences kept and compared
  * @param {number} [options.wordWindowSize=1000] - Recent completed words kept and compared
  * @param {number} [options.threshold=2] - Repeats above which a loop is flagged
+ * @param {number} [options.similarityThreshold=0.85] - Minimum sentence similarity to count a garbled repeat
  * @param {number} [options.maxStreams=4] - Streams tracked at once; the least recently updated is evicted
  * @param {number} [options.ttlMs] - State older than this is dropped (no expiry when unset)
  * @param {Function} [options.now] - Clock returning ms (injectable for tests)
@@ -66,6 +67,7 @@ export function createSegmentLoopDetector(options = {}) {
 	const windowSize = options.windowSize ?? 20;
 	const wordWindowSize = options.wordWindowSize ?? 1000;
 	const threshold = options.threshold ?? 2;
+	const similarityThreshold = options.similarityThreshold ?? 0.85;
 	const maxStreams = options.maxStreams ?? 4;
 	const ttlMs = options.ttlMs;
 	const now = options.now ?? (() => Date.now());
@@ -156,7 +158,12 @@ export function createSegmentLoopDetector(options = {}) {
 	function startCheck(state) {
 		if (state.inflight) return;
 		const checkedVersion = state.version;
-		const task = { sentences: state.sentences.slice(), words: state.words.slice(), threshold };
+		const task = {
+			sentences: state.sentences.slice(),
+			words: state.words.slice(),
+			threshold,
+			similarityThreshold,
+		};
 		state.inflight = Promise.resolve(runner.run(task))
 			.then((looping) => {
 				// A state that was replaced, evicted or reset makes its answer stale.

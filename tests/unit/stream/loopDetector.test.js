@@ -1,8 +1,13 @@
 import { describe, it, after } from "node:test";
 import assert from "node:assert";
+import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { createSegmentLoopDetector, destroyPool } from "../../../src/stream/loopDetector.js";
 import { checkLoop } from "../../../src/stream/loopCheck.js";
 import { consumeStream } from "../../../src/stream/consume.js";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 after(async () => {
 	await destroyPool();
@@ -34,6 +39,26 @@ describe("createSegmentLoopDetector (worker-backed)", () => {
 		const d = detector();
 		const deltas = Array.from({ length: 5 }, () => "This is a test of streamed repetition. ");
 		assert.ok((await firstFlag(d, deltas)) >= 0);
+	});
+
+	it("flags garbled repetition of the same content", async () => {
+		const d = detector();
+		const deltas = [
+			"The skill savs branch creation happens BEFORE staging. ",
+			"The skill says branch creation happens BEFUKE staging. ",
+			"The skill says branch creation happens BEFORE staging. ",
+			"The skill savs branch creation happens BEFORE staginq. ",
+		];
+		assert.ok((await firstFlag(d, deltas)) >= 0);
+	});
+
+	it("flags the captured garbled loop fixture", async () => {
+		const fixture = await readFile(join(__dirname, "../../fixtures/loop-garbled.md"), "utf8");
+		const d = detector({ windowSize: 20, threshold: 2 });
+		for (let i = 0; i < fixture.length; i += 64) {
+			d.push("reasoning", fixture.slice(i, i + 64));
+		}
+		assert.strictEqual(await d.settle(), true);
 	});
 
 	it("does not flag distinct text", async () => {
