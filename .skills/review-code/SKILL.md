@@ -1,6 +1,6 @@
 ---
 name: review-code
-description: Audits each directory in ./src for bugs, security vulnerabilities, and performance issues using a deterministic rule catalog with fixed severities and a weighted scoring rubric. Generates one consolidated issue per directory via /create-issue.
+description: Audits each directory in ./src for bugs, security vulnerabilities, and performance issues using a deterministic rule catalog with fixed severities and a weighted scoring rubric. Generates one consolidated issue per directory via /create-issue. Use when auditing a Node.js ./src tree for code quality.
 license: BSD 3-Clause
 compatibility: Node.js project with ./src directory structure
 metadata:
@@ -45,7 +45,15 @@ Every finding maps to exactly one rule. **Severity is a property of the rule, ne
 | QUAL-002 | quality | Missing JSDoc on public function | low | structural check (see below) |
 | QUAL-003 | quality | Copy-paste block > 3 lines | low | structural check (see below) |
 
-**Structural rules** (SEC-004, BUG-004, QUAL-001/002/003) cannot be detected by a single grep. For these, inspect the file directly and apply the rule's definition. If a structural rule cannot be confirmed, do **not** record a finding — absence of evidence is not a finding.
+**Structural rules** (SEC-004, BUG-004, QUAL-001/002/003) cannot be detected by a single grep. For these, apply the concrete detection criteria below. Each criterion is checkable — if the file does not satisfy the criterion, do **not** record a finding. Absence of evidence is not a finding.
+
+| Rule | Detection criteria (all must hold) |
+|------|-----------------------------------|
+| SEC-004 | A route handler is defined (e.g., `app.get/post/put/delete(...)` or `router.get/post/...`) AND the handler does not reference the auth middleware (e.g., `auth`, `authenticate`, `requireAuth`, `verifyToken`) in its argument list or body. |
+| BUG-004 | A `for...of`, `for...in`, `forEach`, or `while` loop iterates over an array/collection AND the loop body calls `push`, `pop`, `shift`, `unshift`, `splice`, `sort`, or `reverse` on the same collection being iterated. |
+| QUAL-001 | A statement or block is unreachable: it follows an unconditional `return`, `throw`, `break`, or `continue` in the same block, or a function has a `return`/`throw` on every path followed by trailing code. |
+| QUAL-002 | A top-level `export function`/`export const`/`export class` (or a module-level function) has no JSDoc comment (`/** ... */`) immediately preceding it. |
+| QUAL-003 | Two or more blocks of 4+ consecutive lines are byte-identical (ignoring whitespace) within the same file. |
 
 ### Detection
 
@@ -238,11 +246,7 @@ For each directory in the queue:
 
 3. **Audit each file.** For each file, run every rule in the catalog. Record `(rule_id, file, count)` for each rule that matches. Apply structural rules by direct inspection.
 
-4. **Compute the score.** Sum the finding counts by severity, then apply the fixed weights:
-   ```bash
-   SCORE=$(( 100 - (25*CRITICAL + 10*HIGH + 4*MEDIUM + 1*LOW) ))
-   if [ "$SCORE" -lt 0 ]; then SCORE=0; fi
-   ```
+4. **Compute the score.** Sum the finding counts by severity, then apply the fixed weights per the **Scoring** section above (the formula is defined there — do not redefine it).
 
 5. **Assign the grade.** Use the decision tool rubric if available; otherwise use the deterministic grade mapping.
 
