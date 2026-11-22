@@ -1,10 +1,10 @@
 ---
 name: review-code
-description: Audits each directory in ./src for bugs, security vulnerabilities, and performance issues. Generates one consolidated issue per directory via /create-issue.
+description: Audits each directory in ./src for bugs, security vulnerabilities, and performance issues using a deterministic rule catalog with fixed severities and a weighted scoring rubric. Generates one consolidated issue per directory via /create-issue.
 license: BSD 3-Clause
 compatibility: Node.js project with ./src directory structure
 metadata:
-  version: 2.3.0
+  version: 3.0.0
   target: ./src
   agent: code-review
 ---
@@ -14,6 +14,96 @@ metadata:
 > **⚠️ EXECUTION RULE:** Every code block in this skill is a shell command to **execute**. Do not print them as text, explain them, or treat them as examples — run them directly.
 
 Audit the `./src` directory tree for bugs, security vulnerabilities, and performance issues. Directories are independent — each gets its own issue.
+
+The audit is **deterministic**: every finding is produced by a fixed rule from the catalog below, each rule carries a fixed severity, and overall health is a computed score. No subjective severity judgment is required.
+
+---
+
+## Deterministic Audit Method
+
+### Rule Catalog
+
+Every finding maps to exactly one rule. **Severity is a property of the rule, never a judgment call.** Do not re-grade a finding — the rule's severity is authoritative.
+
+| ID | Category | Rule | Severity | Detection |
+|----|----------|------|----------|-----------|
+| SEC-001 | security | Hardcoded secret (`password`/`api_key`/`token`/`secret`/`access_key` = literal) | critical | `grep -rnE '(password\|api[_-]?key\|token\|secret\|access[_-]?key)\s*=\s*["'"'][^"'"']+["'"']'` |
+| SEC-002 | security | `eval()` / `new Function()` / `__import__()` | critical | `grep -rnE 'eval\(|new Function\(|__import__\('` |
+| SEC-003 | security | SQL injection (string concat in query) | high | `grep -rnE '(query\|sql)\s*.*\+\s*(req\|body\|params\|query)'` |
+| SEC-004 | security | Route missing auth middleware | critical | structural check (see below) |
+| SEC-005 | security | Unsafe URL scheme (`file://`, `gopher://`, `dict://`) | high | `grep -rnE '(file\|gopher\|dict)://'` |
+| SEC-006 | security | Plaintext secret stored outside `process.env` | high | `grep -rnE '(password\|secret\|api[_-]?key)\s*=\s*["'"']'` |
+| BUG-001 | bug | Silent catch block | medium | `grep -rnE 'catch\s*\([^)]*\)\s*\{\s*\}'` |
+| BUG-002 | bug | Unhandled promise (`.then(` without `.catch(`) | high | `grep -rnE '\.then\('` minus `.catch(` |
+| BUG-003 | bug | `console.log` in production code | low | `grep -rn 'console\.log'` |
+| BUG-004 | bug | Mutating a list while iterating | medium | structural check (see below) |
+| BUG-005 | bug | Blocking I/O (`readFileSync`/`writeFileSync`) in async | medium | `grep -rnE 'readFileSync\|writeFileSync'` |
+| BUG-006 | bug | Unbounded loop (`while (true)`) | medium | `grep -rnE 'while\s*\(\s*true\s*\)'` |
+| PERF-001 | performance | Synchronous file I/O in async function | medium | `grep -rnE 'readFileSync\|writeFileSync'` |
+| PERF-002 | performance | Wildcard import (`import *`) | low | `grep -rnE 'import\s*\*\s*from'` |
+| QUAL-001 | quality | Dead / unreachable code | low | structural check (see below) |
+| QUAL-002 | quality | Missing JSDoc on public function | low | structural check (see below) |
+| QUAL-003 | quality | Copy-paste block > 3 lines | low | structural check (see below) |
+
+**Structural rules** (SEC-004, BUG-004, QUAL-001/002/003) cannot be detected by a single grep. For these, inspect the file directly and apply the rule's definition. If a structural rule cannot be confirmed, do **not** record a finding — absence of evidence is not a finding.
+
+### Detection
+
+For each file, run every grep rule in the catalog. Record findings as `(rule_id, file, count)`. **Never include matched line content in output** — see the security gotcha below.
+
+```bash
+# Run a single rule across a file; capture count only
+COUNT=$(grep -rncE '<pattern>' "$file" 2>/dev/null | awk -F: '{s+=$NF}END{print s}')
+COUNT=${COUNT:-0}
+```
+
+### Scoring
+
+Compute a deterministic health score per directory from the finding counts. **Weights are fixed — do not change them.**
+
+| Severity | Weight (deduction per finding) |
+|----------|-------------------------------|
+| critical | 25 |
+| high | 10 |
+| medium | 4 |
+| low | 1 |
+
+```bash
+SCORE=$(( 100 - (25*CRITICAL + 10*HIGH + 4*MEDIUM + 1*LOW) ))
+if [ "$SCORE" -lt 0 ]; then SCORE=0; fi
+```
+
+### Grade
+
+Map the score to a grade band. This mapping is fixed.
+
+| Grade | Score range | Meaning |
+|-------|-------------|---------|
+| A | 90–100 | Healthy — no critical/high findings |
+| B | 75–89 | Minor issues — low/medium findings only |
+| C | 60–74 | Needs attention — medium findings present |
+| D | 40–59 | Significant issues — multiple high findings |
+| F | 0–39 | Critical — data breach / auth bypass / crash risk |
+
+### Decision Tool Rubric
+
+If the harness provides a structured-decision tool (e.g., `decision`), use its `score` question type to assign the grade. Pass the computed score and finding counts as state. The ordered criteria are the grade bands, lowest to highest.
+
+```
+Question: "Score the overall code health of this directory."
+Type: score
+State: { score: <computed score>, critical: <N>, high: <N>, medium: <N>, low: <N> }
+Criteria (lowest to highest):
+  1 = F: critical defects, data breach / auth bypass / crash risk present, score < 40
+  2 = D: significant issues, multiple high-severity findings, score 40-59
+  3 = C: needs attention, medium-severity findings present, score 60-74
+  4 = B: minor issues, only low/medium findings, score 75-89
+  5 = A: healthy, no critical or high findings, score 90-100
+```
+
+Interpret the returned score directly: `1` → F, `2` → D, `3` → C, `4` → B, `5` → A. If no decision tool is available, fall back to the deterministic grade mapping above.
+
+---
 
 ## State Management
 
@@ -69,9 +159,9 @@ STATE_FILE="${STATE_FILE_PATH:-review-state-${SESSION_ID}.md}"
    ```bash
    GIT_REMOTE=$(git remote get-url origin 2>/dev/null)
    if echo "$GIT_REMOTE" | grep -q '^git@'; then
-     REPO=$(echo "$GIT_REMOTE" | sed 's/.*@[^:]*:\(.*\).git$/\1/')
+     REPO=$(echo "$GIT_REMOTE" | sed 's/.*@[^:]*:\(.*\)\.git$/\1/')
    elif echo "$GIT_REMOTE" | grep -q 'github\.com'; then
-     REPO=$(echo "$GIT_REMOTE" | sed 's/.*github\.com[/:]\(.*\).git$/\1/')
+     REPO=$(echo "$GIT_REMOTE" | sed 's/.*github\.com[/:]\(.*\)\.git$/\1/')
    else
      echo "ERROR: Could not parse repository from remote '$GIT_REMOTE'."
      exit 1
@@ -112,7 +202,8 @@ STATE_FILE="${STATE_FILE_PATH:-review-state-${SESSION_ID}.md}"
    echo "" >> "$STATE_FILE"
    echo "## Findings" >> "$STATE_FILE"
    ```
-6. **Proceed** to directory processing immediately.
+
+7. **Proceed** to directory processing immediately.
 
 ### Directory Processing
 
@@ -145,74 +236,19 @@ For each directory in the queue:
      \( -name '*.js' -o -name '*.ts' -o -name '*.jsx' -o -name '*.tsx' \)
    ```
 
-3. **Audit each file.** For each file, check for issues using concrete patterns:
+3. **Audit each file.** For each file, run every rule in the catalog. Record `(rule_id, file, count)` for each rule that matches. Apply structural rules by direct inspection.
 
-   **Bugs** — grep for common anti-patterns:
+4. **Compute the score.** Sum the finding counts by severity, then apply the fixed weights:
    ```bash
-   # Silent catch blocks
-   grep -rn 'catch\s*(' "$file" | grep -v 'err' | grep -v 'error'
-   # Unhandled promises (no .catch())
-   grep -rn '\.then(' "$file" | grep -v '\.catch('
-   # console.log in production code
-   grep -rn 'console\.log' "$file"
+   SCORE=$(( 100 - (25*CRITICAL + 10*HIGH + 4*MEDIUM + 1*LOW) ))
+   if [ "$SCORE" -lt 0 ]; then SCORE=0; fi
    ```
 
-    **Security** — grep for OWASP Top 10 violations (per AGENTS.md §1.2):
-    ```bash
-    # Hardcoded secrets — capture count only, NEVER print values to issue body
-    SECRET_COUNT=$(grep -rnc 'password\s*=\s*["\x27]' "$file" 2>/dev/null | awk -F: '{s+=$NF}END{print s}')
-    SECRET_COUNT=${SECRET_COUNT:-0}
-    # eval() usage (forbidden per AGENTS.md §1.1)
-    grep -rn 'eval(' "$file"
-    # SQL injection vectors (string concatenation in queries)
-    grep -rn "query\s*.*\+\s*req" "$file"
-    # Missing auth middleware on routes
-    # (check route definitions for missing auth guards)
-    ```
+5. **Assign the grade.** Use the decision tool rubric if available; otherwise use the deterministic grade mapping.
 
-    **CRITICAL:** When writing security findings to the issue body or state file, NEVER include the matched line content. Only report the pattern type and count:
-
-    ```
-    | [file] | security | critical | Potential hardcoded secret: password/api_key pattern detected (N occurrences) |
-    ```
-
-    The actual secret value must never appear in any output — it will be written to a GitHub issue via `gh issue edit`, exposed to anyone with repo access.
-
-   **Performance** — grep for common issues:
-   ```bash
-   # Synchronous file I/O in async functions
-   grep -rn 'readFileSync\|writeFileSync' "$file"
-   # Unbounded loops
-   grep -rn 'while\s*(true)' "$file"
-   # Large bundle imports
-   grep -rn 'import.*\*' "$file"
+6. **Create Issue.** Invoke the `create-issue` skill with a synthesized description:
    ```
-
-4. **Classify severity.** Use these concrete criteria:
-   - **Critical:** Data breach risk, production crash, data loss, authentication bypass
-   - **High:** Functional bug affecting users, XSS, SQL injection, memory leak
-   - **Medium:** Performance degradation, missing error handling, code smell
-   - **Low:** Minor optimization, style inconsistency, TODO items
-
-   **Structured decision:** If the harness provides a structured-decision tool (e.g., `decision`), use it to classify each finding's severity. Issue one `choice` question per finding, passing the finding as state.
-
-   ```
-   Question: "Classify the severity of this finding: [finding description]"
-   Type: choice
-   Options: critical, high, medium, low
-   Criteria:
-     critical = data breach risk, production crash, data loss, authentication bypass
-     high     = functional bug affecting users, XSS, SQL injection, memory leak
-     medium   = performance degradation, missing error handling, code smell
-     low      = minor optimization, style inconsistency, TODO items
-   Example answer: high
-   ```
-
-   Interpret the returned label directly. Fall back to the criteria above if no decision tool is available.
-
-5. **Create Issue.** Invoke the `create-issue` skill with a synthesized description:
-   ```
-   create-issue Audit findings for $CURRENT_PHASE: Found N critical, N high, N medium, N low issues. See audit results below for details.
+   create-issue Audit findings for $CURRENT_PHASE: Grade <GRADE> (score <SCORE>). Found N critical, N high, N medium, N low issues. See audit results below for details.
    ```
 
    **Capture `ISSUE_NUMBER` from the create-issue output** (the chained skill prints `ISSUE_NUMBER=<number>`):
@@ -228,24 +264,24 @@ For each directory in the queue:
    echo "ISSUE_NUMBER=$ISSUE_NUMBER"
    ```
 
-   **After creating the issue (or failing to), continue to Step 6.** Do not stop or wait for further input — the pipeline proceeds automatically.
+   **After creating the issue (or failing to), continue to Step 7.** Do not stop or wait for further input — the pipeline proceeds automatically.
 
-6. **Update Issue Body.** Append a structured audit table to the issue. Collect findings into a temp file, then write them to the issue:
+7. **Update Issue Body.** Append a structured audit table to the issue. Collect findings into a temp file, then write them to the issue:
 
    ```bash
    AUDIT_FILE=$(mktemp)
 
    # Write the audit table header
-   printf "| File | Type | Severity | Summary |\n|------|------|----------|---------|\n" > "$AUDIT_FILE"
+   printf "| Rule | File | Severity | Summary |\n|------|------|----------|---------|\n" > "$AUDIT_FILE"
 
    # Append each finding as a table row (populated from the audit results collected above)
-   # Example: printf "| src/foo.js | bug | high | Unhandled promise rejection |\n" >> "$AUDIT_FILE"
+   # Example: printf "| SEC-001 | src/foo.js | critical | Hardcoded secret pattern (N occurrences) |\n" >> "$AUDIT_FILE"
 
    gh issue edit "$ISSUE_NUMBER" --body-file "$AUDIT_FILE" --repo "$REPO"
 
    # Verify the body was updated successfully
    VERIFY_BODY=$(gh issue view "$ISSUE_NUMBER" --json body --jq '.body' --repo "$REPO" 2>/dev/null || true)
-   if ! echo "$VERIFY_BODY" | grep -q "File.*Type.*Severity.*Summary"; then
+   if ! echo "$VERIFY_BODY" | grep -q "Rule.*File.*Severity.*Summary"; then
      echo "WARNING: Failed to verify audit table was written to issue #$ISSUE_NUMBER."
    else
      echo "Audit table verified on issue #$ISSUE_NUMBER."
@@ -254,7 +290,7 @@ For each directory in the queue:
    rm -f "$AUDIT_FILE"
    ```
 
-7. **Update State.** Mark the directory as completed in the state file:
+8. **Update State.** Mark the directory as completed in the state file:
     ```bash
     # Use | as sed delimiter to safely handle directory paths containing /
     ESCAPED_PHASE=$(echo "$CURRENT_PHASE" | sed 's/[|&]/\\&/g')
@@ -265,9 +301,9 @@ For each directory in the queue:
     echo "[Findings stored here]" >> "$STATE_FILE"
     ```
 
-8. **Report Output.** Use the standard Output Format below.
+9. **Report Output.** Use the standard Output Format below.
 
-9. **Advance.** Move to the next directory in the queue. If none remain, delete the state file (`rm -f "$STATE_FILE"`) and report completion.
+10. **Advance.** Move to the next directory in the queue. If none remain, delete the state file (`rm -f "$STATE_FILE"`) and report completion.
 
 ---
 
@@ -275,7 +311,8 @@ For each directory in the queue:
 
 1. **STATE PERSISTENCE.** Always save state after processing each directory. Always read state before starting a new directory.
 2. **ONE ISSUE PER DIRECTORY.** Do not combine multiple directories into a single issue.
-3. **STOP CONDITION.** Terminate when all directories in the phase queue have been processed.
+3. **DETERMINISM.** Severity comes from the rule catalog, never from judgment. Score and grade come from the fixed weights and mapping. Do not re-grade or re-weight.
+4. **STOP CONDITION.** Terminate when all directories in the phase queue have been processed.
 
 ## Error Handling
 
@@ -289,9 +326,11 @@ For each directory in the queue:
 
 ## Gotchas
 
-- **Security findings must never include raw secret values.** The audit table only reports pattern type and count — never the matched line content. Writing secrets to a GitHub issue exposes them to anyone with repo access.
+- **Security findings must never include raw secret values.** The audit table only reports rule ID, pattern type, and count — never the matched line content. Writing secrets to a GitHub issue exposes them to anyone with repo access.
 - **State file cleanup is critical.** Always delete the state file at the start of a new audit and at the end when complete. Stale state files cause incorrect resume behavior.
-- **`gh` CLI must be authenticated before starting.** The audit will fail silently at Step 6 if `gh` is not logged in. Run `gh auth login` first.
+- **`gh` CLI must be authenticated before starting.** The audit will fail silently at Step 7 if `gh` is not logged in. Run `gh auth login` first.
+- **Structural rules need confirmation.** Do not record a finding for SEC-004, BUG-004, QUAL-001/002/003 unless you confirmed it by direct inspection. Absence of evidence is not a finding.
+- **Do not double-count.** A single line may match multiple rules (e.g., `readFileSync` matches both BUG-005 and PERF-001). Record each rule independently; the weighted score accounts for the overlap.
 
 ## Output Format
 
@@ -300,6 +339,7 @@ Each phase response must include:
 ```
 ## Audit: [directory path]
 - **Status:** completed | blocked | no-issues
+- **Grade:** [A|B|C|D|F] (score: [N]/100)
 - **Files Audited:** [count]
 - **Issues Found:** [count] (critical: N, high: N, medium: N, low: N)
 - **Details:**
