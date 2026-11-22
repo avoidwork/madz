@@ -36,6 +36,8 @@ export const LoopDetectionSchema = z
 		ttlMs: z.number().int().positive().default(60000),
 		// A sentence (or word run) must repeat more than this many times to flag a loop.
 		threshold: z.number().int().positive().default(2),
+		// Minimum sentence similarity for a garbled repeat to count as a loop.
+		similarityThreshold: z.number().min(0).max(1).default(0.85),
 		// Strike, within the escalation window, that compacts the context instead of
 		// nudging: three strikes and you're out, so strikes 1 and 2 nudge and strike 3
 		// compacts.

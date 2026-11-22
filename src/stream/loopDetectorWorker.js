@@ -10,6 +10,7 @@ import { checkLoop } from "./loopCheck.js";
  * @param {string[]} task.sentences - Recent completed sentences
  * @param {string[]} task.words - Recent completed words
  * @param {number} task.threshold - Repeats above which a loop is flagged
+ * @param {number} [task.similarityThreshold=0.85] - Minimum sentence similarity to count a garbled repeat
  * @returns {boolean} True when the stream is looping
  */
 export default function loopWorker(task) {
