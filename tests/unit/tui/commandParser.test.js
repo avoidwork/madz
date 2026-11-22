@@ -342,6 +342,7 @@ describe("CommandParser", () => {
 			assert.strictEqual(parser.isViewCommand("/sessions"), true);
 			assert.strictEqual(parser.isViewCommand("/settings"), true);
 			assert.strictEqual(parser.isViewCommand("/projects"), true);
+			assert.strictEqual(parser.isViewCommand("/system"), true);
 		});
 
 		it("returns false for non-view commands", () => {

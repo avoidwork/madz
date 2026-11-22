@@ -9,6 +9,7 @@ export const PANELS = Object.freeze({
 	SESSIONS: "sessions",
 	PROJECTS: "projects",
 	SUBAGENTS: "subagents",
+	SYSTEM: "system",
 });
 
 /**
@@ -24,6 +25,7 @@ export function getPanelOrder() {
 		PANELS.SESSIONS,
 		PANELS.PROJECTS,
 		PANELS.SUBAGENTS,
+		PANELS.SYSTEM,
 	];
 }
 

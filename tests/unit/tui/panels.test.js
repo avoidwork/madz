@@ -6,9 +6,9 @@ describe("getPanelOrder", () => {
 	it("returns the panel order array", () => {
 		const order = getPanelOrder();
 		assert.ok(Array.isArray(order));
-		assert.strictEqual(order.length, 7);
+		assert.strictEqual(order.length, 8);
 		assert.strictEqual(order[0], PANELS.CONVERSATION);
-		assert.strictEqual(order[order.length - 1], PANELS.SUBAGENTS);
+		assert.strictEqual(order[order.length - 1], PANELS.SYSTEM);
 	});
 });
 
@@ -20,10 +20,11 @@ describe("nextPanel", () => {
 		assert.strictEqual(nextPanel(PANELS.SETTINGS), PANELS.SESSIONS);
 		assert.strictEqual(nextPanel(PANELS.SESSIONS), PANELS.PROJECTS);
 		assert.strictEqual(nextPanel(PANELS.PROJECTS), PANELS.SUBAGENTS);
+		assert.strictEqual(nextPanel(PANELS.SUBAGENTS), PANELS.SYSTEM);
 	});
 
 	it("wraps around from last to first", () => {
-		assert.strictEqual(nextPanel(PANELS.SUBAGENTS), PANELS.CONVERSATION);
+		assert.strictEqual(nextPanel(PANELS.SYSTEM), PANELS.CONVERSATION);
 	});
 
 	it("handles unknown panel by wrapping to first", () => {
@@ -34,6 +35,7 @@ describe("nextPanel", () => {
 
 describe("prevPanel", () => {
 	it("cycles to the previous panel", () => {
+		assert.strictEqual(prevPanel(PANELS.SYSTEM), PANELS.SUBAGENTS);
 		assert.strictEqual(prevPanel(PANELS.SUBAGENTS), PANELS.PROJECTS);
 		assert.strictEqual(prevPanel(PANELS.PROJECTS), PANELS.SESSIONS);
 		assert.strictEqual(prevPanel(PANELS.SESSIONS), PANELS.SETTINGS);
@@ -43,11 +45,11 @@ describe("prevPanel", () => {
 	});
 
 	it("wraps around from first to last", () => {
-		assert.strictEqual(prevPanel(PANELS.CONVERSATION), PANELS.SUBAGENTS);
+		assert.strictEqual(prevPanel(PANELS.CONVERSATION), PANELS.SYSTEM);
 	});
 
 	it("handles unknown panel by wrapping to last", () => {
 		const result = prevPanel("unknown");
-		assert.strictEqual(result, PANELS.PROJECTS);
+		assert.strictEqual(result, PANELS.SUBAGENTS);
 	});
 });
