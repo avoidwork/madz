@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Box, Text, useInput } from "ink";
+import { Box, Text, useInput, useWindowSize } from "ink";
 import os from "node:os";
 import { statfs } from "node:fs/promises";
 import { partial } from "filesize";
@@ -50,10 +50,25 @@ export async function gatherSystemInfo() {
 		disk = { available: false };
 	}
 
+	// Collect non-internal IPv4 addresses for the network section.
+	const interfaces = [];
+	const nets = os.networkInterfaces();
+	for (const [name, addrs] of Object.entries(nets)) {
+		for (const addr of addrs || []) {
+			if (addr.family === "IPv4" && !addr.internal) {
+				interfaces.push({ name, address: addr.address });
+			}
+		}
+	}
+
 	return {
+		hostname: os.hostname(),
+		arch: os.arch(),
+		osType: os.type(),
 		cpu: {
 			count: cpus.length,
-			load: loadavg && loadavg.length > 0 ? loadavg[0] : null,
+			model: cpus[0]?.model || "unknown",
+			load: loadavg && loadavg.length > 0 ? loadavg : null,
 		},
 		memory: {
 			total: totalmem,
@@ -66,8 +81,40 @@ export async function gatherSystemInfo() {
 		release,
 		nodeVersion,
 		processMemory,
+		interfaces,
 		time,
 	};
+}
+
+/**
+ * Render a titled bordered section box.
+ * @param {Object} props - Component props.
+ * @param {string} props.title - Section title.
+ * @param {string} [props.color] - Border color.
+ * @param {Array} props.children - Child elements.
+ * @returns {Object} The section box element.
+ */
+function Section({ title, color = "cyan", children }) {
+	return React.createElement(
+		Box,
+		{ flexDirection: "column", marginBottom: 1, borderStyle: "round", borderColor: color },
+		React.createElement(Text, { bold: true, color }, ` ${title}`),
+		React.createElement(Box, { flexDirection: "column", paddingX: 1, paddingY: 1 }, children),
+	);
+}
+
+/**
+ * Format a duration in seconds as a human-readable string.
+ * @param {number} seconds - The duration in seconds.
+ * @returns {string} The formatted duration.
+ */
+function formatUptime(seconds) {
+	const days = Math.floor(seconds / 86400);
+	const hours = Math.floor((seconds % 86400) / 3600);
+	const minutes = Math.floor((seconds % 3600) / 60);
+	if (days > 0) return `${days}d ${hours}h ${minutes}m`;
+	if (hours > 0) return `${hours}h ${minutes}m`;
+	return `${minutes}m`;
 }
 
 /**
@@ -80,6 +127,7 @@ export async function gatherSystemInfo() {
 export function SystemPanel({ onViewChange, activeView, refreshMs = DEFAULT_REFRESH_MS }) {
 	const isActive = activeView === "system";
 	const [info, setInfo] = useState(null);
+	const { width } = useWindowSize();
 
 	// Gather system info asynchronously
 	useEffect(() => {
@@ -116,34 +164,109 @@ export function SystemPanel({ onViewChange, activeView, refreshMs = DEFAULT_REFR
 		);
 	}
 
-	const cpuLoad = info.cpu.load === null ? "unavailable" : `${info.cpu.load.toFixed(2)}`;
+	const load = info.cpu.load;
+	const loadLine = load
+		? `1m ${load[0].toFixed(2)}  5m ${load[1].toFixed(2)}  15m ${load[2].toFixed(2)}`
+		: "unavailable";
+	const memPct =
+		info.memory.total > 0 ? Math.round((info.memory.used / info.memory.total) * 100) : 0;
 	const diskLine = info.disk.available
 		? `${formatBytes(info.disk.free)} free of ${formatBytes(info.disk.total)}`
 		: "unavailable";
+	const diskPct =
+		info.disk.available && info.disk.total > 0
+			? Math.round(((info.disk.total - info.disk.free) / info.disk.total) * 100)
+			: 0;
+	const netLine =
+		info.interfaces.length > 0
+			? info.interfaces.map((i) => `${i.name}: ${i.address}`).join("  ")
+			: "none";
+
+	// Two-column layout when the terminal is wide enough.
+	const columns = width >= 80;
+
+	const cpuSection = React.createElement(
+		Section,
+		{ title: "CPU", color: "cyan" },
+		React.createElement(Text, {}, ` Model: ${info.cpu.model}`),
+		React.createElement(Text, {}, ` Cores: ${info.cpu.count}  Arch: ${info.arch}`),
+		React.createElement(Text, {}, ` Load: ${loadLine}`),
+	);
+
+	const memorySection = React.createElement(
+		Section,
+		{ title: "Memory", color: "magenta" },
+		React.createElement(Text, {}, ` Used: ${formatBytes(info.memory.used)} (${memPct}%)`),
+		React.createElement(Text, {}, ` Free: ${formatBytes(info.memory.free)}`),
+		React.createElement(Text, {}, ` Total: ${formatBytes(info.memory.total)}`),
+	);
+
+	const diskSection = React.createElement(
+		Section,
+		{ title: "Disk", color: "green" },
+		React.createElement(Text, {}, ` Free: ${diskLine}`),
+		React.createElement(Text, {}, ` Used: ${diskPct}%`),
+	);
+
+	const processSection = React.createElement(
+		Section,
+		{ title: "Process", color: "yellow" },
+		React.createElement(Text, {}, ` RSS: ${formatBytes(info.processMemory.rss)}`),
+		React.createElement(Text, {}, ` Heap: ${formatBytes(info.processMemory.heapUsed)}`),
+		React.createElement(Text, {}, ` Node: ${info.nodeVersion}`),
+	);
+
+	const systemSection = React.createElement(
+		Section,
+		{ title: "System", color: "white" },
+		React.createElement(Text, {}, ` Host: ${info.hostname}`),
+		React.createElement(Text, {}, ` OS: ${info.osType} ${info.platform} ${info.release}`),
+		React.createElement(Text, {}, ` Uptime: ${formatUptime(info.uptime)}`),
+	);
+
+	const networkSection = React.createElement(
+		Section,
+		{ title: "Network", color: "blue" },
+		React.createElement(Text, {}, ` Interfaces: ${netLine}`),
+	);
 
 	return React.createElement(
 		Box,
 		{ flexDirection: "column", paddingX: 1, flexGrow: 1 },
-		React.createElement(Text, { bold: true, color: "white" }, " System"),
-		React.createElement(Text, {}, ` Time: ${info.time}`),
-		React.createElement(Text, {}, ` Platform: ${info.platform} ${info.release}`),
-		React.createElement(Text, {}, ` Node: ${info.nodeVersion}`),
 		React.createElement(
-			Text,
-			{},
-			` Uptime: ${Math.floor(info.uptime / 3600)}h ${Math.floor((info.uptime % 3600) / 60)}m`,
+			Box,
+			{ flexDirection: "row", justifyContent: "space-between", marginBottom: 1 },
+			React.createElement(Text, { bold: true, color: "white" }, " System"),
+			React.createElement(Text, { color: "gray" }, info.time),
 		),
-		React.createElement(Text, {}, ` CPU: ${info.cpu.count} cores, load ${cpuLoad}`),
-		React.createElement(
-			Text,
-			{},
-			` Memory: ${formatBytes(info.memory.used)} used of ${formatBytes(info.memory.total)}`,
-		),
-		React.createElement(Text, {}, ` Disk: ${diskLine}`),
-		React.createElement(
-			Text,
-			{},
-			` Process: ${formatBytes(info.processMemory.rss)} RSS, ${formatBytes(info.processMemory.heapUsed)} heap`,
-		),
+		columns
+			? React.createElement(
+					Box,
+					{ flexDirection: "row", gap: 1 },
+					React.createElement(
+						Box,
+						{ flexDirection: "column", flexGrow: 1 },
+						systemSection,
+						cpuSection,
+						memorySection,
+					),
+					React.createElement(
+						Box,
+						{ flexDirection: "column", flexGrow: 1 },
+						diskSection,
+						processSection,
+						networkSection,
+					),
+				)
+			: React.createElement(
+					Box,
+					{ flexDirection: "column" },
+					systemSection,
+					cpuSection,
+					memorySection,
+					diskSection,
+					processSection,
+					networkSection,
+				),
 	);
 }

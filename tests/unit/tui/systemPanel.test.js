@@ -21,8 +21,8 @@ describe("gatherSystemInfo", () => {
 
 	it("reports load average as null when unavailable", async () => {
 		const info = await gatherSystemInfo();
-		// loadavg may be null on some platforms; assert it is either null or a number
-		assert.ok(info.cpu.load === null || typeof info.cpu.load === "number");
+		// loadavg may be null on some platforms; assert it is either null or an array of numbers
+		assert.ok(info.cpu.load === null || Array.isArray(info.cpu.load));
 	});
 
 	it("handles missing fs.statfs support gracefully", async () => {
