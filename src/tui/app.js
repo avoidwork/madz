@@ -12,6 +12,7 @@ import { SettingsPanel } from "./settingsPanel.js";
 import { SessionsPanel } from "./sessionsPanel.js";
 import { ProjectsPanel } from "./projectsPanel.js";
 import { SubagentsPanel } from "./subagentsPanel.js";
+import { SystemPanel } from "./systemPanel.js";
 import { updateSubagentStore } from "./subagentStore.js";
 import { setProjectCwd } from "../workspace/project.js";
 import { logger } from "../shared/logger.js";
@@ -694,6 +695,11 @@ function App({
 			subagentStore,
 			reasoningCollapsed,
 			toolCallCollapsed,
+			onViewChange: handleViewChange,
+			activeView: currentView,
+		});
+	} else if (currentView === PANELS.SYSTEM) {
+		panelComponent = React.createElement(SystemPanel, {
 			onViewChange: handleViewChange,
 			activeView: currentView,
 		});
