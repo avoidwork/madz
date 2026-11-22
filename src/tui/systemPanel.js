@@ -2,22 +2,16 @@ import React from "react";
 import { Box, Text, useInput } from "ink";
 import os from "node:os";
 import fs from "node:fs";
+import { filesize } from "filesize";
 
 /**
- * Format a byte count as a human-readable string.
+ * Format a byte count as a human-readable string using the `filesize` module.
  * @param {number} bytes - The byte count.
  * @returns {string} The formatted size.
  */
 export function formatBytes(bytes) {
 	if (!Number.isFinite(bytes) || bytes < 0) return "unavailable";
-	const units = ["B", "KB", "MB", "GB", "TB"];
-	let value = bytes;
-	let unit = 0;
-	while (value >= 1024 && unit < units.length - 1) {
-		value /= 1024;
-		unit += 1;
-	}
-	return `${value.toFixed(1)} ${units[unit]}`;
+	return filesize(bytes);
 }
 
 /**
