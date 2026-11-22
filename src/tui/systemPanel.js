@@ -2,7 +2,9 @@ import React from "react";
 import { Box, Text, useInput } from "ink";
 import os from "node:os";
 import fs from "node:fs";
-import { filesize } from "filesize";
+import { partial } from "filesize";
+
+const format = partial({ precision: 3 });
 
 /**
  * Format a byte count as a human-readable string using the `filesize` module.
@@ -11,7 +13,7 @@ import { filesize } from "filesize";
  */
 export function formatBytes(bytes) {
 	if (!Number.isFinite(bytes) || bytes < 0) return "unavailable";
-	return filesize(bytes);
+	return format(bytes);
 }
 
 /**

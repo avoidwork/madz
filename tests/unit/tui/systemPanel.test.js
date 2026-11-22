@@ -37,7 +37,7 @@ describe("gatherSystemInfo", () => {
 
 describe("formatBytes", () => {
 	it("formats byte counts as human-readable strings", () => {
-		assert.strictEqual(formatBytes(0), "0 B");
+		assert.strictEqual(formatBytes(0), "0.00 B");
 		assert.strictEqual(formatBytes(1024), "1.02 kB");
 		assert.strictEqual(formatBytes(1024 * 1024), "1.05 MB");
 		assert.strictEqual(formatBytes(1024 * 1024 * 1024), "1.07 GB");
