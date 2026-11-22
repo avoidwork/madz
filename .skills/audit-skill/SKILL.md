@@ -6,7 +6,7 @@ compatibility: Requires Node.js 24+. Reads SKILL.md files from any directory. No
 metadata:
   version: 1.0.0
   category: quality-assurance
-  agent: documentation
+  agent: code-review
 ---
 
 # Audit Skill
