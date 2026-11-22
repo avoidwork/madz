@@ -315,6 +315,19 @@ export function syncEnv(raw, knownSections = KNOWN_SECTIONS) {
 		// Look up the env var in the reverse map
 		let dotPath = reverseMap.get(envName);
 
+		// Indexed array env vars (e.g., POPPY_REDIRECT_URIS_0): strip a
+		// trailing numeric segment and look up the base path in the reverse
+		// map, then append the index to materialize the array element.
+		if (!dotPath) {
+			const indexedMatch = envName.match(/^(.*)_(\d+)$/);
+			if (indexedMatch) {
+				const basePath = reverseMap.get(indexedMatch[1]);
+				if (basePath) {
+					dotPath = `${basePath}.${indexedMatch[2]}`;
+				}
+			}
+		}
+
 		// Fallback: check record patterns for dynamic key matching
 		if (!dotPath) {
 			for (const pattern of recordPatterns) {

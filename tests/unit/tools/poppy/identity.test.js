@@ -473,3 +473,53 @@ describe("poppy identity - supported algorithms", () => {
 		assert.deepEqual(SUPPORTED_ALGS, ["ES256", "PS384"]);
 	});
 });
+
+describe("poppy identity - build_metadata config/env sourcing", () => {
+	const POPPY_CONFIG = {
+		clientId: CLIENT_ID,
+		clientName: "Madz",
+		jwksUri: JWKS_URI,
+		redirectUris: ["https://agent.example.com/callback"],
+	};
+
+	it("sources CIMD values from config when input params are omitted", async () => {
+		const result = await execute({ op: "build_metadata" }, { poppyConfig: POPPY_CONFIG });
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.data.client_id, CLIENT_ID);
+		assert.strictEqual(result.data.client_name, "Madz");
+		assert.strictEqual(result.data.jwks_uri, JWKS_URI);
+		assert.deepStrictEqual(result.data.redirect_uris, ["https://agent.example.com/callback"]);
+		assert.strictEqual(result.data.token_endpoint_auth_method, "private_key_jwt");
+	});
+
+	it("prefers input params over config", async () => {
+		const result = await execute(
+			{
+				op: "build_metadata",
+				clientId: "https://input.example.com",
+				clientName: "Input",
+				jwksUri: "https://input.example.com/jwks.json",
+				redirectUris: ["https://input.example.com/cb"],
+			},
+			{ poppyConfig: POPPY_CONFIG },
+		);
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.data.client_id, "https://input.example.com");
+		assert.strictEqual(result.data.client_name, "Input");
+	});
+
+	it("errors when neither input nor config provides required fields", async () => {
+		const result = await execute({ op: "build_metadata" });
+		assert.strictEqual(result.ok, false);
+		assert.match(result.error, /required/);
+	});
+
+	it("errors when config provides only partial fields", async () => {
+		const result = await execute(
+			{ op: "build_metadata" },
+			{ poppyConfig: { clientId: CLIENT_ID } },
+		);
+		assert.strictEqual(result.ok, false);
+		assert.match(result.error, /required/);
+	});
+});

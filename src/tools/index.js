@@ -431,6 +431,7 @@ export const CONSUMED_RUNTIME_OPTION_KEYS = [
 	"falApiKey",
 	"samplingEnabled",
 	"poppyKeyDir",
+	"poppyConfig",
 ];
 
 export async function buildToolConfig(options) {
@@ -464,6 +465,8 @@ export async function buildToolConfig(options) {
 		samplingEnabled: config?.agent?.sampling !== false,
 		// Directory for persisted Poppy signing keys (from config.memory.toolsDir)
 		poppyKeyDir: config?.memory?.toolsDir,
+		// Resolved Poppy CIMD config (from config.poppy) for the identity action
+		poppyConfig: config?.poppy,
 	};
 
 	for (const [toolName, requiredPerms] of Object.entries(TOOL_PERMISSIONS)) {
@@ -542,6 +545,7 @@ export async function buildToolConfig(options) {
 						poppyImpl(input, {
 							...options,
 							keyDir: runtimeOptions.poppyKeyDir,
+							poppyConfig: runtimeOptions.poppyConfig,
 						}),
 					{ name: "poppy", description: TOOLS.poppy.description, schema: TOOLS.poppy.schema },
 				);
