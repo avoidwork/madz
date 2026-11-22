@@ -36,9 +36,9 @@ describe("poppy config schema", () => {
 		assert.strictEqual(result.success, false);
 	});
 
-	it("rejects an empty redirectUris array", () => {
+	it("accepts an empty redirectUris array (config.yaml default)", () => {
 		const result = PoppyConfigSchema.safeParse({ ...VALID_POPPY, redirectUris: [] });
-		assert.strictEqual(result.success, false);
+		assert.strictEqual(result.success, true);
 	});
 
 	it("rejects an invalid logoUri URL", () => {
