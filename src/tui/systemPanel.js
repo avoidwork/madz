@@ -34,6 +34,7 @@ export async function gatherSystemInfo() {
 	const release = os.release();
 	const nodeVersion = process.version;
 	const processMemory = process.memoryUsage();
+	const time = new Date().toLocaleTimeString();
 
 	let disk = { available: false };
 	try {
@@ -65,6 +66,7 @@ export async function gatherSystemInfo() {
 		release,
 		nodeVersion,
 		processMemory,
+		time,
 	};
 }
 
@@ -123,6 +125,7 @@ export function SystemPanel({ onViewChange, activeView, refreshMs = DEFAULT_REFR
 		Box,
 		{ flexDirection: "column", paddingX: 1, flexGrow: 1 },
 		React.createElement(Text, { bold: true, color: "white" }, " System"),
+		React.createElement(Text, {}, ` Time: ${info.time}`),
 		React.createElement(Text, {}, ` Platform: ${info.platform} ${info.release}`),
 		React.createElement(Text, {}, ` Node: ${info.nodeVersion}`),
 		React.createElement(

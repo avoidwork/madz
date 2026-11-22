@@ -16,6 +16,7 @@ describe("gatherSystemInfo", () => {
 		assert.ok(typeof info.nodeVersion === "string");
 		assert.ok(info.nodeVersion.startsWith("v"));
 		assert.ok(info.processMemory && typeof info.processMemory.rss === "number");
+		assert.ok(typeof info.time === "string");
 	});
 
 	it("reports load average as null when unavailable", async () => {
