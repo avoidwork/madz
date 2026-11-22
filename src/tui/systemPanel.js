@@ -250,7 +250,7 @@ export function SystemPanel({ onViewChange, activeView, refreshMs = DEFAULT_REFR
 		React.createElement(
 			Box,
 			{ flexDirection: "row", justifyContent: "space-between", marginBottom: 1 },
-			React.createElement(Text, { bold: true, color: "white" }, " System"),
+			React.createElement(Text, { bold: true, color: "white" }, " System information"),
 			React.createElement(Text, { color: "gray" }, info.time),
 		),
 		wide
