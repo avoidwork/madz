@@ -127,7 +127,7 @@ function formatUptime(seconds) {
 export function SystemPanel({ onViewChange, activeView, refreshMs = DEFAULT_REFRESH_MS }) {
 	const isActive = activeView === "system";
 	const [info, setInfo] = useState(null);
-	const { width } = useWindowSize();
+	const { columns } = useWindowSize();
 
 	// Gather system info asynchronously
 	useEffect(() => {
@@ -183,7 +183,7 @@ export function SystemPanel({ onViewChange, activeView, refreshMs = DEFAULT_REFR
 			: "none";
 
 	// Two-column layout when the terminal is wide enough.
-	const columns = width >= 80;
+	const wide = columns >= 80;
 
 	const cpuSection = React.createElement(
 		Section,
@@ -235,7 +235,7 @@ export function SystemPanel({ onViewChange, activeView, refreshMs = DEFAULT_REFR
 		React.createElement(
 			Box,
 			{ flexDirection: "row", gap: 1 },
-			sections.map((s) => React.createElement(Box, { flexGrow: 1 }, s)),
+			sections.map((s, i) => React.createElement(Box, { key: i, flexGrow: 1 }, s)),
 		);
 
 	return React.createElement(
@@ -247,7 +247,7 @@ export function SystemPanel({ onViewChange, activeView, refreshMs = DEFAULT_REFR
 			React.createElement(Text, { bold: true, color: "white" }, " System"),
 			React.createElement(Text, { color: "gray" }, info.time),
 		),
-		columns
+		wide
 			? React.createElement(
 					Box,
 					{ flexDirection: "column", gap: 1 },
