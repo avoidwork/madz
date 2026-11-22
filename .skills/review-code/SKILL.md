@@ -2,7 +2,7 @@
 name: review-code
 description: Audits a directory tree for bugs, security vulnerabilities, and performance issues across the languages installed in the project Dockerfile (JavaScript/TypeScript, Python, Ruby, Go, Java, Rust, Terraform, Shell). Uses a deterministic per-language rule catalog with fixed severities and a weighted scoring rubric. Generates one consolidated issue per directory via /create-issue. Use when auditing a codebase for language-specific code quality.
 license: BSD 3-Clause
-compatibility: Supports JS/TS, Python, Ruby, Go, Java, Rust, Terraform, and Shell. Requires git CLI and gh CLI for issue creation.
+compatibility: Supports JS/TS, Python, Ruby, Go, Java, Rust, Terraform, and Shell. Requires git CLI and gh CLI for issue creation, and the decision tool for grade assignment.
 metadata:
   version: 2.4.0
   target: ./src
