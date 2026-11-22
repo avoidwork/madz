@@ -3,8 +3,8 @@ import assert from "node:assert";
 import { gatherSystemInfo, formatBytes } from "../../../src/tui/systemPanel.js";
 
 describe("gatherSystemInfo", () => {
-	it("returns correctly shaped system info", () => {
-		const info = gatherSystemInfo();
+	it("returns correctly shaped system info", async () => {
+		const info = await gatherSystemInfo();
 		assert.ok(Number.isInteger(info.cpu.count));
 		assert.ok(info.cpu.count >= 1);
 		assert.ok(typeof info.memory.total === "number");
@@ -18,14 +18,14 @@ describe("gatherSystemInfo", () => {
 		assert.ok(info.processMemory && typeof info.processMemory.rss === "number");
 	});
 
-	it("reports load average as null when unavailable", () => {
-		const info = gatherSystemInfo();
+	it("reports load average as null when unavailable", async () => {
+		const info = await gatherSystemInfo();
 		// loadavg may be null on some platforms; assert it is either null or a number
 		assert.ok(info.cpu.load === null || typeof info.cpu.load === "number");
 	});
 
-	it("handles missing fs.statfs support gracefully", () => {
-		const info = gatherSystemInfo();
+	it("handles missing fs.statfs support gracefully", async () => {
+		const info = await gatherSystemInfo();
 		// disk.available is a boolean; when false, no total/free are required
 		assert.ok(typeof info.disk.available === "boolean");
 		if (info.disk.available) {

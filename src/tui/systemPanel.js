@@ -1,7 +1,7 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Box, Text, useInput } from "ink";
 import os from "node:os";
-import fs from "node:fs";
+import { statfs } from "node:fs/promises";
 import { partial } from "filesize";
 
 const format = partial({ precision: 3 });
@@ -18,10 +18,10 @@ export function formatBytes(bytes) {
 
 /**
  * Gather system information using Node built-ins.
- * Handles missing `fs.statfs` support and unavailable load average gracefully.
- * @returns {Object} The gathered system info.
+ * Handles missing `fs.promises.statfs` support and unavailable load average gracefully.
+ * @returns {Promise<Object>} The gathered system info.
  */
-export function gatherSystemInfo() {
+export async function gatherSystemInfo() {
 	const cpus = os.cpus() || [];
 	const loadavg = os.loadavg();
 	const totalmem = os.totalmem();
@@ -34,8 +34,8 @@ export function gatherSystemInfo() {
 
 	let disk = { available: false };
 	try {
-		if (typeof fs.statfsSync === "function") {
-			const stat = fs.statfsSync(process.cwd());
+		if (typeof statfs === "function") {
+			const stat = await statfs(process.cwd());
 			disk = {
 				available: true,
 				total: stat.blocks * stat.bsize,
@@ -73,7 +73,18 @@ export function gatherSystemInfo() {
  */
 export function SystemPanel({ onViewChange, activeView }) {
 	const isActive = activeView === "system";
-	const info = gatherSystemInfo();
+	const [info, setInfo] = useState(null);
+
+	// Gather system info asynchronously
+	useEffect(() => {
+		let cancelled = false;
+		gatherSystemInfo().then((result) => {
+			if (!cancelled) setInfo(result);
+		});
+		return () => {
+			cancelled = true;
+		};
+	}, []);
 
 	// Escape returns to conversation view
 	useInput(
@@ -84,6 +95,15 @@ export function SystemPanel({ onViewChange, activeView }) {
 		},
 		{ isActive },
 	);
+
+	if (!info) {
+		return React.createElement(
+			Box,
+			{ flexDirection: "column", paddingX: 1, flexGrow: 1 },
+			React.createElement(Text, { bold: true, color: "white" }, " System"),
+			React.createElement(Text, { color: "gray" }, " Loading..."),
+		);
+	}
 
 	const cpuLoad = info.cpu.load === null ? "unavailable" : `${info.cpu.load.toFixed(2)}`;
 	const diskLine = info.disk.available
