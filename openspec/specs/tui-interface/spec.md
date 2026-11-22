@@ -84,8 +84,8 @@ The system SHALL allow users to issue commands via a slash-syntax (`/command`) i
 - **THEN** the system returns `{ action: "quit", value: true, message: "Quitting." }` and initiates shutdown, identical to `/quit`
 
 #### Scenario: User invokes a skill via slash command
-- **WHEN** user types `/audit-code` in command mode
-- **THEN** the system synthesizes the prompt `Run the audit-code skill` and dispatches it through the normal chat path, which routes through the deepagents orchestrator that has the skill attached
+- **WHEN** user types `/review-code` in command mode
+- **THEN** the system synthesizes the prompt `Run the review-code skill` and dispatches it through the normal chat path, which routes through the deepagents orchestrator that has the skill attached
 
 #### Scenario: User invokes an unknown skill via slash command
 - **WHEN** user types `/nonexistent-skill` in command mode and the skill is not in the skill list

@@ -7,12 +7,12 @@ TBD - created by archiving change tui-skill-slash-command. Update Purpose after 
 The system SHALL route `/skill-name` slash commands through the deepagents skill system, synthesizing the `Run the <skill> skill [args]` prompt and dispatching it through the normal chat path, rather than loading the SKILL.md body and feeding it to the model as a plain chat prompt.
 
 #### Scenario: User invokes a known skill via slash command
-- **WHEN** the user types `/audit-code` in the TUI input
-- **THEN** the system synthesizes the prompt `Run the audit-code skill` and dispatches it through the normal chat path, which routes through the deepagents orchestrator that has the skill attached
+- **WHEN** the user types `/review-code` in the TUI input
+- **THEN** the system synthesizes the prompt `Run the review-code skill` and dispatches it through the normal chat path, which routes through the deepagents orchestrator that has the skill attached
 
 #### Scenario: User invokes a skill with arguments
-- **WHEN** the user types `/audit-code src` in the TUI input
-- **THEN** the system synthesizes the prompt `Run the audit-code skill src` and dispatches it through the normal chat path
+- **WHEN** the user types `/review-code src` in the TUI input
+- **THEN** the system synthesizes the prompt `Run the review-code skill src` and dispatches it through the normal chat path
 
 #### Scenario: User invokes an unknown skill
 - **WHEN** the user types `/nonexistent-skill` and the skill is not in the skill list

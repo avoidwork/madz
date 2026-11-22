@@ -38,7 +38,7 @@ describe("createSkillsMiddleware", () => {
 
 	it("injects a prompt that directs the agent to the skill tool", () => {
 		const registry = {
-			getCatalog: () => [{ name: "audit-code", description: "Audits code." }],
+			getCatalog: () => [{ name: "review-code", description: "Audits code." }],
 		};
 		const mw = createSkillsMiddleware({ registry, sources: ["skills/"] });
 		const { request, captured } = makeRequest();
@@ -50,7 +50,7 @@ describe("createSkillsMiddleware", () => {
 
 	it("does NOT instruct the agent to read_file the SKILL.md", () => {
 		const registry = {
-			getCatalog: () => [{ name: "audit-code", description: "Audits code." }],
+			getCatalog: () => [{ name: "review-code", description: "Audits code." }],
 		};
 		const mw = createSkillsMiddleware({ registry, sources: ["skills/"] });
 		const { request, captured } = makeRequest();
@@ -66,7 +66,7 @@ describe("createSkillsMiddleware", () => {
 	it("lists skills from the registry catalog", () => {
 		const registry = {
 			getCatalog: () => [
-				{ name: "audit-code", description: "Audits code." },
+				{ name: "review-code", description: "Audits code." },
 				{ name: "git-tag", description: "Tags releases." },
 			],
 		};
@@ -74,7 +74,7 @@ describe("createSkillsMiddleware", () => {
 		const { request, captured } = makeRequest();
 		mw.wrapModelCall(request, (r) => r);
 		const prompt = captured[0];
-		assert.ok(prompt.includes("- **audit-code**: Audits code."));
+		assert.ok(prompt.includes("- **review-code**: Audits code."));
 		assert.ok(prompt.includes("- **git-tag**: Tags releases."));
 	});
 
