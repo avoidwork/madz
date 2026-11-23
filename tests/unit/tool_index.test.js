@@ -283,6 +283,15 @@ describe("tools - decision tool classification", () => {
 	});
 });
 
+describe("tools - code-review tool classification", () => {
+	it("grants process and git to the code-review agent", async () => {
+		const { getToolsForAgentTypes, TOOLS } = await import("../../src/tools/index.js");
+		const matches = getToolsForAgentTypes(["code-review"], TOOLS);
+		assert.ok(matches.includes("process"), "process should be classified for code-review");
+		assert.ok(matches.includes("git"), "git should be classified for code-review");
+	});
+});
+
 describe("tools - buildToolConfig MCP", () => {
 	it("is a no-op when no mcp servers are configured", async () => {
 		const { buildToolConfig } = await import("../../src/tools/index.js");
