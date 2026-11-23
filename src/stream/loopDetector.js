@@ -11,11 +11,14 @@ let pool = null;
 /**
  * Piscina worker pool for loop detection. Created lazily on first use and then
  * reused, like the indexCode pool, so threads are not spawned per call and
- * nothing is spawned at import time.
+ * nothing is spawned at import time. The pool is capped at `maxThreads` so it
+ * never spawns one thread per CPU; loop checks are small and stateless, so a
+ * handful of threads is ample.
+ * @param {number} [maxThreads=4] - Maximum worker threads in the pool
  * @returns {Piscina} The shared pool
  */
-export function getPool() {
-	if (!pool) pool = new Piscina({ filename: join(__dirname, "loopDetectorWorker.js") });
+export function getPool(maxThreads = 4) {
+	if (!pool) pool = new Piscina({ filename: join(__dirname, "loopDetectorWorker.js"), maxThreads });
 	return pool;
 }
 
@@ -58,6 +61,7 @@ export async function destroyPool() {
  * @param {number} [options.threshold=2] - Repeats above which a loop is flagged
  * @param {number} [options.similarityThreshold=0.85] - Minimum sentence similarity to count a garbled repeat
  * @param {number} [options.maxStreams=4] - Streams tracked at once; the least recently updated is evicted
+ * @param {number} [options.maxThreads=4] - Maximum worker threads in the shared pool
  * @param {number} [options.ttlMs] - State older than this is dropped (no expiry when unset)
  * @param {Function} [options.now] - Clock returning ms (injectable for tests)
  * @param {{ run: Function }} [options.runner] - Runs a check; defaults to the shared pool, injectable for tests
@@ -69,9 +73,10 @@ export function createSegmentLoopDetector(options = {}) {
 	const threshold = options.threshold ?? 2;
 	const similarityThreshold = options.similarityThreshold ?? 0.85;
 	const maxStreams = options.maxStreams ?? 4;
+	const maxThreads = options.maxThreads ?? 4;
 	const ttlMs = options.ttlMs;
 	const now = options.now ?? (() => Date.now());
-	const runner = options.runner ?? { run: (task) => getPool().run(task) };
+	const runner = options.runner ?? { run: (task) => getPool(maxThreads).run(task) };
 
 	/**
 	 * @typedef {Object} KindState

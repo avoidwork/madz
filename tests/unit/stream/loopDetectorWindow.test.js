@@ -101,6 +101,30 @@ describe("loopDetection maxStreams", () => {
 	});
 });
 
+describe("loopDetection maxThreads", () => {
+	it("defaults to 4", () => {
+		assert.strictEqual(LoopDetectionSchema.parse({}).maxThreads, 4);
+	});
+
+	it("accepts a configured value", () => {
+		assert.strictEqual(LoopDetectionSchema.parse({ maxThreads: 2 }).maxThreads, 2);
+	});
+
+	it("rejects zero, negative and fractional values", () => {
+		for (const bad of [0, -1, 2.5]) {
+			assert.throws(() => LoopDetectionSchema.parse({ maxThreads: bad }), `maxThreads ${bad}`);
+		}
+	});
+
+	it("is set in config.yaml to the schema default", () => {
+		const yaml = readFileSync(
+			fileURLToPath(new URL("../../../config.yaml", import.meta.url)),
+			"utf8",
+		);
+		assert.match(yaml, /^\s+maxThreads: 4$/m);
+	});
+});
+
 describe("wordWindowSize is big enough for the captured loop", () => {
 	it("the two-paragraph passage needs more words than the old 200-word window", () => {
 		assert.ok(WORDS.length * 3 > 200, `3 copies = ${WORDS.length * 3} words`);
