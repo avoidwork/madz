@@ -73,7 +73,7 @@ describe("poppy extensions - buildExtensionsHeader", () => {
 			links: [{ version: "1.0", endpoint: "https://example.com/links" }],
 			ucp: [{ version: "1.0", endpoint: "https://example.com/ucp" }],
 		});
-		assert.strictEqual(header, '"links;1.0", "ucp;1.0"');
+		assert.strictEqual(header, '"links";v="1.0", "ucp";v="1.0"');
 	});
 
 	it("returns empty string when no extensions declared", () => {
@@ -148,7 +148,7 @@ describe("poppy extensions - execute", () => {
 			extensions: { links: [{ version: "1.0", endpoint: "https://example.com/links" }] },
 		});
 		assert.strictEqual(result.ok, true);
-		assert.strictEqual(result.data.header, '"links;1.0"');
+		assert.strictEqual(result.data.header, '"links";v="1.0"');
 	});
 
 	it("dispatches required op", async () => {

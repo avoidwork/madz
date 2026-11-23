@@ -44,6 +44,26 @@ export function validateClientMetadata(doc) {
 }
 
 /**
+ * Validate that a client metadata document's `client_id` equals the URL it was
+ * fetched from (spec: the CIMD `client_id` field SHALL equal the fetch URL).
+ * @param {object} doc - The client metadata document
+ * @param {string} fetchUrl - The URL the document was fetched from
+ * @returns {{ok: boolean, error?: string}} Validation result
+ */
+export function validateClientId(doc, fetchUrl) {
+	if (!doc?.client_id) {
+		return { ok: false, error: "client_id is required" };
+	}
+	if (doc.client_id !== fetchUrl) {
+		return {
+			ok: false,
+			error: `client_id '${doc.client_id}' does not match fetch URL '${fetchUrl}'`,
+		};
+	}
+	return { ok: true };
+}
+
+/**
  * Build a client metadata document (CIMD) for the agent. The `client_id` field
  * is set to the configured `client_id` URL (the URL the document is fetched
  * from), and `token_endpoint_auth_method` is `private_key_jwt`.
@@ -412,10 +432,19 @@ function validateJwks(input) {
  * @returns {{ok: boolean, data?: object, error?: string}} Result
  */
 function validateMetadata(input) {
-	const { doc } = input;
+	const { doc, fetchUrl } = input;
 	if (!doc) {
 		return { ok: false, error: "doc is required" };
 	}
 	const result = validateClientMetadata(doc);
-	return result.ok ? { ok: true, data: { valid: true } } : { ok: false, error: result.error };
+	if (!result.ok) {
+		return { ok: false, error: result.error };
+	}
+	if (fetchUrl) {
+		const idResult = validateClientId(doc, fetchUrl);
+		if (!idResult.ok) {
+			return { ok: false, error: idResult.error };
+		}
+	}
+	return { ok: true, data: { valid: true } };
 }

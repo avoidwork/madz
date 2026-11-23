@@ -8,22 +8,29 @@ const POPPY_VERSION = "1.0";
 /** Conversation error codes mapped to HTTP status per Poppy spec section 8.13. */
 const CONVERSATION_ERROR_STATUS = Object.freeze({
 	conversation_not_found: 404,
-	conversation_closed: 400,
-	direct_conversation_open: 400,
+	conversation_closed: 409,
+	direct_conversation_open: 409,
 	request_id_conflict: 409,
 	invalid_cursor: 400,
-	cursor_expired: 400,
-	version_mismatch: 400,
+	cursor_expired: 410,
+	version_mismatch: 409,
 });
 
 /**
- * Zod schema for a Poppy conversation message. Required fields: `role`,
- * `content`. Additional fields are permitted.
+ * Zod schema for a Poppy conversation message per spec 8.3/8.4. The message
+ * carries an `author` object with a `type` of `agent` or `human`, plus
+ * optional `text`, `data`, `context`, and `extensions` fields. Additional
+ * fields are permitted.
  */
 const MessageSchema = z
 	.object({
-		role: z.string().min(1),
-		content: z.string().min(1),
+		author: z.object({
+			type: z.enum(["agent", "human"]),
+		}),
+		text: z.string().optional(),
+		data: z.unknown().optional(),
+		context: z.unknown().optional(),
+		extensions: z.unknown().optional(),
 	})
 	.passthrough();
 
@@ -68,9 +75,6 @@ export function buildConversationHeaders(input) {
 		headers.authorization = `Bearer ${input.accessToken}`;
 	}
 	headers["Poppy-Version"] = input.version ?? POPPY_VERSION;
-	if (input.requestId) {
-		headers["Idempotency-Key"] = input.requestId;
-	}
 	return headers;
 }
 
@@ -104,12 +108,28 @@ export function getConversationState(conversation) {
  * @param {string} endpoint - The endpoint URL
  * @returns {{ok: boolean, error?: string}} Validation result
  */
-function validateEndpoint(endpoint) {
+async function validateEndpoint(endpoint) {
 	if (!endpoint) {
 		return { ok: false, error: "endpoint is required" };
 	}
 	return validateUrl(endpoint);
 }
+
+/**
+ * Zod schema for a successful events read response per spec 8.5. Requires
+ * `conversation_id`, `events`, `cursor`, `has_more`, and the state fields
+ * `working`, `handoff`, `responder`, and `closed`.
+ */
+const ReadResponseSchema = z.object({
+	conversation_id: z.string().min(1),
+	events: z.array(z.unknown()),
+	cursor: z.string().min(1),
+	has_more: z.boolean(),
+	working: z.boolean(),
+	handoff: z.boolean(),
+	responder: z.string().optional(),
+	closed: z.boolean(),
+});
 
 /**
  * Map a `fetchJson` result into a normalized conversation result, attaching
@@ -138,16 +158,22 @@ function mapConversationResult(result) {
  * @returns {Promise<{ok: boolean, data?: object, error?: string, code?: string, status?: number}>} Result
  */
 export async function startConversation(input, options = {}) {
-	const validation = validateEndpoint(input.endpoint);
+	const validation = await validateEndpoint(input.endpoint);
 	if (!validation.ok) {
 		return validation;
 	}
 	const body = {};
+	if (input.requestId) {
+		body.request_id = input.requestId;
+	}
 	if (input.parentConversationId) {
 		body.parent_conversation_id = input.parentConversationId;
 	}
 	if (input.userRequestedEventId) {
 		body.user_requested_event_id = input.userRequestedEventId;
+	}
+	if (input.message !== undefined) {
+		body.message = input.message;
 	}
 	const result = await fetchJson(input.endpoint, {
 		method: "POST",
@@ -168,7 +194,7 @@ export async function startConversation(input, options = {}) {
  * @returns {Promise<{ok: boolean, data?: object, error?: string, code?: string, status?: number}>} Result
  */
 export async function sendMessage(input, options = {}) {
-	const validation = validateEndpoint(input.endpoint);
+	const validation = await validateEndpoint(input.endpoint);
 	if (!validation.ok) {
 		return validation;
 	}
@@ -183,10 +209,14 @@ export async function sendMessage(input, options = {}) {
 		};
 	}
 	const url = `${input.endpoint}/${input.id}/messages`;
+	const body = { ...message.data };
+	if (input.requestId) {
+		body.request_id = input.requestId;
+	}
 	const result = await fetchJson(url, {
 		method: "POST",
 		headers: buildConversationHeaders(input),
-		body: JSON.stringify(message.data),
+		body: JSON.stringify(body),
 		...options,
 	});
 	return mapConversationResult(result);
@@ -203,7 +233,7 @@ export async function sendMessage(input, options = {}) {
  * @returns {Promise<{ok: boolean, data?: object, error?: string, code?: string, status?: number}>} Result
  */
 export async function readEvents(input, options = {}) {
-	const validation = validateEndpoint(input.endpoint);
+	const validation = await validateEndpoint(input.endpoint);
 	if (!validation.ok) {
 		return validation;
 	}
@@ -222,6 +252,16 @@ export async function readEvents(input, options = {}) {
 		headers: buildConversationHeaders(input),
 		...options,
 	});
+	if (result.ok) {
+		const parsed = ReadResponseSchema.safeParse(result.data);
+		if (!parsed.success) {
+			return {
+				ok: false,
+				error: `Invalid events response: ${parsed.error.issues.map((i) => i.message).join("; ")}`,
+			};
+		}
+		return { ok: true, data: parsed.data };
+	}
 	return mapConversationResult(result);
 }
 
@@ -300,7 +340,7 @@ export async function parseSse(body) {
  * @returns {Promise<{ok: boolean, data?: object, error?: string, code?: string, status?: number}>} Result
  */
 export async function streamEvents(input, options = {}) {
-	const validation = validateEndpoint(input.endpoint);
+	const validation = await validateEndpoint(input.endpoint);
 	if (!validation.ok) {
 		return validation;
 	}
@@ -353,7 +393,7 @@ export async function streamEvents(input, options = {}) {
  * @returns {Promise<{ok: boolean, data?: object, error?: string, code?: string, status?: number}>} Result
  */
 export async function handoff(input, options = {}) {
-	const validation = validateEndpoint(input.endpoint);
+	const validation = await validateEndpoint(input.endpoint);
 	if (!validation.ok) {
 		return validation;
 	}
@@ -378,7 +418,7 @@ export async function handoff(input, options = {}) {
  * @returns {Promise<{ok: boolean, data?: object, error?: string, code?: string, status?: number}>} Result
  */
 export async function handoffCancel(input, options = {}) {
-	const validation = validateEndpoint(input.endpoint);
+	const validation = await validateEndpoint(input.endpoint);
 	if (!validation.ok) {
 		return validation;
 	}

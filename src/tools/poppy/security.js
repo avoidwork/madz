@@ -277,7 +277,7 @@ export async function blindSign(options) {
 	const jti = randomUUID();
 
 	const jwt = await new SignJWT({})
-		.setProtectedHeader({ alg: "ES256", typ })
+		.setProtectedHeader({ alg: "PS384", typ })
 		.setIssuer(clientId)
 		.setSubject(clientId)
 		.setAudience(audience)

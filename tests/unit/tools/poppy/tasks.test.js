@@ -18,17 +18,20 @@ const TASKS_RESPONSE = {
 		{
 			task: "refunds",
 			description: "Refunds are handled by support",
-			alternative: "contact support",
+			alternative: { instructions: "contact support", references: ["https://example.com/support"] },
 		},
 	],
-	skill_index: [
-		{
-			name: "orders",
-			type: "agent-skill",
-			url: "https://example.com/skills/orders.md",
-			digest: "abc123",
-		},
-	],
+	skill_index: {
+		$schema: "https://example.com/skills/schema.json",
+		skills: [
+			{
+				name: "orders",
+				type: "skill-md",
+				url: "https://example.com/skills/orders.md",
+				digest: "abc123",
+			},
+		],
+	},
 	feedback: { endpoint: "https://example.com/feedback" },
 };
 
@@ -55,7 +58,7 @@ describe("poppy tasks - schema validation", () => {
 		const result = TasksResponseSchema.safeParse({});
 		assert.strictEqual(result.success, true);
 		assert.deepStrictEqual(result.data.excluded_tasks, []);
-		assert.deepStrictEqual(result.data.skill_index, []);
+		assert.deepStrictEqual(result.data.skill_index, { $schema: "", skills: [] });
 	});
 });
 
@@ -89,7 +92,7 @@ describe("poppy tasks - fetchTasks", () => {
 		const result = await fetchTasks({ endpoint: "https://example.com/tasks", session: "jwt" });
 		assert.strictEqual(result.ok, true);
 		assert.strictEqual(result.data.excluded_tasks.length, 1);
-		assert.strictEqual(result.data.skill_index.length, 1);
+		assert.strictEqual(result.data.skill_index.skills.length, 1);
 		assert.strictEqual(result.data.feedback.endpoint, "https://example.com/feedback");
 	});
 
@@ -124,7 +127,7 @@ describe("poppy tasks - matchTask", () => {
 		const result = matchTask(TASKS_RESPONSE, "refunds");
 		assert.strictEqual(result.ok, true);
 		assert.strictEqual(result.data.excluded, true);
-		assert.strictEqual(result.data.alternative, "contact support");
+		assert.strictEqual(result.data.alternative.instructions, "contact support");
 	});
 
 	it("reports a task as allowed when it does not match", () => {
@@ -143,17 +146,18 @@ describe("poppy tasks - matchTask", () => {
 describe("poppy tasks - fetchSkill", () => {
 	it("fetches and verifies a skill artifact", async () => {
 		const content = { content: "orders skill" };
-		const digest = createHash("sha256").update(JSON.stringify(content)).digest("hex");
+		const bytes = new TextEncoder().encode(JSON.stringify(content));
+		const digest = `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
 		const entry = {
 			name: "orders",
-			type: "agent-skill",
+			type: "skill-md",
 			url: "https://example.com/skills/orders.md",
 			digest,
 		};
 		mock.method(global, "fetch", async () => ({
 			ok: true,
 			status: 200,
-			json: async () => content,
+			arrayBuffer: async () => bytes.buffer,
 		}));
 		const result = await fetchSkill(entry);
 		assert.strictEqual(result.ok, true);
@@ -168,14 +172,15 @@ describe("poppy tasks - fetchSkill", () => {
 	it("reports a digest mismatch", async () => {
 		const entry = {
 			name: "orders",
-			type: "agent-skill",
+			type: "skill-md",
 			url: "https://example.com/skills/orders.md",
-			digest: "wrong",
+			digest: "sha256:wrong",
 		};
 		mock.method(global, "fetch", async () => ({
 			ok: true,
 			status: 200,
-			json: async () => ({ content: "orders skill" }),
+			arrayBuffer: async () =>
+				new TextEncoder().encode(JSON.stringify({ content: "orders skill" })).buffer,
 		}));
 		const result = await fetchSkill(entry);
 		assert.strictEqual(result.ok, false);
@@ -187,25 +192,27 @@ describe("poppy tasks - fetchSkills", () => {
 	it("fetches and verifies all skill artifacts", async () => {
 		const ordersContent = { content: "orders" };
 		const inventoryContent = { content: "inventory" };
+		const ordersBytes = new TextEncoder().encode(JSON.stringify(ordersContent));
+		const inventoryBytes = new TextEncoder().encode(JSON.stringify(inventoryContent));
 		const skillIndex = [
 			{
 				name: "orders",
-				type: "agent-skill",
+				type: "skill-md",
 				url: "https://example.com/skills/orders.md",
-				digest: createHash("sha256").update(JSON.stringify(ordersContent)).digest("hex"),
+				digest: `sha256:${createHash("sha256").update(ordersBytes).digest("hex")}`,
 			},
 			{
 				name: "inventory",
-				type: "agent-skill",
+				type: "skill-md",
 				url: "https://example.com/skills/inventory.md",
-				digest: createHash("sha256").update(JSON.stringify(inventoryContent)).digest("hex"),
+				digest: `sha256:${createHash("sha256").update(inventoryBytes).digest("hex")}`,
 			},
 		];
 		mock.method(global, "fetch", async (url) => {
 			const href = String(url);
 			if (href.includes("orders"))
-				return { ok: true, status: 200, json: async () => ordersContent };
-			return { ok: true, status: 200, json: async () => inventoryContent };
+				return { ok: true, status: 200, arrayBuffer: async () => ordersBytes.buffer };
+			return { ok: true, status: 200, arrayBuffer: async () => inventoryBytes.buffer };
 		});
 		const result = await fetchSkills(skillIndex);
 		assert.strictEqual(result.ok, true);
@@ -224,13 +231,14 @@ describe("poppy tasks - fetchSkills", () => {
 				name: "orders",
 				type: "unknown",
 				url: "https://example.com/skills/orders.md",
-				digest: "abc123",
+				digest: "sha256:abc123",
 			},
 		];
 		mock.method(global, "fetch", async () => ({
 			ok: true,
 			status: 200,
-			json: async () => ({ content: "orders" }),
+			arrayBuffer: async () =>
+				new TextEncoder().encode(JSON.stringify({ content: "orders" })).buffer,
 		}));
 		const result = await fetchSkills(skillIndex);
 		assert.strictEqual(result.ok, false);
@@ -304,23 +312,27 @@ describe("poppy tasks - execute", () => {
 
 	it("dispatches the skills operation", async () => {
 		const content = { content: "orders" };
-		const digest = createHash("sha256").update(JSON.stringify(content)).digest("hex");
+		const bytes = new TextEncoder().encode(JSON.stringify(content));
+		const digest = `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
 		mock.method(global, "fetch", async () => ({
 			ok: true,
 			status: 200,
-			json: async () => content,
+			arrayBuffer: async () => bytes.buffer,
 		}));
 		const result = await execute({
 			op: "skills",
 			poppyJson: {
-				skill_index: [
-					{
-						name: "orders",
-						type: "agent-skill",
-						url: "https://example.com/skills/orders.md",
-						digest,
-					},
-				],
+				skill_index: {
+					$schema: "https://example.com/skills/schema.json",
+					skills: [
+						{
+							name: "orders",
+							type: "skill-md",
+							url: "https://example.com/skills/orders.md",
+							digest,
+						},
+					],
+				},
 			},
 		});
 		assert.strictEqual(result.ok, true);

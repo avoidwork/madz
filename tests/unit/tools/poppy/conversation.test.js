@@ -43,9 +43,9 @@ describe("poppy conversation - buildConversationHeaders", () => {
 		assert.strictEqual(headers.authorization, "Bearer token");
 	});
 
-	it("includes Idempotency-Key header when requestId provided", () => {
+	it("does not include an Idempotency-Key header (request ID is in the body)", () => {
 		const headers = buildConversationHeaders({ requestId: "req-123" });
-		assert.strictEqual(headers["Idempotency-Key"], "req-123");
+		assert.strictEqual(headers["Idempotency-Key"], undefined);
 	});
 
 	it("defaults Poppy-Version when not provided", () => {
@@ -64,12 +64,12 @@ describe("poppy conversation - conversationErrorStatus", () => {
 		assert.strictEqual(conversationErrorStatus("conversation_not_found"), 404);
 	});
 
-	it("maps conversation_closed to 400", () => {
-		assert.strictEqual(conversationErrorStatus("conversation_closed"), 400);
+	it("maps conversation_closed to 409", () => {
+		assert.strictEqual(conversationErrorStatus("conversation_closed"), 409);
 	});
 
-	it("maps direct_conversation_open to 400", () => {
-		assert.strictEqual(conversationErrorStatus("direct_conversation_open"), 400);
+	it("maps direct_conversation_open to 409", () => {
+		assert.strictEqual(conversationErrorStatus("direct_conversation_open"), 409);
 	});
 
 	it("maps request_id_conflict to 409", () => {
@@ -80,12 +80,12 @@ describe("poppy conversation - conversationErrorStatus", () => {
 		assert.strictEqual(conversationErrorStatus("invalid_cursor"), 400);
 	});
 
-	it("maps cursor_expired to 400", () => {
-		assert.strictEqual(conversationErrorStatus("cursor_expired"), 400);
+	it("maps cursor_expired to 410", () => {
+		assert.strictEqual(conversationErrorStatus("cursor_expired"), 410);
 	});
 
-	it("maps version_mismatch to 400", () => {
-		assert.strictEqual(conversationErrorStatus("version_mismatch"), 400);
+	it("maps version_mismatch to 409", () => {
+		assert.strictEqual(conversationErrorStatus("version_mismatch"), 409);
 	});
 
 	it("defaults unknown codes to 500", () => {
@@ -169,27 +169,28 @@ describe("poppy conversation - sendMessage", () => {
 			assert.strictEqual(String(url), "https://example.com/conv/conv-1/messages");
 			assert.strictEqual(init.method, "POST");
 			const body = JSON.parse(init.body);
-			assert.strictEqual(body.role, "user");
-			assert.strictEqual(body.content, "hello");
+			assert.strictEqual(body.author.type, "human");
+			assert.strictEqual(body.text, "hello");
 			return { ok: true, status: 200, json: async () => ({ ok: true }) };
 		});
 		const result = await sendMessage({
 			endpoint: "https://example.com/conv",
 			id: "conv-1",
-			message: { role: "user", content: "hello" },
+			message: { author: { type: "human" }, text: "hello" },
 		});
 		assert.strictEqual(result.ok, true);
 	});
 
-	it("includes the request ID for safe retries", async () => {
+	it("includes the request ID in the POST body for safe retries", async () => {
 		mock.method(global, "fetch", async (url, init) => {
-			assert.strictEqual(init.headers["Idempotency-Key"], "req-123");
+			const body = JSON.parse(init.body);
+			assert.strictEqual(body.request_id, "req-123");
 			return { ok: true, status: 200, json: async () => ({ ok: true }) };
 		});
 		const result = await sendMessage({
 			endpoint: "https://example.com/conv",
 			id: "conv-1",
-			message: { role: "user", content: "hello" },
+			message: { author: { type: "human" }, text: "hello" },
 			requestId: "req-123",
 		});
 		assert.strictEqual(result.ok, true);
@@ -198,7 +199,7 @@ describe("poppy conversation - sendMessage", () => {
 	it("reports a missing id", async () => {
 		const result = await sendMessage({
 			endpoint: "https://example.com/conv",
-			message: { role: "user", content: "hi" },
+			message: { author: { type: "human" }, text: "hi" },
 		});
 		assert.strictEqual(result.ok, false);
 		assert.strictEqual(result.error, "id is required");
@@ -219,7 +220,19 @@ describe("poppy conversation - readEvents", () => {
 		mock.method(global, "fetch", async (url, init) => {
 			assert.strictEqual(String(url), "https://example.com/conv/conv-1/events");
 			assert.strictEqual(init.method, "GET");
-			return { ok: true, status: 200, json: async () => ({ events: [] }) };
+			return {
+				ok: true,
+				status: 200,
+				json: async () => ({
+					conversation_id: "conv-1",
+					events: [],
+					cursor: "abc",
+					has_more: false,
+					working: false,
+					handoff: false,
+					closed: false,
+				}),
+			};
 		});
 		const result = await readEvents({ endpoint: "https://example.com/conv", id: "conv-1" });
 		assert.strictEqual(result.ok, true);
@@ -230,7 +243,19 @@ describe("poppy conversation - readEvents", () => {
 			const href = String(url);
 			assert.ok(href.includes("wait=5"));
 			assert.ok(href.includes("cursor=abc"));
-			return { ok: true, status: 200, json: async () => ({ events: [] }) };
+			return {
+				ok: true,
+				status: 200,
+				json: async () => ({
+					conversation_id: "conv-1",
+					events: [],
+					cursor: "abc",
+					has_more: false,
+					working: false,
+					handoff: false,
+					closed: false,
+				}),
+			};
 		});
 		const result = await readEvents({
 			endpoint: "https://example.com/conv",
@@ -363,13 +388,13 @@ describe("poppy conversation - handoff", () => {
 	it("maps a conversation_closed error", async () => {
 		mock.method(global, "fetch", async () => ({
 			ok: false,
-			status: 400,
+			status: 409,
 			json: async () => ({ error: "conversation_closed" }),
 		}));
 		const result = await handoff({ endpoint: "https://example.com/conv", id: "conv-1" });
 		assert.strictEqual(result.ok, false);
 		assert.strictEqual(result.code, "conversation_closed");
-		assert.strictEqual(result.status, 400);
+		assert.strictEqual(result.status, 409);
 	});
 });
 
@@ -407,7 +432,7 @@ describe("poppy conversation - execute", () => {
 			op: "send",
 			endpoint: "https://example.com/conv",
 			id: "conv-1",
-			message: { role: "user", content: "hi" },
+			message: { author: { type: "human" }, text: "hi" },
 		});
 		assert.strictEqual(result.ok, true);
 	});
@@ -416,7 +441,15 @@ describe("poppy conversation - execute", () => {
 		mock.method(global, "fetch", async () => ({
 			ok: true,
 			status: 200,
-			json: async () => ({ events: [] }),
+			json: async () => ({
+				conversation_id: "conv-1",
+				events: [],
+				cursor: "abc",
+				has_more: false,
+				working: false,
+				handoff: false,
+				closed: false,
+			}),
 		}));
 		const result = await execute({
 			op: "read",

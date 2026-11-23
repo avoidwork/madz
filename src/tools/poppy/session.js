@@ -9,7 +9,7 @@ const MAX_DELEGATION_TTL = 86400;
 const POPPY_VERSION = "1.0";
 
 /** Poppy extensions emitted in the `Poppy-Extensions` header. */
-const POPPY_EXTENSIONS = "session";
+const POPPY_EXTENSIONS = "";
 
 /**
  * Zod schema for session signing input. Required fields: `clientId` (issuer),
@@ -28,14 +28,11 @@ export const SessionInputSchema = z.object({
 });
 
 /**
- * Zod schema for delegation issuance input. Required fields: `clientId`
- * (issuer), `audience` (company identifier), `userId` (subject). Optional
- * fields: `now` (for testing).
+ * Zod schema for delegation issuance input. Required field: `clientId`
+ * (issuer). Optional fields: `now` (for testing).
  */
 export const DelegationInputSchema = z.object({
 	clientId: z.string().min(1),
-	audience: z.string().min(1),
-	userId: z.string().min(1),
 	now: z.number().optional(),
 });
 
@@ -100,16 +97,19 @@ export async function generateSessionJwt(options) {
 		.setJti(jti)
 		.sign(delegatedKey);
 
+	const headers = {
+		"Poppy-Session": jwt,
+		"Poppy-Version": POPPY_VERSION,
+	};
+	if (POPPY_EXTENSIONS) {
+		headers["Poppy-Extensions"] = POPPY_EXTENSIONS;
+	}
 	return {
 		jwt,
 		sid,
 		jti,
 		iat,
-		headers: {
-			"Poppy-Session": jwt,
-			"Poppy-Version": POPPY_VERSION,
-			"Poppy-Extensions": POPPY_EXTENSIONS,
-		},
+		headers,
 	};
 }
 
@@ -127,7 +127,7 @@ export async function generateSessionJwt(options) {
  * @returns {Promise<{jwt: string, jti: string, iat: number, exp: number, kid: string}>} The signed delegation
  */
 export async function issueDelegation(options) {
-	const { signingKey, delegatedKey, clientId, audience, userId } = options;
+	const { signingKey, delegatedKey, clientId } = options;
 	const now = options.now ?? Date.now();
 
 	const iat = Math.floor(now / 1000);
@@ -135,7 +135,10 @@ export async function issueDelegation(options) {
 	const jti = randomUUID();
 
 	const delegatedJwk = await exportJWK(delegatedKey);
-	const kid = await calculateJwkThumbprint(delegatedJwk);
+	// The `kid` names the signing key from `jwks_uri` that signed the
+	// delegation (the long-lived signing key), not the delegated key.
+	const signingJwk = await exportJWK(signingKey);
+	const kid = await calculateJwkThumbprint(signingJwk);
 	// Strip private key material so only the public JWK is named in cnf.jwk.
 	const publicJwk = { ...delegatedJwk };
 	delete publicJwk.d;
@@ -143,8 +146,6 @@ export async function issueDelegation(options) {
 	const jwt = await new SignJWT({ cnf: { jwk: publicJwk } })
 		.setProtectedHeader({ alg: "ES256", typ: "poppy-delegation+jwt" })
 		.setIssuer(clientId)
-		.setAudience(audience)
-		.setSubject(userId)
 		.setIssuedAt(iat)
 		.setExpirationTime(exp)
 		.setJti(jti)
@@ -271,8 +272,6 @@ async function issueDelegationOp(input, _options = {}) {
 			signingKey,
 			delegatedKey,
 			clientId: data.clientId,
-			audience: data.audience,
-			userId: data.userId,
 			now: data.now,
 		});
 		return { ok: true, data: result };

@@ -3,6 +3,7 @@ import { MCPAdapter } from "@langchain/mcp-adapters";
 import { fetchJson } from "./common.js";
 import { validateUrl } from "./discovery.js";
 import { buildExtensionsHeader } from "./extensions.js";
+import { signClientAssertion } from "./identity.js";
 
 /** Poppy protocol version sent as the `Poppy-Version` header. */
 const POPPY_VERSION = "1.0";
@@ -161,7 +162,7 @@ export async function callOpenApi(input, options = {}) {
 	if (!endpoint) {
 		return { ok: false, error: "endpoint is required" };
 	}
-	const validation = validateUrl(endpoint);
+	const validation = await validateUrl(endpoint);
 	if (!validation.ok) {
 		return { ok: false, error: validation.error };
 	}
@@ -196,21 +197,32 @@ export async function callMcp(input, _options = {}) {
 	if (!endpoint) {
 		return { ok: false, error: "endpoint is required" };
 	}
-	const validation = validateUrl(endpoint);
+	const validation = await validateUrl(endpoint);
 	if (!validation.ok) {
 		return { ok: false, error: validation.error };
 	}
 
-	// Request a token with `resource` set to the MCP server's URL.
+	// Request a token with `resource` set to the MCP server's URL, using a
+	// `private_key_jwt` client assertion rather than `client_credentials`.
 	let accessToken = input.accessToken;
 	if (!accessToken && input.tokenEndpoint) {
+		const body = new URLSearchParams({
+			grant_type: "client_credentials",
+			resource: endpoint,
+		});
+		if (input.privateKey && input.clientId) {
+			const assertion = await signClientAssertion({
+				privateKey: input.privateKey,
+				clientId: input.clientId,
+				audience: input.issuer ?? new URL(input.tokenEndpoint).origin,
+			});
+			body.set("client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer");
+			body.set("client_assertion", assertion.jwt);
+		}
 		const tokenResult = await fetchJson(input.tokenEndpoint, {
 			method: "POST",
 			headers: { "content-type": "application/x-www-form-urlencoded" },
-			body: new URLSearchParams({
-				grant_type: "client_credentials",
-				resource: endpoint,
-			}).toString(),
+			body: body.toString(),
 		});
 		if (!tokenResult.ok) {
 			return { ok: false, error: `Token request failed: ${tokenResult.error}` };

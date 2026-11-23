@@ -57,6 +57,7 @@ describe("poppy - integration oauth", () => {
 			scope: SCOPE,
 			code: "auth-code",
 			codeVerifier: "verifier",
+			iss: ISSUER,
 			privateKey,
 		});
 		assert.strictEqual(result.ok, true);

@@ -156,8 +156,8 @@ describe("poppy security - DelegatedKeyRegistry", () => {
 });
 
 describe("poppy security - blindSign", () => {
-	it("blind-signs a client assertion that verifies", async () => {
-		const { privateKey } = await makeKeys();
+	it("blind-signs a client assertion that verifies with PS384", async () => {
+		const { privateKey } = await generateKeyPair("PS384", { extractable: true });
 		const result = await blindSign({
 			privateKey,
 			clientId: CLIENT_ID,
@@ -172,10 +172,11 @@ describe("poppy security - blindSign", () => {
 		assert.strictEqual(payload.aud, AUDIENCE);
 		const header = decodeProtectedHeader(result.jwt);
 		assert.strictEqual(header.typ, "poppy-assertion+jwt");
+		assert.strictEqual(header.alg, "PS384");
 	});
 
-	it("blind-signs a delegation that verifies", async () => {
-		const { privateKey } = await makeKeys();
+	it("blind-signs a delegation that verifies with PS384", async () => {
+		const { privateKey } = await generateKeyPair("PS384", { extractable: true });
 		const result = await blindSign({
 			privateKey,
 			clientId: CLIENT_ID,
@@ -184,6 +185,7 @@ describe("poppy security - blindSign", () => {
 		});
 		const header = decodeProtectedHeader(result.jwt);
 		assert.strictEqual(header.typ, "poppy-delegation+jwt");
+		assert.strictEqual(header.alg, "PS384");
 	});
 });
 
@@ -292,7 +294,7 @@ describe("poppy security - execute", () => {
 	});
 
 	it("blind-signs an assertion", async () => {
-		const { privateKey } = await makeKeys();
+		const { privateKey } = await generateKeyPair("PS384", { extractable: true });
 		const result = await execute({
 			op: "blind_sign",
 			clientId: CLIENT_ID,

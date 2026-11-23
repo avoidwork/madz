@@ -368,11 +368,7 @@ describe("poppy verify - validateAccessToken", () => {
 	});
 
 	it("rejects iss mismatch", () => {
-		const result = validateAccessToken(
-			{ ath: "hash", iss: "https://other.example.com" },
-			undefined,
-			CLIENT_ID,
-		);
+		const result = validateAccessToken({ iss: "https://other.example.com" }, undefined, CLIENT_ID);
 		assert.strictEqual(result.ok, false);
 		assert.match(result.error, /iss/);
 	});

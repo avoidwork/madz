@@ -7,17 +7,20 @@ const TASKS_RESPONSE = {
 		{
 			task: "refunds",
 			description: "Refunds are handled by support",
-			alternative: "contact support",
+			alternative: { instructions: "contact support", references: ["https://example.com/support"] },
 		},
 	],
-	skill_index: [
-		{
-			name: "orders",
-			type: "agent-skill",
-			url: "https://example.com/skills/orders.md",
-			digest: "abc123",
-		},
-	],
+	skill_index: {
+		$schema: "https://example.com/skills/schema.json",
+		skills: [
+			{
+				name: "orders",
+				type: "skill-md",
+				url: "https://example.com/skills/orders.md",
+				digest: "abc123",
+			},
+		],
+	},
 	feedback: { endpoint: "https://example.com/feedback" },
 };
 
@@ -39,7 +42,7 @@ describe("poppy - integration tasks", () => {
 		});
 		assert.strictEqual(result.ok, true);
 		assert.strictEqual(result.data.excluded_tasks.length, 1);
-		assert.strictEqual(result.data.skill_index.length, 1);
+		assert.strictEqual(result.data.skill_index.skills.length, 1);
 		assert.strictEqual(result.data.feedback.endpoint, "https://example.com/feedback");
 	});
 
@@ -51,7 +54,7 @@ describe("poppy - integration tasks", () => {
 		});
 		assert.strictEqual(result.ok, true);
 		assert.strictEqual(result.data.excluded, true);
-		assert.strictEqual(result.data.alternative, "contact support");
+		assert.strictEqual(result.data.alternative.instructions, "contact support");
 	});
 
 	it("sends feedback and reports it as accepted", async () => {

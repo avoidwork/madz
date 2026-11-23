@@ -102,7 +102,8 @@ export function buildExtensionsHeader(extensions) {
 		if (!version) {
 			continue;
 		}
-		items.push(`"${name};${version}"`);
+		// RFC 9651 List of Strings with the version as a `v` parameter.
+		items.push(`"${name}";v="${version}"`);
 	}
 	return items.join(", ");
 }

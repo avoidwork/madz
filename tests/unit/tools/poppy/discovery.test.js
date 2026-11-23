@@ -63,75 +63,75 @@ describe("poppy - schema validation", () => {
 });
 
 describe("poppy - isPrivateAddress", () => {
-	it("detects loopback IPv4", () => {
-		assert.strictEqual(isPrivateAddress("127.0.0.1"), true);
+	it("detects loopback IPv4", async () => {
+		assert.strictEqual(await isPrivateAddress("127.0.0.1"), true);
 	});
-	it("detects private IPv4", () => {
-		assert.strictEqual(isPrivateAddress("10.0.0.1"), true);
-		assert.strictEqual(isPrivateAddress("192.168.1.1"), true);
-		assert.strictEqual(isPrivateAddress("172.16.0.1"), true);
+	it("detects private IPv4", async () => {
+		assert.strictEqual(await isPrivateAddress("10.0.0.1"), true);
+		assert.strictEqual(await isPrivateAddress("192.168.1.1"), true);
+		assert.strictEqual(await isPrivateAddress("172.16.0.1"), true);
 	});
-	it("detects link-local IPv4", () => {
-		assert.strictEqual(isPrivateAddress("169.254.1.1"), true);
+	it("detects link-local IPv4", async () => {
+		assert.strictEqual(await isPrivateAddress("169.254.1.1"), true);
 	});
-	it("detects localhost", () => {
-		assert.strictEqual(isPrivateAddress("localhost"), true);
+	it("detects localhost", async () => {
+		assert.strictEqual(await isPrivateAddress("localhost"), true);
 	});
-	it("detects loopback IPv6", () => {
-		assert.strictEqual(isPrivateAddress("::1"), true);
+	it("detects loopback IPv6", async () => {
+		assert.strictEqual(await isPrivateAddress("::1"), true);
 	});
-	it("allows public addresses", () => {
-		assert.strictEqual(isPrivateAddress("example.com"), false);
-		assert.strictEqual(isPrivateAddress("8.8.8.8"), false);
+	it("allows public addresses", async () => {
+		assert.strictEqual(await isPrivateAddress("example.com"), false);
+		assert.strictEqual(await isPrivateAddress("8.8.8.8"), false);
 	});
 });
 
 describe("poppy - validateUrl", () => {
-	it("accepts an HTTPS public URL", () => {
-		assert.strictEqual(validateUrl("https://api.example.com/x").ok, true);
+	it("accepts an HTTPS public URL", async () => {
+		assert.strictEqual((await validateUrl("https://api.example.com/x")).ok, true);
 	});
-	it("rejects a non-HTTPS URL", () => {
-		assert.strictEqual(validateUrl("http://example.com/x").ok, false);
+	it("rejects a non-HTTPS URL", async () => {
+		assert.strictEqual((await validateUrl("http://example.com/x")).ok, false);
 	});
-	it("rejects a private address", () => {
-		assert.strictEqual(validateUrl("https://127.0.0.1/x").ok, false);
+	it("rejects a private address", async () => {
+		assert.strictEqual((await validateUrl("https://127.0.0.1/x")).ok, false);
 	});
-	it("allows a private address when configured", () => {
-		assert.strictEqual(validateUrl("https://127.0.0.1/x", true).ok, true);
+	it("allows a private address when configured", async () => {
+		assert.strictEqual((await validateUrl("https://127.0.0.1/x", true)).ok, true);
 	});
-	it("rejects an invalid URL", () => {
-		assert.strictEqual(validateUrl("not a url").ok, false);
+	it("rejects an invalid URL", async () => {
+		assert.strictEqual((await validateUrl("not a url")).ok, false);
 	});
 });
 
 describe("poppy - validateDocument", () => {
-	it("accepts a valid document with matching domain", () => {
-		const result = validateDocument(VALID_DOC, "example.com");
+	it("accepts a valid document with matching domain", async () => {
+		const result = await validateDocument(VALID_DOC, "example.com");
 		assert.strictEqual(result.ok, true);
 	});
-	it("rejects a domain mismatch", () => {
-		const result = validateDocument(VALID_DOC, "other.com");
+	it("rejects a domain mismatch", async () => {
+		const result = await validateDocument(VALID_DOC, "other.com");
 		assert.strictEqual(result.ok, false);
 		assert.match(result.error, /does not match/);
 	});
-	it("matches domain case-insensitively", () => {
-		const result = validateDocument(VALID_DOC, "EXAMPLE.COM");
+	it("matches domain case-insensitively", async () => {
+		const result = await validateDocument(VALID_DOC, "EXAMPLE.COM");
 		assert.strictEqual(result.ok, true);
 	});
-	it("rejects a document with no channel", () => {
-		const result = validateDocument(
+	it("rejects a document with no channel", async () => {
+		const result = await validateDocument(
 			{ protocol_version: "1.0", organization: { name: "x", domain: "example.com" } },
 			"example.com",
 		);
 		assert.strictEqual(result.ok, false);
 		assert.match(result.error, /at least one of/);
 	});
-	it("rejects a document with a non-HTTPS URL", () => {
+	it("rejects a document with a non-HTTPS URL", async () => {
 		const doc = {
 			...VALID_DOC,
 			apis: [{ type: "openapi", url: "http://api.example.com/x", description: "x" }],
 		};
-		const result = validateDocument(doc, "example.com");
+		const result = await validateDocument(doc, "example.com");
 		assert.strictEqual(result.ok, false);
 		assert.match(result.error, /HTTPS/);
 	});
