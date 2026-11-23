@@ -31,6 +31,10 @@ export const LoopDetectionSchema = z
 		// is evicted; a looping stream is always receiving deltas, so it is never the
 		// one evicted. A stream with both windows full holds about 30-40 KB (measured).
 		maxStreams: z.number().int().positive().default(4),
+		// Maximum worker threads in the loop-detection pool. Loop checks are small and
+		// stateless, so a handful of threads is ample; capping this keeps the pool from
+		// spawning one thread per CPU (which holds a large fixed RSS baseline).
+		maxThreads: z.number().int().positive().default(4),
 		// Accumulated stream text older than this many ms is dropped, so past
 		// content cannot cause false positives as new content streams in.
 		ttlMs: z.number().int().positive().default(60000),

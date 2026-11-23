@@ -264,6 +264,14 @@ describe("createSegmentLoopDetector (worker-backed)", () => {
 		d.push("reasoning", "ok ok ok ok ");
 		assert.strictEqual(await d.settle(), true);
 	});
+
+	it("caps the worker pool at maxThreads", async () => {
+		await destroyPool();
+		const d = createSegmentLoopDetector({ maxThreads: 2 });
+		d.push("reasoning", "ok ok ok ok ");
+		assert.strictEqual(await d.settle(), true);
+		await destroyPool();
+	});
 });
 
 describe("consumeStream with loopDetector", () => {
