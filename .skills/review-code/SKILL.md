@@ -4,8 +4,8 @@ description: Audits a directory tree for bugs, security vulnerabilities, and per
 license: BSD 3-Clause
 compatibility: Supports JS/TS, Python, Ruby, Go, Java, Rust, Terraform, and Shell. Requires git CLI and gh CLI for issue creation, and the decision tool for grade assignment.
 metadata:
-  version: 2.4.0
-  target: ./src
+  version: 2.5.0
+  target: .  # source directories are discovered within the cwd at runtime
   agent: code-review
 ---
 
@@ -142,15 +142,14 @@ STATE_FILE="${STATE_FILE_PATH:-review-state-${SESSION_ID}.md}"
 # Audit State
 
 ## Phase Queue
-- [x] ./src
+- [ ] ./src
 - [ ] ./src/agent
 - [ ] ./src/utils
 
 ## Current Phase
-./src/agent
+./src
 
 ## Completed
-- ./src
 
 ## Findings
 [Current phase findings stored here as markdown table]
@@ -187,15 +186,44 @@ STATE_FILE="${STATE_FILE_PATH:-review-state-${SESSION_ID}.md}"
 
 2. **Clean state.** Delete any existing state file: `rm -f "$STATE_FILE"`
 
-3. **Enumerate directories.** List all directories to audit:
+3. **Enumerate source directories.** Discover the source code directories within the cwd. A directory is a source directory if it (or any descendant) contains at least one supported source file. Scan the cwd and its immediate subdirectories, excluding common non-source patterns:
    ```bash
-   # List ./src and all immediate subdirectories, excluding common patterns
-   find ./src -maxdepth 1 -type d | sort
+   # Discover source directories within the cwd (top-level and immediate subdirs)
+   # that contain supported source files, excluding common non-source patterns.
+   find . -maxdepth 2 -type d \
+     ! -path './.git*' \
+     ! -path './node_modules*' \
+     ! -path './.next*' \
+     ! -path './dist*' \
+     ! -path './build*' \
+     ! -path './target*' \
+     ! -path './vendor*' \
+     ! -path './__pycache__*' \
+     ! -path './.skills*' \
+     ! -path './docs*' \
+     ! -path './tests*' \
+     ! -path './test*' \
+     ! -path './tmp*' \
+     ! -path './memory*' \
+     ! -path './.github*' \
+     -type d | sort | while read dir; do
+       if find "$dir" -maxdepth 1 -type f \
+         \( -name '*.js' -o -name '*.jsx' -o -name '*.ts' -o -name '*.tsx' -o -name '*.mjs' -o -name '*.cjs' \
+            -o -name '*.py' -o -name '*.pyi' \
+            -o -name '*.rb' \
+            -o -name '*.go' \
+            -o -name '*.java' \
+            -o -name '*.rs' \
+            -o -name '*.tf' -o -name '*.hcl' \
+            -o -name '*.sh' -o -name '*.bash' \) | grep -q .; then
+         echo "$dir"
+       fi
+     done
    ```
 
 4. Sort them alphabetically (the `find | sort` above handles this).
 
-5. Build the phase queue: `[./src, subdir1, subdir2, ...]` in alphabetical order.
+5. Build the phase queue: `[<dir1>, <dir2>, ...]` in alphabetical order. If no source directories are discovered, report that there is nothing to audit and stop.
 
 6. **Save the phase queue** to the state file:
    ```bash
@@ -203,18 +231,44 @@ STATE_FILE="${STATE_FILE_PATH:-review-state-${SESSION_ID}.md}"
    # Audit State
 
    ## Phase Queue
-   - [x] ./src
    EOF
-   # Append subdirectories
-   find ./src -mindepth 1 -maxdepth 1 -type d | sort | while read dir; do
-     echo "- [ ] $dir" >> "$STATE_FILE"
-   done
+   # Append discovered source directories
+   find . -maxdepth 2 -type d \
+     ! -path './.git*' \
+     ! -path './node_modules*' \
+     ! -path './.next*' \
+     ! -path './dist*' \
+     ! -path './build*' \
+     ! -path './target*' \
+     ! -path './vendor*' \
+     ! -path './__pycache__*' \
+     ! -path './.skills*' \
+     ! -path './docs*' \
+     ! -path './tests*' \
+     ! -path './test*' \
+     ! -path './tmp*' \
+     ! -path './memory*' \
+     ! -path './.github*' \
+     -type d | sort | while read dir; do
+       if find "$dir" -maxdepth 1 -type f \
+         \( -name '*.js' -o -name '*.jsx' -o -name '*.ts' -o -name '*.tsx' -o -name '*.mjs' -o -name '*.cjs' \
+            -o -name '*.py' -o -name '*.pyi' \
+            -o -name '*.rb' \
+            -o -name '*.go' \
+            -o -name '*.java' \
+            -o -name '*.rs' \
+            -o -name '*.tf' -o -name '*.hcl' \
+            -o -name '*.sh' -o -name '*.bash' \) | grep -q .; then
+         echo "- [ ] $dir" >> "$STATE_FILE"
+       fi
+     done
    echo "" >> "$STATE_FILE"
    echo "## Current Phase" >> "$STATE_FILE"
-   echo "./src" >> "$STATE_FILE"
+   # Set the first discovered directory as the current phase
+   FIRST_DIR=$(grep '^- \[ \]' "$STATE_FILE" | head -1 | sed 's/^- \[ \] //')
+   echo "$FIRST_DIR" >> "$STATE_FILE"
    echo "" >> "$STATE_FILE"
    echo "## Completed" >> "$STATE_FILE"
-   echo "- ./src" >> "$STATE_FILE"
    echo "" >> "$STATE_FILE"
    echo "## Findings" >> "$STATE_FILE"
    ```
