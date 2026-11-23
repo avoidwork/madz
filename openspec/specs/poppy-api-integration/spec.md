@@ -44,7 +44,7 @@ The system SHALL call an OpenAPI endpoint with the `Poppy-Session` header, `Popp
 - **THEN** the system returns an error
 
 ### Requirement: Remote MCP servers are called over Streamable HTTP transport
-The system SHALL call a remote MCP server over Streamable HTTP transport (MCP protocol 2025-06-18 or later) with the session header, requesting a token with `resource` set to the MCP server's URL.
+The system SHALL call a remote MCP server over Streamable HTTP transport (MCP protocol 2025-06-18 or later) with the session header, requesting a token with `resource` set to the MCP server's URL. The MCP token request SHALL use a `private_key_jwt` client assertion rather than `client_credentials`.
 
 #### Scenario: MCP server is called with session header
 - **WHEN** a remote MCP server is called
@@ -53,6 +53,10 @@ The system SHALL call a remote MCP server over Streamable HTTP transport (MCP pr
 #### Scenario: Token is requested with the MCP server URL as resource
 - **WHEN** a token is requested for an MCP server call
 - **THEN** the token request sets `resource` to the MCP server's URL
+
+#### Scenario: MCP token request uses private_key_jwt client assertion
+- **WHEN** a token is requested for an MCP server call
+- **THEN** the token request uses a `private_key_jwt` client assertion rather than `client_credentials`
 
 ### Requirement: Access token errors are mapped per section 7
 The system SHALL map access token errors per Poppy spec section 7: `invalid_token` (401), `insufficient_scope` (403), `invalid_session` (400), `session_ended` (400), `version_unsupported` (400), `extension_required` (403).
