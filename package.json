@@ -125,7 +125,7 @@
     "pino": "^10.4.0",
     "piscina": "^5.3.2",
     "pptxgenjs": "^4.0.1",
-    "puppeteer": "^25.17.0",
+    "puppeteer": "^25.18.1",
     "puppeteer-core": "^25.17.0",
     "sharp": "^0.35.5",
     "supports-hyperlinks": "^5.0.0",
