@@ -267,3 +267,68 @@ describe("subagent reasoning loop detection", () => {
 		assert.strictEqual(d.size(), 0, "subagent state released at turn end");
 	});
 });
+
+/** A subagent message event, nested under a `tools:<id>` namespace segment. */
+const subSay = (id, text, extra = {}) => [
+	[`tools:${id}`],
+	"messages",
+	[new AIMessageChunk({ id, content: text, ...extra }), {}],
+];
+
+describe("subagent message loop detection", () => {
+	it("flags a repeating subagent message stream", async () => {
+		const d = createSegmentLoopDetector({ runner: inline });
+		const stream = (async function* () {
+			for (let i = 0; i < 200; i++) {
+				await new Promise((r) => setTimeout(r, 1));
+				yield subSay("S", "ok ");
+			}
+		})();
+		const result = await consumeStream(stream, undefined, { loopDetector: d });
+		assert.strictEqual(result.loopDetected, true);
+	});
+
+	it("does not flag varied subagent messages", async () => {
+		const d = createSegmentLoopDetector({ runner: inline });
+		const stream = (async function* () {
+			for (let i = 0; i < 20; i++) {
+				yield subSay("S", `distinct message ${i}. `);
+			}
+		})();
+		const result = await consumeStream(stream, undefined, { loopDetector: d });
+		assert.strictEqual(result.loopDetected, false);
+	});
+
+	it("keys concurrent subagent messages separately so they do not mix", async () => {
+		const d = createSegmentLoopDetector({ runner: inline });
+		const stream = (async function* () {
+			// Subagent A loops; subagent B streams varied messages. They must not mix.
+			for (let i = 0; i < 5; i++) yield subSay("A", "ok ");
+			for (let i = 0; i < 20; i++) yield subSay("B", `distinct ${i}. `);
+		})();
+		const result = await consumeStream(stream, undefined, { loopDetector: d });
+		assert.strictEqual(result.loopDetected, true, "the looping subagent A is flagged");
+	});
+
+	it("does not feed subagent messages when subagent detection is disabled", async () => {
+		const d = createSegmentLoopDetector({ runner: inline });
+		const stream = (async function* () {
+			for (let i = 0; i < 200; i++) {
+				await new Promise((r) => setTimeout(r, 1));
+				yield subSay("S", "ok ");
+			}
+		})();
+		const result = await consumeStream(stream, undefined, { loopDetector: d, subagent: false });
+		assert.strictEqual(result.loopDetected, false);
+	});
+
+	it("releases the subagent's message detector state when its turn ends", async () => {
+		const d = createSegmentLoopDetector({ runner: inline });
+		const stream = (async function* () {
+			yield subSay("S", "first message. ");
+			yield subSay("S", "second message. ", { response_metadata: { finish_reason: "stop" } });
+		})();
+		await consumeStream(stream, undefined, { loopDetector: d });
+		assert.strictEqual(d.size(), 0, "subagent message state released at turn end");
+	});
+});

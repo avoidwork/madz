@@ -247,4 +247,19 @@ describe("consumeStream passes each stream's id to the detector", () => {
 		const result = await consumeStream(stream, undefined, { loopDetector: detector() });
 		assert.strictEqual(result.loopDetected, true);
 	});
+
+	it("keys subagent message text per subagent so concurrent subagents do not mix", async () => {
+		const stream = (async function* () {
+			// Subagent A loops on 'ok'; subagent B streams varied messages between
+			// every delta. A shared message list would see 'ok ok ...' interleaved
+			// with B's text and never find a repeat.
+			for (let i = 0; i < 6; i++) {
+				await tick();
+				yield [["tools:a"], "messages", [{ type: "ai", text: "ok ", content: [] }]];
+				yield [["tools:b"], "messages", [{ type: "ai", text: `unrelated${i} `, content: [] }]];
+			}
+		})();
+		const result = await consumeStream(stream, undefined, { loopDetector: detector() });
+		assert.strictEqual(result.loopDetected, true);
+	});
 });

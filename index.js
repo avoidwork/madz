@@ -308,6 +308,7 @@ async function runAgent(input, threadExtras, streamingCallback, signal) {
 					windowSize: loopConfig.windowSize,
 					wordWindowSize: loopConfig.wordWindowSize,
 					maxStreams: loopConfig.maxStreams,
+					maxThreads: loopConfig.maxThreads,
 					threshold: loopConfig.threshold,
 					ttlMs: loopConfig.ttlMs,
 				});
