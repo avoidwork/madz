@@ -19,7 +19,7 @@ The system SHALL provide a Code Review agent definition for structured code revi
 - **THEN** it produces a structured review report with severity levels
 
 ### Requirement: Code Review Agent Tool Access
-The Code Review agent SHALL have access to read_file, grep, glob, and executeCode tools.
+The Code Review agent SHALL have access to read_file, grep, glob, executeCode, process, and git tools.
 
 #### Scenario: Code Review agent reads files
 - **WHEN** the code review agent needs to inspect code
@@ -28,6 +28,14 @@ The Code Review agent SHALL have access to read_file, grep, glob, and executeCod
 #### Scenario: Code Review agent searches code
 - **WHEN** the code review agent needs to find patterns
 - **THEN** it can invoke the grep tool
+
+#### Scenario: Code Review agent executes shell commands
+- **WHEN** the code review agent needs to run shell commands
+- **THEN** it can invoke the process tool
+
+#### Scenario: Code Review agent inspects repository state
+- **WHEN** the code review agent needs repository information
+- **THEN** it can invoke the git tool
 
 ### Requirement: Code Review Agent Output Format
 The Code Review agent SHALL produce structured output with severity levels and actionable recommendations.

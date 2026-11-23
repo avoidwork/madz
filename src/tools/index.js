@@ -189,7 +189,7 @@ export const TOOL_CLASSIFICATIONS = {
 		"performance",
 		"documentation",
 	],
-	process: ["debug", "performance", "coding"],
+	process: ["debug", "performance", "coding", "code-review"],
 	git: ["coding", "debug", "code-review", "performance"],
 	archive: ["search", "research", "coding", "documentation", "debug"],
 	diagram: ["search", "research", "coding", "documentation", "debug"],
