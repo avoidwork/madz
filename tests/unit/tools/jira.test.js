@@ -431,3 +431,81 @@ describe("jira schema", () => {
 		assert.strictEqual(r.success, true);
 	});
 });
+
+describe("jira remote links", () => {
+	it("lists remote links for an issue", async () => {
+		const body = JSON.stringify([
+			{ id: "1", object: { url: "https://github.com/x", title: "PR" } },
+		]);
+		const { fetch, calls } = stub([res({ body })]);
+		const r = await jiraImpl({ action: "remoteLinks", key: "PROJ-1" }, withUrl({ fetch }));
+		assert.strictEqual(r.ok, true);
+		assert.strictEqual(calls[0].options.method, "GET");
+		assert.match(calls[0].url, /\/rest\/api\/2\/issue\/PROJ-1\/remotelink$/);
+		assert.strictEqual(r.data[0].object.title, "PR");
+	});
+
+	it("creates a remote link", async () => {
+		const body = JSON.stringify({
+			id: "2",
+			self: "https://jira.example.com/rest/api/2/issue/PROJ-1/remotelink/2",
+		});
+		const { fetch, calls } = stub([res({ status: 201, body })]);
+		const r = await jiraImpl(
+			{ action: "remoteLinks", key: "PROJ-1", link: { url: "https://github.com/x", title: "PR" } },
+			withUrl({ fetch }),
+		);
+		assert.strictEqual(r.ok, true);
+		assert.strictEqual(r.status, 201);
+		assert.strictEqual(calls[0].options.method, "POST");
+		assert.match(calls[0].url, /\/rest\/api\/2\/issue\/PROJ-1\/remotelink$/);
+		assert.deepStrictEqual(JSON.parse(calls[0].options.body), {
+			object: { url: "https://github.com/x", title: "PR" },
+		});
+	});
+
+	it("creates a remote link with icon and status", async () => {
+		const { fetch, calls } = stub([res({ status: 201, body: "{}" })]);
+		const r = await jiraImpl(
+			{
+				action: "remoteLinks",
+				key: "PROJ-1",
+				link: {
+					url: "https://github.com/x",
+					title: "PR",
+					icon: "https://i.example.com/i.png",
+					status: "done",
+				},
+			},
+			withUrl({ fetch }),
+		);
+		assert.strictEqual(r.ok, true);
+		assert.deepStrictEqual(JSON.parse(calls[0].options.body), {
+			object: {
+				url: "https://github.com/x",
+				title: "PR",
+				icon: "https://i.example.com/i.png",
+				status: "done",
+			},
+		});
+	});
+
+	it("requires a key to list remote links", async () => {
+		const { fetch, calls } = stub([res({ body: "{}" })]);
+		const r = await jiraImpl({ action: "remoteLinks" }, withUrl({ fetch }));
+		assert.strictEqual(r.ok, false);
+		assert.match(r.error, /key/);
+		assert.strictEqual(calls.length, 0);
+	});
+
+	it("rejects a link missing url or title", async () => {
+		const { fetch, calls } = stub([res({ body: "{}" })]);
+		const r = await jiraImpl(
+			{ action: "remoteLinks", key: "PROJ-1", link: { title: "PR" } },
+			withUrl({ fetch }),
+		);
+		assert.strictEqual(r.ok, false);
+		assert.match(r.error, /Invalid input/);
+		assert.strictEqual(calls.length, 0);
+	});
+});
