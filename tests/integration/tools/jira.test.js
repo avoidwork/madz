@@ -102,6 +102,26 @@ function createJiraMock() {
 			return json(200, issue);
 		}
 
+		// /rest/api/2/issue/:key/remotelink
+		const rl = path.match(/^\/rest\/api\/2\/issue\/([^/]+)\/remotelink$/);
+		if (rl) {
+			const key = decodeURIComponent(rl[1]);
+			if (!issues.has(key)) return json(404, { errorMessages: ["Issue does not exist"] });
+			if (method === "POST") {
+				const id = String(nextId++);
+				const link = {
+					id,
+					self: `https://jira.example.com/rest/api/2/issue/${key}/remotelink/${id}`,
+					...body,
+				};
+				issues.get(key).remoteLinks = [...(issues.get(key).remoteLinks ?? []), link];
+				return json(201, link);
+			}
+			if (method === "GET") {
+				return json(200, issues.get(key).remoteLinks ?? []);
+			}
+		}
+
 		// metadata endpoints
 		if (
 			[
@@ -240,5 +260,33 @@ describe("jira integration", () => {
 		assert.strictEqual(r.ok, true);
 		assert.strictEqual(r.data.issues.length, 2);
 		assert.ok(r.data.total >= 3);
+	});
+
+	it("creates and lists remote links for an issue", async () => {
+		const created = await jiraImpl(
+			{ action: "create", project: "PROJ", issueType: "Bug", summary: "link me" },
+			opts,
+		);
+		assert.strictEqual(created.ok, true);
+		const key = created.data.key;
+
+		const c = await jiraImpl(
+			{
+				action: "remoteLinks",
+				key,
+				link: { url: "https://github.com/avoidwork/madz/pull/1", title: "PR #1" },
+			},
+			opts,
+		);
+		assert.strictEqual(c.ok, true);
+		assert.strictEqual(c.status, 201);
+		assert.ok(c.data.id);
+		assert.ok(c.data.self);
+
+		const l = await jiraImpl({ action: "remoteLinks", key }, opts);
+		assert.strictEqual(l.ok, true);
+		assert.strictEqual(l.data.length, 1);
+		assert.strictEqual(l.data[0].object.url, "https://github.com/avoidwork/madz/pull/1");
+		assert.strictEqual(l.data[0].object.title, "PR #1");
 	});
 });
