@@ -194,3 +194,76 @@ describe("end()", () => {
 		assert.strictEqual(await d.end(), false);
 	});
 });
+
+/** A subagent reasoning event, nested under a `tools:<id>` namespace segment. */
+const subThink = (id, text, extra = {}) => [
+	[`tools:${id}`],
+	"messages",
+	[
+		new AIMessageChunk({
+			id,
+			content: "",
+			additional_kwargs: { reasoning_content: text },
+			...extra,
+		}),
+		{},
+	],
+];
+
+describe("subagent reasoning loop detection", () => {
+	it("flags a repeating subagent reasoning stream", async () => {
+		const d = createSegmentLoopDetector({ runner: inline });
+		const stream = (async function* () {
+			for (let i = 0; i < 200; i++) {
+				await new Promise((r) => setTimeout(r, 1));
+				yield subThink("S", "ok ");
+			}
+		})();
+		const result = await consumeStream(stream, undefined, { loopDetector: d });
+		assert.strictEqual(result.loopDetected, true);
+	});
+
+	it("does not flag varied subagent reasoning", async () => {
+		const d = createSegmentLoopDetector({ runner: inline });
+		const stream = (async function* () {
+			for (let i = 0; i < 20; i++) {
+				yield subThink("S", `distinct thought ${i}. `);
+			}
+		})();
+		const result = await consumeStream(stream, undefined, { loopDetector: d });
+		assert.strictEqual(result.loopDetected, false);
+	});
+
+	it("keys concurrent subagents separately so they do not mix", async () => {
+		const d = createSegmentLoopDetector({ runner: inline });
+		const stream = (async function* () {
+			// Subagent A loops; subagent B streams varied reasoning. They must not mix.
+			for (let i = 0; i < 5; i++) yield subThink("A", "ok ");
+			for (let i = 0; i < 20; i++) yield subThink("B", `distinct ${i}. `);
+		})();
+		const result = await consumeStream(stream, undefined, { loopDetector: d });
+		assert.strictEqual(result.loopDetected, true, "the looping subagent A is flagged");
+	});
+
+	it("does not feed subagent reasoning when subagent detection is disabled", async () => {
+		const d = createSegmentLoopDetector({ runner: inline });
+		const stream = (async function* () {
+			for (let i = 0; i < 200; i++) {
+				await new Promise((r) => setTimeout(r, 1));
+				yield subThink("S", "ok ");
+			}
+		})();
+		const result = await consumeStream(stream, undefined, { loopDetector: d, subagent: false });
+		assert.strictEqual(result.loopDetected, false);
+	});
+
+	it("releases the subagent's detector state when its turn ends", async () => {
+		const d = createSegmentLoopDetector({ runner: inline });
+		const stream = (async function* () {
+			yield subThink("S", "first thought. ");
+			yield subThink("S", "second thought. ", { response_metadata: { finish_reason: "stop" } });
+		})();
+		await consumeStream(stream, undefined, { loopDetector: d });
+		assert.strictEqual(d.size(), 0, "subagent state released at turn end");
+	});
+});

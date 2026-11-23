@@ -325,6 +325,7 @@ async function runAgent(input, threadExtras, streamingCallback, signal) {
 		await consumeStream(stream, streamingCallback, {
 			showToolResults,
 			loopDetector,
+			subagent: loopConfig.subagent !== false,
 			silent: config.agent?.silent === true,
 		});
 	return {
