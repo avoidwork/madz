@@ -38,6 +38,8 @@ export const LoopDetectionSchema = z
 		threshold: z.number().int().positive().default(2),
 		// Minimum sentence similarity for a garbled repeat to count as a loop.
 		similarityThreshold: z.number().min(0).max(1).default(0.85),
+		// Whether loop detection also applies to subagent reasoning streams.
+		subagent: z.boolean().default(true),
 		// Strike, within the escalation window, that compacts the context instead of
 		// nudging: three strikes and you're out, so strikes 1 and 2 nudge and strike 3
 		// compacts.

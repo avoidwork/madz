@@ -2,6 +2,22 @@ import { surfaceInterrupt } from "./interrupt.js";
 import { isSubagentNamespace } from "./namespace.js";
 
 /**
+ * Extract the stable per-subagent id from a subagent-scoped namespace. A subagent
+ * run is nested under a `tools:<id>` segment, so the id is the text after the
+ * `tools:` prefix of the first matching segment. Used to key subagent reasoning
+ * in the loop detector so concurrent subagents never share detector state.
+ * @param {unknown} namespace - The namespace from a `[namespace, mode, payload]` stream tuple.
+ * @returns {string | undefined} The subagent id, or undefined when not subagent-scoped.
+ */
+function subagentId(namespace) {
+	if (!Array.isArray(namespace)) return undefined;
+	for (const part of namespace) {
+		if (typeof part === "string" && part.startsWith("tools:")) return part.slice("tools:".length);
+	}
+	return undefined;
+}
+
+/**
  * Consume an agent stream, forwarding events to `streamingCallback` and
  * collecting the orchestrator's own text and reasoning.
  *
@@ -16,6 +32,8 @@ import { isSubagentNamespace } from "./namespace.js";
  * @param {boolean} [options.silent=false] - Silent mode (`agent.silent`). When a second
  *   text-bearing assistant message starts while the turn is still streaming, the stream is
  *   abandoned before that text is forwarded and `silentViolation` is returned true.
+ * @param {boolean} [options.subagent=true] - Whether loop detection also applies to
+ *   subagent reasoning streams. When false, subagent reasoning is not fed to the detector.
  * @param {{push: Function, settle?: Function, reset: Function}} [options.loopDetector] - Loop
  *   detector. Each non-subagent message/reasoning delta is pushed to it together with
  *   the stream block's id (the content-block index for messages, `block.id` for
@@ -49,6 +67,7 @@ export async function consumeStream(stream, streamingCallback, options = {}) {
  */
 async function drainStream(stream, streamingCallback, options) {
 	const showToolResults = options.showToolResults;
+	const includeSubagent = options.subagent !== false;
 	let content = "";
 	let reasoning = "";
 	let interrupted = false;
@@ -61,12 +80,23 @@ async function drainStream(stream, streamingCallback, options) {
 	const loopDetector = options.loopDetector;
 	/** The id shared by the chunks of the message currently streaming. */
 	let currentMsgId = null;
+	/** The id of the subagent message currently streaming, tracked separately so it
+	 * never interferes with the orchestrator's own message-end detection. */
+	let currentSubagentMsgId = null;
 
 	// A message turn is start, stream, end. When it ends, collect the verdict of
 	// any worker check still running and release the detector's lists.
 	const endMessage = async () => {
 		currentMsgId = null;
 		if (loopDetector?.end && (await loopDetector.end())) loopDetected = true;
+	};
+
+	// A subagent's reasoning turn is keyed by its namespace id. When it ends,
+	// release that stream's state so it does not leak into the next turn, without
+	// disturbing the orchestrator's own streams.
+	const endSubagentMessage = (namespace) => {
+		const id = subagentId(namespace);
+		if (loopDetector?.release && id != null) loopDetector.release("reasoning", id);
 	};
 
 	for await (const [namespace, mode, payload] of stream) {
@@ -97,6 +127,12 @@ async function drainStream(stream, streamingCallback, options) {
 				if (msg?.id != null) currentMsgId = msg.id;
 				// A tool result means the AI message that called the tool has ended.
 				if (msgType === "tool") await endMessage();
+			} else if (includeSubagent) {
+				// A subagent's reasoning turn ends when a different message id arrives
+				// or a finish reason is carried; release its detector state then.
+				if (msg?.id != null && currentSubagentMsgId != null && msg.id !== currentSubagentMsgId)
+					endSubagentMessage(namespace);
+				if (msg?.id != null) currentSubagentMsgId = msg.id;
 			}
 
 			if (text) {
@@ -154,6 +190,11 @@ async function drainStream(stream, streamingCallback, options) {
 				if (!isSubagent) {
 					reasoning += reasoningContent;
 					if (loopDetector?.push("reasoning", reasoningContent)) loopDetected = true;
+				} else if (includeSubagent) {
+					// Subagent reasoning is keyed per subagent so concurrent subagents
+					// never share detector state.
+					if (loopDetector?.push("reasoning", reasoningContent, subagentId(namespace)))
+						loopDetected = true;
 				}
 				if (streamingCallback) {
 					streamingCallback({
@@ -171,6 +212,11 @@ async function drainStream(stream, streamingCallback, options) {
 						if (!isSubagent) {
 							reasoning += block.reasoning;
 							if (loopDetector?.push("reasoning", block.reasoning, block.id)) loopDetected = true;
+						} else if (includeSubagent) {
+							// Subagent reasoning is keyed per subagent so concurrent subagents
+							// never share detector state.
+							if (loopDetector?.push("reasoning", block.reasoning, subagentId(namespace)))
+								loopDetected = true;
 						}
 						if (streamingCallback) {
 							streamingCallback({
@@ -186,6 +232,8 @@ async function drainStream(stream, streamingCallback, options) {
 			}
 			// The chunk that carries a finish reason is the last of its message.
 			if (!isSubagent && msg?.response_metadata?.finish_reason) await endMessage();
+			if (isSubagent && includeSubagent && msg?.response_metadata?.finish_reason)
+				endSubagentMessage(namespace);
 		} else if (mode === "tools" && streamingCallback) {
 			if (payload?.event === "on_tool_start") {
 				streamingCallback({

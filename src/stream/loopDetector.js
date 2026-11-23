@@ -61,7 +61,7 @@ export async function destroyPool() {
  * @param {number} [options.ttlMs] - State older than this is dropped (no expiry when unset)
  * @param {Function} [options.now] - Clock returning ms (injectable for tests)
  * @param {{ run: Function }} [options.runner] - Runs a check; defaults to the shared pool, injectable for tests
- * @returns {{ push: (kind: string, delta: string, id?: string | number) => boolean, settle: () => Promise<boolean>, end: () => Promise<boolean>, reset: () => void, size: () => number }} Detector
+ * @returns {{ push: (kind: string, delta: string, id?: string | number) => boolean, settle: () => Promise<boolean>, end: () => Promise<boolean>, reset: () => void, release: (kind: string, id?: string | number) => void, size: () => number }} Detector
  */
 export function createSegmentLoopDetector(options = {}) {
 	const windowSize = options.windowSize ?? 20;
@@ -240,6 +240,22 @@ export function createSegmentLoopDetector(options = {}) {
 		reset() {
 			for (const state of kinds.values()) release(state);
 			kinds.clear();
+		},
+
+		/**
+		 * Release a single stream's state (called when a subagent's reasoning turn
+		 * ends), so its lists are freed without disturbing any other stream.
+		 * @param {string} kind - Stream kind, e.g. "reasoning" or "message"
+		 * @param {string | number} [id] - The stream's id; a stream with no id is keyed by kind alone
+		 * @returns {void}
+		 */
+		release(kind, id) {
+			const key = id == null ? kind : `${kind}\0${id}`;
+			const state = kinds.get(key);
+			if (state) {
+				release(state);
+				kinds.delete(key);
+			}
 		},
 
 		/**

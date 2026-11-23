@@ -63,6 +63,18 @@ describe("loopDetection config schema", () => {
 		assert.strictEqual(cfg.escalationCount, 3);
 		assert.strictEqual(cfg.escalationWindowMs, 60000);
 	});
+
+	it("defaults subagent to true", () => {
+		assert.strictEqual(LoopDetectionSchema.parse({}).subagent, true);
+	});
+
+	it("accepts a configured subagent value", () => {
+		assert.strictEqual(LoopDetectionSchema.parse({ subagent: false }).subagent, false);
+	});
+
+	it("rejects a non-boolean subagent", () => {
+		assert.throws(() => LoopDetectionSchema.parse({ subagent: "yes" }));
+	});
 });
 
 describe("loopDetection maxStreams", () => {

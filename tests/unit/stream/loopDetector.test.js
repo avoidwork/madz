@@ -325,7 +325,7 @@ describe("consumeStream with loopDetector", () => {
 		assert.strictEqual(result.loopDetected, true);
 	});
 
-	it("does not feed subagent events to the detector", async () => {
+	it("feeds subagent reasoning to the detector by default", async () => {
 		const stream = (async function* () {
 			for (let i = 0; i < 20; i++) {
 				yield [
@@ -336,6 +336,23 @@ describe("consumeStream with loopDetector", () => {
 			}
 		})();
 		const result = await consumeStream(stream, undefined, { loopDetector: detector() });
+		assert.strictEqual(result.loopDetected, true);
+	});
+
+	it("does not feed subagent reasoning when subagent detection is disabled", async () => {
+		const stream = (async function* () {
+			for (let i = 0; i < 20; i++) {
+				yield [
+					["tools:abc"],
+					"messages",
+					[{ type: "ai", text: "", additional_kwargs: { reasoning_content: "same " } }],
+				];
+			}
+		})();
+		const result = await consumeStream(stream, undefined, {
+			loopDetector: detector(),
+			subagent: false,
+		});
 		assert.strictEqual(result.loopDetected, false);
 	});
 
