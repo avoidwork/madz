@@ -50,10 +50,14 @@ function parseArgs(argv) {
 			type: "boolean",
 			description: "Index project source code for vector search",
 		})
+		.option("message", {
+			type: "string",
+			description: "Message to process",
+		})
 		.usage("$0 [message..]")
 		.parseSync();
 
-	const message = parsed._.map(String).join(" ").trim();
+	const message = parsed.message || parsed._.map(String).join(" ").trim();
 	return {
 		mode: parsed.mode,
 		session: parsed.session,
@@ -617,4 +621,5 @@ export {
 	setConfigValue,
 	loadContext,
 	readMemoryFile,
+	parseArgs,
 };
