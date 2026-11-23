@@ -33,7 +33,8 @@ function subagentId(namespace) {
  *   text-bearing assistant message starts while the turn is still streaming, the stream is
  *   abandoned before that text is forwarded and `silentViolation` is returned true.
  * @param {boolean} [options.subagent=true] - Whether loop detection also applies to
- *   subagent reasoning streams. When false, subagent reasoning is not fed to the detector.
+ *   subagent reasoning and message streams. When false, subagent reasoning and
+ *   message text are not fed to the detector.
  * @param {{push: Function, settle?: Function, reset: Function}} [options.loopDetector] - Loop
  *   detector. Each non-subagent message/reasoning delta is pushed to it together with
  *   the stream block's id (the content-block index for messages, `block.id` for
@@ -168,6 +169,10 @@ async function drainStream(stream, streamingCallback, options) {
 					content += text;
 					const blockIndex = msg?.content?.[0]?.index;
 					if (loopDetector?.push("message", text, blockIndex)) loopDetected = true;
+				} else if (includeSubagent) {
+					// Subagent message text is keyed per subagent so concurrent subagents
+					// never share detector state, mirroring subagent reasoning.
+					if (loopDetector?.push("message", text, subagentId(namespace))) loopDetected = true;
 				}
 
 				if (streamingCallback) {
