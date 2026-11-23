@@ -28,7 +28,7 @@ describe("poppy - integration security", () => {
 	});
 
 	it("blind-signs a client assertion that verifies against the public key", async () => {
-		const { publicKey, privateKey } = await generateKeyPair("ES256", { extractable: true });
+		const { publicKey, privateKey } = await generateKeyPair("PS384", { extractable: true });
 		const result = await blindSign({
 			privateKey,
 			clientId: CLIENT_ID,
@@ -39,12 +39,12 @@ describe("poppy - integration security", () => {
 		assert.strictEqual(payload.iss, CLIENT_ID);
 		assert.strictEqual(payload.aud, AUDIENCE);
 		assert.strictEqual(protectedHeader.typ, "poppy-assertion+jwt");
-		assert.strictEqual(protectedHeader.alg, "ES256");
+		assert.strictEqual(protectedHeader.alg, "PS384");
 	});
 
 	it("rotates a delegated key and verifies the new key signs for the user", async () => {
 		const registry = new DelegatedKeyRegistry();
-		const rotated = await registry.rotate(USER_ID);
+		const rotated = await registry.rotate(USER_ID, "PS384");
 		assert.strictEqual(registry.getUser(rotated.kid), USER_ID);
 
 		// The new key's public key verifies a blind-signed assertion.

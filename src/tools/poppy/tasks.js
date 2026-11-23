@@ -1,25 +1,33 @@
 import { z } from "zod";
 import { createHash } from "node:crypto";
-import { fetchJson } from "./common.js";
+import { fetchJson, FETCH_TIMEOUT } from "./common.js";
 import { validateUrl } from "./discovery.js";
 
 /** Poppy protocol version sent as the `Poppy-Version` header. */
 const POPPY_VERSION = "1.0";
 
+/** Maximum length for a feedback task (spec 9.3). */
+const MAX_TASK_LENGTH = 200;
+
 /** Maximum length for a feedback description. */
 const MAX_FEEDBACK_LENGTH = 2000;
 
-/** Valid skill types in the Poppy `skill_index` (Agent Skills format). */
-const VALID_SKILL_TYPES = new Set(["agent-skill", "skill"]);
+/** Valid skill types in the Poppy `skill_index` (spec 9.4). */
+const VALID_SKILL_TYPES = new Set(["skill-md", "archive"]);
 
 /**
- * Zod schema for a Poppy `excluded_tasks` entry. Required fields: `task`,
- * `description`. Optional fields: `alternative`.
+ * Zod schema for a Poppy `excluded_tasks` entry per spec 9.1/9.2. Required
+ * field: `task`. Optional field: `alternative` as an object with
+ * `instructions`/`references`.
  */
 const ExcludedTaskSchema = z.object({
 	task: z.string().min(1),
-	description: z.string().min(1),
-	alternative: z.string().optional(),
+	alternative: z
+		.object({
+			instructions: z.string().optional(),
+			references: z.array(z.string()).optional(),
+		})
+		.optional(),
 });
 
 /**
@@ -44,12 +52,21 @@ const FeedbackSchema = z.object({
 });
 
 /**
+ * Zod schema for the Poppy `skill_index` per spec 9: an object with a
+ * `$schema` field and a `skills` array.
+ */
+const SkillIndexSchema = z.object({
+	$schema: z.string().min(1),
+	skills: z.array(SkillIndexEntrySchema).default([]),
+});
+
+/**
  * Zod schema for the tasks response from `GET {tasks.endpoint}`. Required
  * fields: `excluded_tasks`, `skill_index`, `feedback`.
  */
 export const TasksResponseSchema = z.object({
 	excluded_tasks: z.array(ExcludedTaskSchema).default([]),
-	skill_index: z.array(SkillIndexEntrySchema).default([]),
+	skill_index: SkillIndexSchema.default({ $schema: "", skills: [] }),
 	feedback: FeedbackSchema.optional(),
 });
 
@@ -90,7 +107,7 @@ export function buildTasksHeaders(input) {
  * @param {string} endpoint - The endpoint URL
  * @returns {{ok: boolean, error?: string}} Validation result
  */
-function validateEndpoint(endpoint) {
+async function validateEndpoint(endpoint) {
 	if (!endpoint) {
 		return { ok: false, error: "endpoint is required" };
 	}
@@ -109,7 +126,7 @@ function validateEndpoint(endpoint) {
  * @returns {Promise<{ok: boolean, data?: object, error?: string}>} Result
  */
 export async function fetchTasks(input, options = {}) {
-	const validation = validateEndpoint(input.endpoint);
+	const validation = await validateEndpoint(input.endpoint);
 	if (!validation.ok) {
 		return validation;
 	}
@@ -145,10 +162,7 @@ export function matchTask(tasks, task) {
 	}
 	const taskLower = (task ?? "").toLowerCase();
 	for (const entry of excluded) {
-		if (
-			entry.task.toLowerCase() === taskLower ||
-			entry.description.toLowerCase().includes(taskLower)
-		) {
+		if (entry.task.toLowerCase() === taskLower) {
 			return {
 				ok: true,
 				data: { excluded: true, task: entry.task, alternative: entry.alternative },
@@ -176,20 +190,37 @@ export async function fetchSkill(entry, options = {}) {
 	if (!VALID_SKILL_TYPES.has(entry.type)) {
 		return { ok: false, error: `Unknown skill type: ${entry.type}` };
 	}
-	const validation = validateUrl(entry.url);
+	const validation = await validateUrl(entry.url);
 	if (!validation.ok) {
 		return validation;
 	}
-	const result = await fetchJson(entry.url, { ...options });
-	if (!result.ok) {
-		return result;
+	const timeout = options.timeout ?? FETCH_TIMEOUT;
+	const controller = new AbortController();
+	const timeoutId = setTimeout(() => controller.abort(), timeout);
+	let content;
+	try {
+		const resp = await fetch(entry.url, {
+			redirect: "follow",
+			signal: controller.signal,
+		});
+		if (!resp.ok) {
+			return { ok: false, error: `HTTP error ${resp.status} fetching ${entry.url}` };
+		}
+		const bytes = new Uint8Array(await resp.arrayBuffer());
+		const digest = `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
+		if (digest !== entry.digest) {
+			return { ok: false, error: `Digest mismatch for skill '${entry.name}'` };
+		}
+		content = JSON.parse(new TextDecoder().decode(bytes));
+	} catch (err) {
+		if (err.name === "AbortError") {
+			return { ok: false, error: `Timed out fetching skill '${entry.name}'` };
+		}
+		return { ok: false, error: err.message };
+	} finally {
+		clearTimeout(timeoutId);
 	}
-	const content = JSON.stringify(result.data);
-	const digest = createHash("sha256").update(content).digest("hex");
-	if (digest !== entry.digest) {
-		return { ok: false, error: `Digest mismatch for skill '${entry.name}'` };
-	}
-	return { ok: true, data: { name: entry.name, type: entry.type, content: result.data } };
+	return { ok: true, data: { name: entry.name, type: entry.type, content } };
 }
 
 /**
@@ -227,13 +258,16 @@ export async function fetchSkills(skillIndex, options = {}) {
  * @returns {Promise<{ok: boolean, data?: object, error?: string}>} Result
  */
 export async function sendFeedback(input, options = {}) {
-	const validation = validateEndpoint(input.endpoint);
+	const validation = await validateEndpoint(input.endpoint);
 	if (!validation.ok) {
 		return validation;
 	}
 	const description = input.description ?? "";
 	if (description.length > MAX_FEEDBACK_LENGTH) {
 		return { ok: false, error: `Feedback exceeds ${MAX_FEEDBACK_LENGTH} characters` };
+	}
+	if ((input.task ?? "").length > MAX_TASK_LENGTH) {
+		return { ok: false, error: `Task exceeds ${MAX_TASK_LENGTH} characters` };
 	}
 	const result = await fetchJson(input.endpoint, {
 		method: "POST",
@@ -271,7 +305,7 @@ export async function execute(input, options = {}) {
 		case "match":
 			return matchTask(data.poppyJson, data.task);
 		case "skills":
-			return fetchSkills(data.poppyJson?.skill_index ?? [], options);
+			return fetchSkills(data.poppyJson?.skill_index?.skills ?? [], options);
 		case "feedback":
 			return sendFeedback(data, options);
 		default:

@@ -18,8 +18,8 @@ describe("poppy - integration conversation", () => {
 			if (href.endsWith("/conv-1/messages")) {
 				assert.strictEqual(init.method, "POST");
 				const body = JSON.parse(init.body);
-				assert.strictEqual(body.role, "user");
-				assert.strictEqual(body.content, "hello");
+				assert.strictEqual(body.author.type, "human");
+				assert.strictEqual(body.text, "hello");
 				return { ok: true, status: 200, json: async () => ({ ok: true }) };
 			}
 			return { ok: false, status: 404, json: async () => ({}) };
@@ -37,7 +37,7 @@ describe("poppy - integration conversation", () => {
 			op: "send",
 			endpoint: "https://example.com/conv",
 			id: "conv-1",
-			message: { role: "user", content: "hello" },
+			message: { author: { type: "human" }, text: "hello" },
 			session: "session-jwt",
 		});
 		assert.strictEqual(sent.ok, true);

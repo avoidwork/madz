@@ -48,7 +48,7 @@ export function buildBrowserHeaders(input) {
  * @param {string} endpoint - The endpoint URL
  * @returns {{ok: boolean, error?: string}} Validation result
  */
-function validateEndpoint(endpoint) {
+async function validateEndpoint(endpoint) {
 	if (!endpoint) {
 		return { ok: false, error: "endpoint is required" };
 	}
@@ -74,7 +74,7 @@ export function hasBrowserSignInScope(scope) {
  * @returns {Promise<{ok: boolean, data?: object, error?: string}>} Result
  */
 export async function authorizeCode(input, options = {}) {
-	const validation = validateEndpoint(input.endpoint);
+	const validation = await validateEndpoint(input.endpoint);
 	if (!validation.ok) {
 		return validation;
 	}
@@ -163,7 +163,7 @@ export async function submitFormAndBrowse(page, websiteUrl) {
  * @returns {Promise<{ok: boolean, data?: object, error?: string}>} Result
  */
 export async function joinBrowserSession(input, options = {}) {
-	const validation = validateEndpoint(input.endpoint);
+	const validation = await validateEndpoint(input.endpoint);
 	if (!validation.ok) {
 		return validation;
 	}

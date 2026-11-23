@@ -78,7 +78,7 @@ describe("poppy api - buildHeaders", () => {
 
 	it("includes Poppy-Extensions header when extensions present", () => {
 		const headers = buildHeaders({ extensions: { links: [{ version: "1.0" }] } });
-		assert.strictEqual(headers["Poppy-Extensions"], '"links;1.0"');
+		assert.strictEqual(headers["Poppy-Extensions"], '"links";v="1.0"');
 	});
 
 	it("includes Idempotency-Key header when provided", () => {

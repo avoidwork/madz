@@ -307,6 +307,11 @@ export async function requestDeviceCode(options) {
 		client_id: options.clientId,
 		scope: options.scope,
 	});
+	if (options.privateKey) {
+		const assertion = await buildClientAssertion(options);
+		body.set("client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer");
+		body.set("client_assertion", assertion.jwt);
+	}
 	const result = await fetchJson(options.deviceAuthorizationEndpoint, {
 		method: "POST",
 		headers: { "content-type": "application/x-www-form-urlencoded" },
@@ -352,6 +357,11 @@ export async function pollDeviceToken(options) {
 			client_id: options.clientId,
 			device_code: options.deviceCode,
 		});
+		if (options.privateKey) {
+			const assertion = await buildClientAssertion(options);
+			body.set("client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer");
+			body.set("client_assertion", assertion.jwt);
+		}
 		const result = await fetchJson(options.tokenEndpoint, {
 			method: "POST",
 			headers: { "content-type": "application/x-www-form-urlencoded" },
@@ -445,8 +455,11 @@ export async function revokeToken(options) {
 	const body = new URLSearchParams({
 		token: options.token,
 	});
-	if (options.tokenTypeHint) {
-		body.set("token_type_hint", options.tokenTypeHint);
+	body.set("token_type_hint", options.tokenTypeHint ?? "refresh_token");
+	if (options.privateKey) {
+		const assertion = await buildClientAssertion(options);
+		body.set("client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer");
+		body.set("client_assertion", assertion.jwt);
 	}
 	const result = await fetchJson(options.revocationEndpoint, {
 		method: "POST",
@@ -535,9 +548,11 @@ async function directSignIn(input, options = {}) {
 		}
 		const { authorizationEndpoint, tokenEndpoint } = metadata.data;
 
-		// Build the authorization URL with PKCE.
+		// Build the authorization URL with PKCE. `prompt=consent` is required
+		// unless the redirect returns on the same device.
 		const { verifier, challenge } = generatePkce();
 		const state = input.state ?? randomUUID();
+		const sameDevice = input.sameDevice ?? false;
 		const authUrl = buildAuthorizationUrl({
 			authorizationEndpoint,
 			clientId,
@@ -545,7 +560,7 @@ async function directSignIn(input, options = {}) {
 			scope,
 			state,
 			codeChallenge: challenge,
-			crossDevice: input.crossDevice ?? false,
+			crossDevice: !sameDevice,
 		});
 
 		// If no code is provided, return the authorization URL for the user.
@@ -560,12 +575,14 @@ async function directSignIn(input, options = {}) {
 			};
 		}
 
-		// Validate the `iss` on the redirect before exchanging.
-		if (input.iss) {
-			const issResult = validateIss(input.iss, issuer);
-			if (!issResult.ok) {
-				return { ok: false, error: issResult.error };
-			}
+		// Validate the `iss` on the redirect before exchanging. The check is
+		// mandatory: a missing `iss` is rejected.
+		if (!input.iss) {
+			return { ok: false, error: "iss is required on the redirect callback" };
+		}
+		const issResult = validateIss(input.iss, issuer);
+		if (!issResult.ok) {
+			return { ok: false, error: issResult.error };
 		}
 
 		const privateKey = await resolvePrivateKey(input, options);
@@ -628,6 +645,17 @@ async function deviceSignIn(input, options = {}) {
 			return { ok: false, error: deviceResult.error };
 		}
 		const device = deviceResult.data;
+
+		// Spec: the verification URI host must be the issuer/domain (or a
+		// subdomain) to prevent a malicious verification URI.
+		const issuerHost = new URL(issuer).hostname.toLowerCase();
+		const verificationHost = new URL(device.verification_uri).hostname.toLowerCase();
+		if (verificationHost !== issuerHost && !verificationHost.endsWith(`.${issuerHost}`)) {
+			return {
+				ok: false,
+				error: `verification_uri host '${verificationHost}' does not match issuer host '${issuerHost}'`,
+			};
+		}
 
 		if (!input.poll) {
 			return {

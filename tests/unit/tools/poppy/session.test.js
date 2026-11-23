@@ -49,8 +49,13 @@ describe("poppy session - schema validation", () => {
 	});
 
 	it("rejects delegation input missing required fields", () => {
-		const result = DelegationInputSchema.safeParse({ clientId: CLIENT_ID });
+		const result = DelegationInputSchema.safeParse({});
 		assert.strictEqual(result.success, false);
+	});
+
+	it("does not require userId or audience for delegation input", () => {
+		const result = DelegationInputSchema.safeParse({ clientId: CLIENT_ID });
+		assert.strictEqual(result.success, true);
 	});
 });
 
@@ -221,7 +226,7 @@ describe("poppy session - generateSessionJwt", () => {
 		});
 		assert.strictEqual(result.headers["Poppy-Session"], result.jwt);
 		assert.strictEqual(result.headers["Poppy-Version"], "1.0");
-		assert.strictEqual(result.headers["Poppy-Extensions"], "session");
+		assert.strictEqual(result.headers["Poppy-Extensions"], undefined);
 	});
 });
 
@@ -233,8 +238,6 @@ describe("poppy session - issueDelegation", () => {
 			signingKey: signing.privateKey,
 			delegatedKey: delegated.privateKey,
 			clientId: CLIENT_ID,
-			audience: AUDIENCE,
-			userId: USER_ID,
 		});
 		assert.ok(result.jwt);
 		assert.ok(result.jti);
@@ -243,8 +246,8 @@ describe("poppy session - issueDelegation", () => {
 		assert.ok(result.kid);
 		const payload = decodeJwt(result.jwt);
 		assert.strictEqual(payload.iss, CLIENT_ID);
-		assert.strictEqual(payload.aud, AUDIENCE);
-		assert.strictEqual(payload.sub, USER_ID);
+		assert.strictEqual(payload.aud, undefined);
+		assert.strictEqual(payload.sub, undefined);
 		assert.ok(payload.cnf.jwk);
 		const header = decodeProtectedHeader(result.jwt);
 		assert.strictEqual(header.typ, "poppy-delegation+jwt");
@@ -258,8 +261,6 @@ describe("poppy session - issueDelegation", () => {
 			signingKey: signing.privateKey,
 			delegatedKey: delegated.privateKey,
 			clientId: CLIENT_ID,
-			audience: AUDIENCE,
-			userId: USER_ID,
 		});
 		assert.ok(result.exp - result.iat <= 86400);
 	});
@@ -271,8 +272,6 @@ describe("poppy session - issueDelegation", () => {
 			signingKey: signing.privateKey,
 			delegatedKey: delegated.privateKey,
 			clientId: CLIENT_ID,
-			audience: AUDIENCE,
-			userId: USER_ID,
 		});
 		const payload = decodeJwt(result.jwt);
 		const delegatedJwk = await exportJWK(delegated.publicKey);
@@ -384,8 +383,6 @@ describe("poppy session - execute", () => {
 		const result = await execute({
 			op: "issue_delegation",
 			clientId: CLIENT_ID,
-			audience: AUDIENCE,
-			userId: USER_ID,
 			signingKey: signing.privateKey,
 			delegatedKey: delegated.privateKey,
 		});
@@ -399,8 +396,6 @@ describe("poppy session - execute", () => {
 		const result = await execute({
 			op: "issue_delegation",
 			clientId: CLIENT_ID,
-			audience: AUDIENCE,
-			userId: USER_ID,
 			delegatedKey: delegated.privateKey,
 		});
 		assert.strictEqual(result.ok, false);
@@ -412,8 +407,6 @@ describe("poppy session - execute", () => {
 		const result = await execute({
 			op: "issue_delegation",
 			clientId: CLIENT_ID,
-			audience: AUDIENCE,
-			userId: USER_ID,
 			signingKey: signing.privateKey,
 		});
 		assert.strictEqual(result.ok, false);
@@ -428,7 +421,7 @@ describe("poppy session - execute", () => {
 
 	it("rejects issue_delegation with invalid input", async () => {
 		// Missing required fields triggers the delegation schema validation error.
-		const result = await execute({ op: "issue_delegation", clientId: CLIENT_ID });
+		const result = await execute({ op: "issue_delegation" });
 		assert.strictEqual(result.ok, false);
 		assert.match(result.error, /Invalid delegation input/);
 	});

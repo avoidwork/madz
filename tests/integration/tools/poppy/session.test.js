@@ -38,14 +38,12 @@ describe("poppy - integration session", () => {
 			signingKey: signing.privateKey,
 			delegatedKey: delegated.privateKey,
 			clientId: CLIENT_ID,
-			audience: AUDIENCE,
-			userId: USER_ID,
 		});
 
 		const { payload, protectedHeader } = await jwtVerify(result.jwt, signing.publicKey);
 		assert.strictEqual(payload.iss, CLIENT_ID);
-		assert.strictEqual(payload.aud, AUDIENCE);
-		assert.strictEqual(payload.sub, USER_ID);
+		assert.strictEqual(payload.aud, undefined);
+		assert.strictEqual(payload.sub, undefined);
 		assert.ok(payload.cnf.jwk);
 		assert.strictEqual(protectedHeader.typ, "poppy-delegation+jwt");
 		assert.strictEqual(protectedHeader.alg, "ES256");

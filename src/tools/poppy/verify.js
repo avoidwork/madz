@@ -26,6 +26,7 @@ export const VerifyInputSchema = z.object({
 	method: z.string().min(1),
 	url: z.string().min(1),
 	accessToken: z.string().optional(),
+	version: z.string().optional(),
 	now: z.number().optional(),
 });
 
@@ -37,7 +38,6 @@ export const ClientMetadataSchema = z.object({
 });
 
 /**
-}
 
 /**
  * Fetch the client metadata document from `iss` and the public keys from
@@ -131,6 +131,18 @@ export async function verifySessionJwt(session, delegatedJwk, iss, audience, now
 		return { ok: false, error: `Session typ must be '${SESSION_TYP}'` };
 	}
 
+	// Verify the session `kid` against the delegated key thumbprint (spec 5.2).
+	let expectedKid;
+	try {
+		const { calculateJwkThumbprint } = await import("jose");
+		expectedKid = await calculateJwkThumbprint(delegatedJwk);
+	} catch (err) {
+		return { ok: false, error: `Invalid delegated key: ${err.message}` };
+	}
+	if (header.kid && header.kid !== expectedKid) {
+		return { ok: false, error: "Session kid does not match the delegated key thumbprint" };
+	}
+
 	let key;
 	try {
 		key = await importJWK(delegatedJwk, "ES256");
@@ -192,6 +204,9 @@ export function validateAccessToken(payload, accessToken, iss) {
 		if (payload.ath !== computeAth(accessToken)) {
 			return { ok: false, error: "Session ath does not match the access token" };
 		}
+	} else if (payload.ath) {
+		// Spec 5.3: `ath` must be absent when no access token is present.
+		return { ok: false, error: "Session ath must be absent when no access token is present" };
 	}
 	if (payload.iss !== iss) {
 		return { ok: false, error: `Session iss '${payload.iss}' does not match client_id '${iss}'` };
@@ -242,6 +257,16 @@ export async function execute(input, options = {}) {
 	const now = data.now ?? Date.now();
 
 	try {
+		// Spec 3.4: the verifying endpoint checks the Poppy-Version header.
+		if (data.version && data.version !== "1.0") {
+			return {
+				ok: false,
+				error: "Unsupported Poppy-Version",
+				code: "version_unsupported",
+				status: 400,
+			};
+		}
+
 		const sessionStore = options.sessionStore;
 		if (!sessionStore) {
 			return { ok: false, error: "sessionStore is required" };

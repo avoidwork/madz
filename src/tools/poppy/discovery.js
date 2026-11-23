@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { isIP } from "node:net";
+import { lookup } from "node:dns/promises";
 import { lru } from "tiny-lru";
 
 const WELL_KNOWN_PATH = "/.well-known/poppy.json";
@@ -30,7 +31,12 @@ export const PoppyDocumentSchema = z.object({
 				.record(
 					z.string(),
 					z.object({
-						changes: z.enum(["none", "reversible", "irreversible"]),
+						// Spec 4.7: unknown `changes` values are treated as `irreversible`.
+						changes: z
+							.string()
+							.transform((v) =>
+								["none", "reversible", "irreversible"].includes(v) ? v : "irreversible",
+							),
 						personal_data: z.boolean(),
 					}),
 				)
@@ -78,11 +84,12 @@ export const PoppyDocumentSchema = z.object({
 /**
  * Check whether a hostname is a loopback, private, or link-local address.
  * Handles IPv4/IPv6 literals and the `localhost` hostname. Hostnames that are
- * not IP literals are treated as public (DNS resolution is not performed here).
+ * not IP literals are resolved via DNS and checked against the resolved
+ * addresses.
  * @param {string} hostname - The hostname to check
- * @returns {boolean} True if the address is loopback/private/link-local
+ * @returns {Promise<boolean>} True if the address is loopback/private/link-local
  */
-export function isPrivateAddress(hostname) {
+export async function isPrivateAddress(hostname) {
 	if (!hostname) return true;
 	const host = hostname.toLowerCase();
 	if (host === "localhost" || host.endsWith(".localhost")) return true;
@@ -117,6 +124,17 @@ export function isPrivateAddress(hostname) {
 		}
 		return false;
 	}
+	// Resolve the hostname via DNS and check each resolved address.
+	try {
+		const records = await lookup(host, { all: true });
+		for (const record of records) {
+			if (await isPrivateAddress(record.address)) {
+				return true;
+			}
+		}
+	} catch {
+		// DNS resolution failure: treat as public (do not block on it).
+	}
 	return false;
 }
 
@@ -126,7 +144,7 @@ export function isPrivateAddress(hostname) {
  * @param {boolean} [allowPrivate=false] - Whether to permit private addresses
  * @returns {{ok: boolean, error?: string}} Validation result
  */
-export function validateUrl(url, allowPrivate = false) {
+export async function validateUrl(url, allowPrivate = false) {
 	let parsed;
 	try {
 		parsed = new URL(url);
@@ -136,7 +154,7 @@ export function validateUrl(url, allowPrivate = false) {
 	if (parsed.protocol !== "https:") {
 		return { ok: false, error: `URL must be HTTPS: ${url}` };
 	}
-	if (!allowPrivate && isPrivateAddress(parsed.hostname)) {
+	if (!allowPrivate && (await isPrivateAddress(parsed.hostname))) {
 		return { ok: false, error: `URL points to a loopback/private/link-local address: ${url}` };
 	}
 	return { ok: true };
@@ -151,7 +169,7 @@ export function validateUrl(url, allowPrivate = false) {
  * @param {boolean} [allowPrivate=false] - Whether to permit private addresses
  * @returns {{ok: boolean, error?: string, doc?: object}} Validation result
  */
-export function validateDocument(doc, servingHost, allowPrivate = false) {
+export async function validateDocument(doc, servingHost, allowPrivate = false) {
 	const parsed = PoppyDocumentSchema.safeParse(doc);
 	if (!parsed.success) {
 		return {
@@ -172,6 +190,28 @@ export function validateDocument(doc, servingHost, allowPrivate = false) {
 		};
 	}
 
+	// Spec 3.1/6: a `web.disabled: true` document MUST NOT list
+	// `browser_session_endpoint`.
+	if (data.web?.disabled && data.web.browser_session_endpoint) {
+		return { ok: false, error: "web.disabled document must not list browser_session_endpoint" };
+	}
+	// Spec 3.2: a company with `auth.disabled: true` MUST NOT list the Mediated
+	// Sign-In extension or `signed_in` access.
+	if (data.auth?.disabled) {
+		const extensions = data.extensions ?? {};
+		if (extensions["mediated-sign-in"]) {
+			return {
+				ok: false,
+				error: "auth.disabled document must not list the mediated-sign-in extension",
+			};
+		}
+		for (const p of data.agent?.protocols ?? []) {
+			if (p.access === "signed_in") {
+				return { ok: false, error: "auth.disabled document must not list signed_in access" };
+			}
+		}
+	}
+
 	// Validate all URLs are HTTPS and non-private.
 	const urls = [];
 	if (data.organization.logo_uri) urls.push(data.organization.logo_uri);
@@ -185,7 +225,7 @@ export function validateDocument(doc, servingHost, allowPrivate = false) {
 	if (data.web?.browser_session_endpoint) urls.push(data.web.browser_session_endpoint);
 	if (data.tasks?.endpoint) urls.push(data.tasks.endpoint);
 	for (const url of urls) {
-		const result = validateUrl(url, allowPrivate);
+		const result = await validateUrl(url, allowPrivate);
 		if (!result.ok) return result;
 	}
 
@@ -208,9 +248,10 @@ export function selectVersion(protocolVersion, supportedVersions = {}, implement
 	const compatible = candidates.filter((v) => {
 		const [major, minor] = v.split(".").map(Number);
 		if (major !== implMajor) return false;
-		// Before 1.0, minor must match exactly; from 1.0, newer minor is compatible.
+		// Before 1.0, minor must match exactly; from 1.0, a newer minor is
+		// compatible (spec 3.4: a newer minor won't break older agents).
 		if (major < 1) return minor === implMinor;
-		return minor <= implMinor;
+		return minor >= implMinor;
 	});
 	if (compatible.length === 0) return null;
 	return compatible.sort((a, b) => {
@@ -287,7 +328,7 @@ export async function fetchPoppy(domain, options = {}) {
 	const timeout = options.timeout ?? FETCH_TIMEOUT;
 
 	const initial = new URL(`https://${domain}${WELL_KNOWN_PATH}`);
-	if (!allowPrivate && isPrivateAddress(initial.hostname)) {
+	if (!allowPrivate && (await isPrivateAddress(initial.hostname))) {
 		return {
 			ok: false,
 			error: `Domain resolves to a loopback/private/link-local address: ${domain}`,
@@ -372,9 +413,40 @@ export async function discoverPoppy(domain, options = {}) {
 		return { ok: false, error: fetched.error };
 	}
 
-	const validated = validateDocument(fetched.doc, fetched.servingHost, allowPrivate);
+	const validated = await validateDocument(fetched.doc, fetched.servingHost, allowPrivate);
 	if (!validated.ok) {
 		return { ok: false, error: validated.error };
+	}
+
+	// Spec 3.2: cross-check the issuer and protected-resource metadata. The
+	// issuer host must match the serving host (or a subdomain).
+	if (validated.doc.auth?.issuer) {
+		const issuerHost = new URL(validated.doc.auth.issuer).hostname;
+		if (issuerHost !== fetched.servingHost && !issuerHost.endsWith(`.${fetched.servingHost}`)) {
+			return {
+				ok: false,
+				error: `auth.issuer host '${issuerHost}' does not match serving host '${fetched.servingHost}'`,
+			};
+		}
+	}
+
+	// Spec 3.4: validate `supported_versions` URLs are HTTPS on the same host.
+	const supportedVersions = validated.doc.supported_versions ?? {};
+	for (const [version, url] of Object.entries(supportedVersions)) {
+		const urlResult = await validateUrl(url, allowPrivate);
+		if (!urlResult.ok) {
+			return {
+				ok: false,
+				error: `Invalid supported_version URL for '${version}': ${urlResult.error}`,
+			};
+		}
+		const urlHost = new URL(url).hostname;
+		if (urlHost !== fetched.servingHost && !urlHost.endsWith(`.${fetched.servingHost}`)) {
+			return {
+				ok: false,
+				error: `supported_version URL host '${urlHost}' does not match serving host '${fetched.servingHost}'`,
+			};
+		}
 	}
 
 	const selected = selectVersion(
@@ -389,6 +461,27 @@ export async function discoverPoppy(domain, options = {}) {
 	const normalized = normalizeDocument(validated.doc, fetched.servingHost);
 	normalized.selectedVersion = selected;
 	normalized.fetchedAt = new Date().toISOString();
+
+	// Spec 3.4: fetch the selected version's document when it differs from the
+	// document's own protocol_version.
+	if (selected !== validated.doc.protocol_version && supportedVersions[selected]) {
+		const versionFetch = await fetchPoppy(new URL(supportedVersions[selected]).hostname, {
+			allowPrivate,
+		});
+		if (versionFetch.ok) {
+			const versionValidated = await validateDocument(
+				versionFetch.doc,
+				versionFetch.servingHost,
+				allowPrivate,
+			);
+			if (versionValidated.ok) {
+				normalized.versionDocument = normalizeDocument(
+					versionValidated.doc,
+					versionFetch.servingHost,
+				);
+			}
+		}
+	}
 
 	cache.set(key, normalized, ttl);
 	return { ok: true, data: normalized, source: "network" };

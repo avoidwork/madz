@@ -64,7 +64,7 @@
 ℹ   copilotRetryMiddleware.js    |  88.52 |    79.49 |   83.33 | 75-88
 ℹ   index.js                     | 100.00 |   100.00 |  100.00 | 
 ℹ   modelInfo.js                 |  97.80 |    96.08 |  100.00 | 142-143 193-194 241-242
-ℹ   openai.js                    |  91.60 |    72.60 |   78.57 | 65 90-92 138-139 145-146 181-184 233 236-238 257-259 267-271 279-280 292-295
+ℹ   openai.js                    |  91.60 |    73.61 |   78.57 | 65 90-92 138-139 145-146 181-184 233 236-238 257-259 267-271 279-280 292-295
 ℹ   tokenBudget.js               |  97.14 |    85.71 |   82.35 | 50-51 83-84
 ℹ   tokenBudgetMiddleware.js     |  98.17 |    82.28 |   87.50 | 99-100 102-103
 ℹ  sandbox                       |        |          |         | 
@@ -194,7 +194,7 @@
 ℹ    index.js                    |  97.85 |    98.13 |   93.75 | 57-68
 ℹ   image                        |        |          |         | 
 ℹ    index.js                    |  94.17 |    80.70 |   84.62 | 134-135 158-159 189-190 192-193 203-204 210-211 221-222 238-239 246-247 253-254 276-277 279-280 290-291 297-298 305-306
-ℹ   index.js                     |  98.54 |    98.20 |   76.92 | 527-530 545-548 670-671
+ℹ   index.js                     |  98.24 |    97.25 |   61.54 | 527-530 545-548 647-648 670-671
 ℹ   jira                         |        |          |         | 
 ℹ    index.js                    |  99.69 |    90.14 |   88.89 | 146
 ℹ   json                         |        |          |         | 
@@ -209,19 +209,19 @@
 ℹ   pdf                          |        |          |         | 
 ℹ    index.js                    |  94.29 |    85.71 |  100.00 | 90-94 142-143 174-185 200-201 252-253 289 355-356 363-364 375-376 410-411 446-447 451-452 516-520 586-588 590-592 594-596 598-600 692-693 910 913-914
 ℹ   poppy                        |        |          |         | 
-ℹ    api.js                      |  94.18 |    81.82 |   91.67 | 69-70 162-163 180-181 197-198 216-217 241 256-260
+ℹ    api.js                      |  91.64 |    79.41 |   91.67 | 70-71 163-164 181-182 198-199 214-221 228-229 253 268-272
 ℹ    browser.js                  |  92.31 |    90.00 |   75.00 | 104-112 133-136 190-191 200-201 205
 ℹ    common.js                   |  97.96 |    83.33 |   50.00 | 45
-ℹ    conversation.js             |  89.02 |    76.00 |   88.24 | 128 173-174 208-209 211-212 251-252 283-287 305-306 308-309 312-313 315-316 327-334 338-341 358-359 361-362 383-384 386-387 406-410
-ℹ    discovery.js                |  90.67 |    79.61 |   71.43 | 157-161 180-181 217-219 241-247 254-257 262-266 318-319 338-343 372-373 377-378 414
-ℹ    extensions.js               |  94.74 |    91.67 |   90.00 | 70-71 94-95 153-157
-ℹ    identity.js                 | 100.00 |    95.60 |  100.00 | 
+ℹ    conversation.js             |  89.10 |    75.61 |   83.33 | 148 167-168 176-177 199-200 238-239 241-242 291-292 323-327 345-346 348-349 352-353 355-356 367-374 378-381 398-399 401-402 423-424 426-427 446-450
+ℹ    discovery.js                |  81.21 |    74.60 |   66.67 | 132-133 175-179 196-197 201-213 220-221 258-260 282-288 295-298 303-307 359-360 379-384 413-414 418-419 424-431 436-450 468-484 507
+ℹ    extensions.js               |  94.77 |    91.67 |   90.00 | 70-71 94-95 154-158
+ℹ    identity.js                 |  96.00 |    94.68 |   95.24 | 54-64 441-442 444-448
 ℹ    index.js                    |  83.62 |    68.75 |   66.67 | 255-261 263-269 271-277 279-285 303-326 336-341
-ℹ    oauth.js                    |  92.79 |    71.15 |   91.67 | 219-226 364-368 376 382-383 426-430 506-507 534-535 573-574 590-591 614-615 618-619 628-629 659-660 675-676 680-681 684-685 698-699 714-715 719-720 722-723 733-734
+ℹ    oauth.js                    |  90.56 |    67.57 |   91.67 | 219-226 311-314 361-364 374-378 386 392-393 436-440 460-463 519-520 547-548 581-582 590-591 607-608 631-632 635-636 645-646 654-658 687-688 703-704 708-709 712-713 726-727 742-743 747-748 750-751 761-762
 ℹ    security.js                 |  94.15 |    76.84 |   97.30 | 129 167-168 347 385-386 403-404 408-409 422-430 443-444 497-498 515-516 534-535 541-542 557-558 560-561 571-572
-ℹ    session.js                  | 100.00 |    97.06 |  100.00 | 
-ℹ    tasks.js                    |  95.36 |    88.33 |   90.00 | 181-182 185-186 232-233 245-246 262-266
-ℹ    verify.js                   |  90.41 |    87.01 |   88.89 | 65-66 101-102 150-151 236-240 257-263 277-283 288-289 294-295 318-319 342-343
+ℹ    session.js                  |  99.29 |    94.29 |  100.00 | 105-106
+ℹ    tasks.js                    |  93.95 |    85.07 |   81.82 | 195-196 207-208 216-219 263-264 270-271 279-280 296-300
+ℹ    verify.js                   |  87.26 |    81.40 |   88.89 | 65-66 101-102 143-144 150-151 162-163 208-210 251-255 262-268 282-288 302-308 313-314 319-320 343-344 367-368
 ℹ   pptx                         |        |          |         | 
 ℹ    index.js                    |  98.65 |    94.32 |   92.86 | 478-481 542-543 563-564
 ℹ   process                      |        |          |         | 
@@ -229,7 +229,7 @@
 ℹ   reflection                   |        |          |         | 
 ℹ    index.js                    |  94.98 |    83.02 |   90.00 | 56-60 125-126 142-143 197-198
 ℹ   sampling                     |        |          |         | 
-ℹ    index.js                    |  99.52 |    83.33 |  100.00 | 27
+ℹ    index.js                    |  99.52 |    85.71 |  100.00 | 27
 ℹ   session                      |        |          |         | 
 ℹ    index.js                    |  95.76 |    70.69 |  100.00 | 72-73 99-100 116-117 155-156 177-178
 ℹ   skills                       |        |          |         | 
@@ -302,6 +302,82 @@
 ℹ   loadAgents.js                |  74.29 |    78.57 |   50.00 | 25-26 41 56-70
 ℹ   project.js                   | 100.00 |   100.00 |  100.00 | 
 ℹ --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-ℹ all files                      |  93.11 |    86.38 |   88.64 | 
+ℹ all files                      |  92.87 |    86.14 |   88.40 | 
 ℹ --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ℹ end of coverage report
+
+✖ failing tests:
+
+test at tests/integration/mcpTools.test.js:50:2
+✖ discovers and registers tools from the MCP server (0.696333ms)
+  AssertionError [ERR_ASSERTION]: should register the 'add' tool
+      at TestContext.<anonymous> (file:///app/projects/madz.worktrees/85e40d4a3600b5e9/tests/integration/mcpTools.test.js:52:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1905:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests/integration/mcpTools.test.js:56:2
+✖ appends MCP tools to the built-in tool list (0.183125ms)
+  AssertionError [ERR_ASSERTION]: should have at least the two MCP tools
+      at TestContext.<anonymous> (file:///app/projects/madz.worktrees/85e40d4a3600b5e9/tests/integration/mcpTools.test.js:61:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests/integration/mcpTools.test.js:64:2
+✖ classifies MCP tools by the per-server agents list (0.547667ms)
+  AssertionError [ERR_ASSERTION]: add tool should be classified for coding + search
+  + actual - expected
+  
+  + undefined
+  - [
+  -   'coding',
+  -   'search'
+  - ]
+  
+      at TestContext.<anonymous> (file:///app/projects/madz.worktrees/85e40d4a3600b5e9/tests/integration/mcpTools.test.js:65:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: [ 'coding', 'search' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at tests/integration/mcpTools.test.js:82:2
+✖ returns executable LangChain tools (0.077167ms)
+  AssertionError [ERR_ASSERTION]: add tool should be present
+      at TestContext.<anonymous> (file:///app/projects/madz.worktrees/85e40d4a3600b5e9/tests/integration/mcpTools.test.js:84:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
