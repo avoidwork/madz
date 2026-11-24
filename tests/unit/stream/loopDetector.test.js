@@ -35,26 +35,15 @@ describe("createSegmentLoopDetector (worker-backed)", () => {
 		assert.ok((await firstFlag(d, deltas)) >= 0);
 	});
 
-	it("flags a repeated sentence", async () => {
+	it("flags a recurring word chain across sentences", async () => {
 		const d = detector();
-		const deltas = Array.from({ length: 5 }, () => "This is a test of streamed repetition. ");
-		assert.ok((await firstFlag(d, deltas)) >= 0);
-	});
-
-	it("flags garbled repetition of the same content", async () => {
-		const d = detector();
-		const deltas = [
-			"The skill savs branch creation happens BEFORE staging. ",
-			"The skill says branch creation happens BEFUKE staging. ",
-			"The skill says branch creation happens BEFORE staging. ",
-			"The skill savs branch creation happens BEFORE staginq. ",
-		];
+		const deltas = Array.from({ length: 5 }, () => "Let me reconsider the approach here. ");
 		assert.ok((await firstFlag(d, deltas)) >= 0);
 	});
 
 	it("flags the captured garbled loop fixture", async () => {
 		const fixture = await readFile(join(__dirname, "../../fixtures/loop-garbled.md"), "utf8");
-		const d = detector({ windowSize: 20, threshold: 2 });
+		const d = detector({ threshold: 2 });
 		for (let i = 0; i < fixture.length; i += 64) {
 			d.push("reasoning", fixture.slice(i, i + 64));
 		}
@@ -63,7 +52,18 @@ describe("createSegmentLoopDetector (worker-backed)", () => {
 
 	it("does not flag distinct text", async () => {
 		const d = detector();
-		const deltas = Array.from({ length: 40 }, (_, i) => `Sentence number ${i} is unique. `);
+		const deltas = [
+			"The quick brown fox jumps over the lazy dog near the riverbank. ",
+			"The weather today is warm and sunny with a light breeze. ",
+			"We should consider the budget carefully before committing to the plan. ",
+			"The team reviewed the requirements and agreed on the next steps. ",
+			"Each module must handle its own error cases and log them clearly. ",
+			"The database connection pool is configured with a sensible default size. ",
+			"We need to verify the schema before running the migration. ",
+			"The user interface should be responsive and accessible to everyone. ",
+			"Performance matters when the system handles concurrent requests. ",
+			"The deployment pipeline runs linting and tests automatically. ",
+		];
 		assert.strictEqual(await firstFlag(d, deltas), -1);
 	});
 
@@ -88,7 +88,7 @@ describe("createSegmentLoopDetector (worker-backed)", () => {
 
 	it("reports a flag on the first push after the check completes", async () => {
 		const d = detector();
-		d.push("reasoning", "ok ok ok ");
+		d.push("reasoning", "ok ok ok ok ok ");
 		assert.strictEqual(await d.settle(), true);
 		assert.strictEqual(d.push("reasoning", "more "), true);
 	});
@@ -124,6 +124,8 @@ describe("createSegmentLoopDetector (worker-backed)", () => {
 		d.push("reasoning", "ok ");
 		d.push("reasoning", "ok ");
 		d.push("reasoning", "ok ");
+		d.push("reasoning", "ok ");
+		d.push("reasoning", "ok ");
 		assert.strictEqual(await d.settle(), true);
 		assert.ok(seen.length >= 2, "the tail was checked again");
 		assert.ok(seen.at(-1).words.length > seen[0].words.length, "the later check saw newer words");
@@ -153,14 +155,14 @@ describe("createSegmentLoopDetector (worker-backed)", () => {
 	it("does not expire text when ttlMs is unset", async () => {
 		let clock = 0;
 		const d = detector({ now: () => clock });
-		d.push("reasoning", "ok ok ");
+		d.push("reasoning", "ok ok ok ok ok ");
 		await d.settle();
 		clock = 10_000_000;
 		d.push("reasoning", "ok ");
 		assert.strictEqual(await d.settle(), true);
 	});
 
-	it("keeps only the last windowSize sentences and wordWindowSize words", async () => {
+	it("keeps only the last wordWindowSize words", async () => {
 		const seen = [];
 		const spy = {
 			run: async (task) => {
@@ -170,8 +172,6 @@ describe("createSegmentLoopDetector (worker-backed)", () => {
 		};
 		const d = createSegmentLoopDetector({
 			runner: spy,
-			windowSize: 5,
-			maxLoopSentences: 1,
 			threshold: 2,
 			wordWindowSize: 12,
 		});
@@ -180,31 +180,11 @@ describe("createSegmentLoopDetector (worker-backed)", () => {
 			await d.settle();
 		}
 		const last = seen.at(-1);
-		assert.ok(last.sentences.length <= 5, `sentences ${last.sentences.length}`);
 		assert.ok(last.words.length <= 12, `words ${last.words.length}`);
-		assert.strictEqual(last.sentences.at(-1), "Unique sentence number 99 here.");
+		assert.strictEqual(last.words.at(-1), "here.");
 	});
 
-	it("widens the sentence window to hold threshold + 1 copies of the longest loop", async () => {
-		const seen = [];
-		const spy = {
-			run: async (task) => {
-				seen.push(task);
-				return false;
-			},
-		};
-		const d = createSegmentLoopDetector({ runner: spy, windowSize: 20, threshold: 10 });
-		for (let i = 0; i < 200; i++) {
-			d.push("reasoning", `Unique sentence number ${i} here. `);
-			await d.settle();
-		}
-		// max(20, 5 * (10 + 1)) = 55
-		assert.strictEqual(seen.at(-1).sentences.length, 55);
-		assert.strictEqual(seen.at(-1).maxLoopSentences, 5);
-		assert.strictEqual(seen.at(-1).similarityThreshold, 0.85);
-	});
-
-	it("passes configured similarityThreshold and maxLoopSentences to the worker task", async () => {
+	it("passes configured minChain, maxChain and maxRun to the worker task", async () => {
 		const seen = [];
 		const spy = {
 			run: async (task) => {
@@ -214,33 +194,35 @@ describe("createSegmentLoopDetector (worker-backed)", () => {
 		};
 		const d = createSegmentLoopDetector({
 			runner: spy,
-			similarityThreshold: 0.9,
-			maxLoopSentences: 3,
+			minChain: 2,
+			maxChain: 5,
+			maxRun: 20,
 		});
 		d.push("reasoning", "One sentence here. ");
 		await d.settle();
-		assert.strictEqual(seen[0].similarityThreshold, 0.9);
-		assert.strictEqual(seen[0].maxLoopSentences, 3);
+		assert.strictEqual(seen[0].minChain, 2);
+		assert.strictEqual(seen[0].maxChain, 5);
+		assert.strictEqual(seen[0].maxRun, 20);
 	});
 
 	it("sends the worker a bounded task however long the stream gets", async () => {
 		const sizes = [];
 		const spy = {
 			run: async (task) => {
-				sizes.push(task.sentences.length + task.words.length);
+				sizes.push(task.words.length);
 				return false;
 			},
 		};
-		const d = createSegmentLoopDetector({ runner: spy, windowSize: 20, wordWindowSize: 200 });
+		const d = createSegmentLoopDetector({ runner: spy, wordWindowSize: 200 });
 		for (let i = 0; i < 2000; i++) {
 			d.push("reasoning", `Distinct sentence ${i} goes here. `);
 			if (i % 50 === 0) await d.settle();
 		}
 		await d.settle();
-		assert.ok(Math.max(...sizes) <= 220, `max task size ${Math.max(...sizes)}`);
+		assert.ok(Math.max(...sizes) <= 200, `max task size ${Math.max(...sizes)}`);
 	});
 
-	it("does not start a check for a delta that completes no sentence or word", async () => {
+	it("does not start a check for a delta that completes no word", async () => {
 		let calls = 0;
 		const spy = {
 			run: async () => {
@@ -260,16 +242,8 @@ describe("createSegmentLoopDetector (worker-backed)", () => {
 		assert.strictEqual(calls, afterFirstWord, "no new check until a word completes");
 	});
 
-	it("finds a sentence whose boundary falls across two deltas", async () => {
-		const d = detector();
-		for (const delta of ["Same thing.", " ", "Same thing.", " ", "Same thing.", " ", "x"]) {
-			d.push("reasoning", delta);
-		}
-		assert.strictEqual(await d.settle(), true);
-	});
-
 	it("reaches the same verdict however the stream is chunked", async () => {
-		const text = "This is a test of streamed repetition. ".repeat(5);
+		const text = "Let me reconsider the approach here. ".repeat(5);
 		for (const size of [1, 2, 3, 5, 8, 13]) {
 			const d = detector();
 			for (let i = 0; i < text.length; i += size) d.push("reasoning", text.slice(i, i + size));
@@ -305,14 +279,14 @@ describe("createSegmentLoopDetector (worker-backed)", () => {
 
 	it("runs the check in a real worker thread by default", async () => {
 		const d = createSegmentLoopDetector();
-		d.push("reasoning", "ok ok ok ok ");
+		d.push("reasoning", "ok ok ok ok ok ");
 		assert.strictEqual(await d.settle(), true);
 	});
 
 	it("caps the worker pool at maxThreads", async () => {
 		await destroyPool();
 		const d = createSegmentLoopDetector({ maxThreads: 2 });
-		d.push("reasoning", "ok ok ok ok ");
+		d.push("reasoning", "ok ok ok ok ok ");
 		assert.strictEqual(await d.settle(), true);
 		await destroyPool();
 	});
@@ -348,6 +322,8 @@ describe("consumeStream with loopDetector", () => {
 
 	it("collects a loop flagged by a check still running when the stream ends", async () => {
 		const stream = (async function* () {
+			yield reasoning("ok ");
+			yield reasoning("ok ");
 			yield reasoning("ok ");
 			yield reasoning("ok ");
 			yield reasoning("ok ");

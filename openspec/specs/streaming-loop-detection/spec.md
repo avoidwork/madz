@@ -107,20 +107,35 @@ The system SHALL integrate the sentence sampler into `callReactAgentStreaming()`
 - **WHEN** the streaming loop exits (normal completion, error, or abort)
 - **THEN** the sampler state is cleaned up and no memory leaks occur
 
-### Requirement: Garbled Repetition Detection
-The system SHALL flag a loop when a sentence has normalized token-overlap similarity at or above a configurable similarity threshold with another sentence appearing more than the configured threshold times within the sliding window, so that garbled repetition (repeated sentences with corrupted characters) is detected in addition to byte-identical repetition.
+### Requirement: Word Chain Loop Detection
+The system SHALL flag a loop when a word chain of `loopDetection.minChain` (default 3) to `loopDetection.maxChain` (default 8) words recurs more than `loopDetection.threshold` times anywhere in the recent word window. Chains are compared as exact normalized token sequences, so they are found across sentence and paragraph boundaries, not just back-to-back at the tail. This catches a model that keeps rephrasing the same thought in different sentences across multiple paragraphs, where no whole sentence is identical.
 
-#### Scenario: Garbled repetition is flagged as a loop
-- **WHEN** the stream contains the same paragraph repeated with corrupted characters on each pass, such that no two sentences are byte-identical but each shares high token overlap with the others
+#### Scenario: A recurring word chain is flagged as a loop
+- **WHEN** the stream repeats a 3-8 word chain more than `threshold` times across different sentences and paragraphs
 - **THEN** the loop detector flags the stream as looping
 
-#### Scenario: Distinct sentences are not flagged
-- **WHEN** the stream contains genuinely distinct sentences with low token overlap
+#### Scenario: Distinct prose is not flagged
+- **WHEN** the stream contains genuinely distinct prose with no recurring word chain
 - **THEN** the loop detector does not flag the stream as looping
 
-#### Scenario: Similarity threshold is configurable
-- **WHEN** the similarity threshold is configured to a value
-- **THEN** the loop detector uses that value to decide whether two sentences are similar enough to count as a repeat
+#### Scenario: Chain length is configurable
+- **WHEN** `loopDetection.minChain` and `loopDetection.maxChain` are configured
+- **THEN** the loop detector uses those values to decide which chain lengths to compare
+
+### Requirement: Repeated Run Loop Detection
+The system SHALL flag a loop when a unit of 1 to `loopDetection.maxRun` (default 50) words is repeated back-to-back more than `loopDetection.threshold` times anywhere in the recent word window. This catches word stuttering ("Ottawa, Ottawa, Ottawa") and phrase/paragraph loops ("Turn off phone notifications... " repeated). Units are compared as exact normalized token sequences.
+
+#### Scenario: A word stutter is flagged as a loop
+- **WHEN** the stream repeats a single word back-to-back more than `threshold` times
+- **THEN** the loop detector flags the stream as looping
+
+#### Scenario: A phrase loop is flagged as a loop
+- **WHEN** the stream repeats a phrase back-to-back more than `threshold` times
+- **THEN** the loop detector flags the stream as looping
+
+#### Scenario: Run length is configurable
+- **WHEN** `loopDetection.maxRun` is configured
+- **THEN** the loop detector uses that value to decide the longest unit to compare
 
 ### Requirement: Subagent Reasoning Loop Detection
 The system SHALL apply loop detection to subagent reasoning streams in addition to the main agent loop, so that a subagent repeating the same reasoning without making progress is detected and its stream abandoned. Subagent reasoning SHALL be keyed per subagent so concurrent subagents do not share detector state, and subagent loop detection SHALL be toggleable via configuration.
@@ -176,27 +191,16 @@ The system SHALL apply loop detection to subagent message streams in addition to
 - **WHEN** a subagent message loop is detected
 - **THEN** the loop-detected signal is returned so the orchestrator can nudge, escalate, or abort the subagent
 
-### Requirement: Multi-Sentence Loop Detection
-The system SHALL flag a loop when a run of 1 to `loopDetection.maxLoopSentences` (default 5) sentences repeats back-to-back at the end of the sentence list more than `loopDetection.threshold` times, comparing copies by exact match or by the similarity threshold. The sentence window SHALL be at least `maxLoopSentences * (threshold + 1)`, i.e. `max(windowSize, maxLoopSentences * (threshold + 1))`. The cost of a check SHALL be bounded by the window.
-
-#### Scenario: Multi-sentence loop is flagged
-- **WHEN** a unit of 2 to 5 distinct sentences is repeated more than `threshold` times in a row
-- **THEN** the loop detector flags the stream as looping
-
 ### Requirement: Legitimate Repetitive Output Is Not Flagged
-The system SHALL NOT count lines with no letters or digits (such as `});` or `| --- | --- |`) toward loop detection, SHALL NOT treat sentences that differ in a numeric token as repeats, and SHALL match one-per-line paths and identifiers only exactly (never by similarity). Exact repeats of prose sentences SHALL still be detected.
+The system SHALL NOT count words with no letters or digits (such as `});` or `| --- | --- |`) toward loop detection, so structural lines never form a chain.
 
 #### Scenario: Structural lines are not a loop
 - **WHEN** a stream contains more than `threshold` lines such as `});` or markdown table separator rows
 - **THEN** the loop detector does not flag the stream
 
-#### Scenario: Numbered sentences are not a loop
-- **WHEN** a stream contains sentences identical except for a number (e.g. `Step N of the process completed successfully now.`)
-- **THEN** the loop detector does not flag the stream
-
 ### Requirement: Loop Detection Tunables Reach the Detector
-The system SHALL pass `loopDetection.similarityThreshold` and `loopDetection.maxLoopSentences` from configuration to the loop detector.
+The system SHALL pass `loopDetection.minChain` and `loopDetection.maxChain` from configuration to the loop detector.
 
-#### Scenario: Configured similarity threshold is used
-- **WHEN** `loopDetection.similarityThreshold` is configured
-- **THEN** the detector's worker task carries that value
+#### Scenario: Configured chain lengths are used
+- **WHEN** `loopDetection.minChain` and `loopDetection.maxChain` are configured
+- **THEN** the detector's worker task carries those values
