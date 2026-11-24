@@ -3,6 +3,7 @@ import assert from "node:assert";
 import {
 	checkLoop,
 	hasDuplicateSentence,
+	hasRepeatedSentences,
 	hasRepeatedWords,
 	hasSimilarSentence,
 	normalize,
@@ -234,5 +235,123 @@ describe("checkLoop", () => {
 			}),
 			false,
 		);
+	});
+});
+
+describe("hasRepeatedSentences", () => {
+	const unit = (p) => Array.from({ length: p }, (_, i) => `Distinct sentence ${"abcde"[i]} here.`);
+	const repeat = (list, times) => Array.from({ length: times }, () => list).flat();
+
+	it("flags a 2-sentence loop repeated more than threshold times", () => {
+		assert.strictEqual(hasRepeatedSentences(repeat(unit(2), 11), 10, 0.85), true);
+		assert.strictEqual(hasRepeatedSentences(repeat(unit(2), 10), 10, 0.85), false);
+	});
+
+	it("flags loops up to the maximum period and not beyond it", () => {
+		assert.strictEqual(hasRepeatedSentences(repeat(unit(5), 3), 2, 0.85), true);
+		assert.strictEqual(hasRepeatedSentences(repeat(unit(5), 3), 2, 0.85, 4), false);
+	});
+
+	it("matches garbled copies of the unit", () => {
+		const a = ["The skill says branch creation happens BEFORE staging.", "Then it commits."];
+		const b = ["The skill savs branch creation happens BErURE staging.", "Then it commits."];
+		assert.strictEqual(hasRepeatedSentences([...a, ...b, ...a], 2, 0.85), true);
+	});
+
+	it("only looks at the tail", () => {
+		const list = [...repeat(unit(2), 5), "Something else entirely."];
+		assert.strictEqual(hasRepeatedSentences(list, 2, 0.85), false);
+	});
+
+	it("ignores lines with no letters or digits between the copies", () => {
+		const list = repeat([...unit(2), "});"], 3);
+		assert.strictEqual(hasRepeatedSentences(list, 2, 0.85), true);
+	});
+
+	it("does not flag an empty list", () => {
+		assert.strictEqual(hasRepeatedSentences([], 2, 0.85), false);
+	});
+});
+
+describe("false positives on legitimate output", () => {
+	const flagged = (text) => {
+		const { sentences } = takeSentences(`${text}\n`);
+		const { words } = takeWords("", `${text}\n`);
+		return checkLoop({
+			sentences: sentences.slice(-55),
+			words: words.slice(-1000),
+			threshold: 10,
+			similarityThreshold: 0.85,
+		});
+	};
+	const lines = (n, make) => Array.from({ length: n }, (_, i) => make(i)).join("\n");
+
+	it("does not flag repeated closing braces", () => {
+		assert.strictEqual(flagged(lines(11, () => "});")), false);
+	});
+
+	it("does not flag markdown table separator rows", () => {
+		assert.strictEqual(flagged(lines(11, () => "| --- | --- |")), false);
+	});
+
+	it("does not flag one-per-line file paths", () => {
+		assert.strictEqual(flagged(lines(12, (i) => `src/stream/file${i}.js`)), false);
+		assert.strictEqual(flagged(lines(12, (i) => `src/stream/file${"abcdefghijkl"[i]}.js`)), false);
+	});
+
+	it("does not flag sentences that differ only in a number", () => {
+		const text = lines(12, (i) => `Step ${i} of the process completed successfully now.`);
+		assert.strictEqual(flagged(text), false);
+	});
+
+	it("still flags an identical prose line repeated", () => {
+		assert.strictEqual(flagged(lines(12, () => "Everything is fine here.")), true);
+	});
+});
+
+describe("genuine loops at production values", () => {
+	const flagged = (text) => {
+		const { sentences } = takeSentences(`${text}\n`);
+		const { words } = takeWords("", `${text}\n`);
+		return checkLoop({
+			sentences: sentences.slice(-55),
+			words: words.slice(-1000),
+			threshold: 10,
+			similarityThreshold: 0.85,
+		});
+	};
+	const sentence = (n, len = 6) =>
+		Array.from({ length: len }, (_, w) => `word${"abcdefghij"[n]}${"klmnopqrst"[w % 10]}x`).join(
+			" ",
+		) + ".";
+	const unit = (n, len) => Array.from({ length: n }, (_, i) => sentence(i, len)).join(" ");
+
+	it("flags one sentence repeated 40 times", () => {
+		assert.strictEqual(flagged(Array(40).fill("The same thing again.").join(" ")), true);
+	});
+
+	it("flags a 2-sentence loop repeated 40 times", () => {
+		assert.strictEqual(flagged(Array(40).fill(unit(2, 6)).join(" ")), true);
+	});
+
+	it("flags a 5-sentence loop repeated 40 times", () => {
+		assert.strictEqual(flagged(Array(40).fill(unit(5, 6)).join(" ")), true);
+	});
+
+	it("flags a loop of five 60-word sentences repeated 30 times", () => {
+		assert.strictEqual(flagged(Array(30).fill(unit(5, 60)).join(" ")), true);
+	});
+
+	it("flags 'ok' repeated 40 times", () => {
+		assert.strictEqual(flagged("ok ".repeat(40)), true);
+	});
+
+	it("flags a garbled single sentence repeated", () => {
+		const text = Array.from({ length: 14 }, (_, i) =>
+			i % 2
+				? "The skill says branch creation happens BEFORE staging."
+				: "The skill savs branch creation happens BErURE staging.",
+		).join(" ");
+		assert.strictEqual(flagged(text), true);
 	});
 });

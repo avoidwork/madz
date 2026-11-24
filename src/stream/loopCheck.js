@@ -45,15 +45,29 @@ export function takeWords(partial, delta) {
 	return { words: parts.filter(Boolean), rest };
 }
 
+/** Longest sentence loop (in sentences) the detector is asked to catch. */
+export const DEFAULT_MAX_LOOP_SENTENCES = 5;
+
+/**
+ * Drop lines that carry no letters or digits (`});`, `| --- | --- |`, `---`). They
+ * are structure, not content, so a run of them is never a loop.
+ * @param {string[]} sentences - Completed sentences
+ * @returns {string[]} The sentences that have comparable content
+ */
+function meaningful(sentences) {
+	return sentences.filter((sentence) => normalize(sentence) !== "");
+}
+
 /**
  * Look for a sentence that occurs more than `threshold` times in `sentences`.
+ * Lines with no letters or digits are ignored.
  * @param {string[]} sentences - The recent completed sentences
  * @param {number} threshold - Occurrences above which a sentence is looping
  * @returns {boolean} True when a sentence repeats
  */
 export function hasDuplicateSentence(sentences, threshold) {
 	const counts = new Map();
-	for (const sentence of sentences) {
+	for (const sentence of meaningful(sentences)) {
 		const count = (counts.get(sentence) ?? 0) + 1;
 		if (count > threshold) return true;
 		counts.set(sentence, count);
@@ -155,34 +169,115 @@ export function similarity(a, b) {
 }
 
 /**
+ * Precompute what a repeat comparison needs from one sentence.
+ * - `digits`: its numeric tokens. Two sentences with different numbers are never
+ *   repeats ("Step 3 done" / "Step 4 done", file1.js / file2.js), so numbers are
+ *   compared strictly instead of being fuzzed away.
+ * - `fuzzy`: whether it may match a merely similar sentence. Garbling corrupts
+ *   characters inside prose words, so fuzzy matching needs at least two prose
+ *   words (a whitespace token that is one plain word). Paths, identifiers and
+ *   bullets of them ("src/a/fileA.js") are not prose: they match only exactly.
+ * @param {string} sentence - A completed sentence
+ * @returns {{ norm: string, tokens: number, digits: string, fuzzy: boolean }} Comparison data
+ */
+function prepare(sentence) {
+	const norm = normalize(sentence);
+	const proseWords = sentence.split(/\s+/).filter((token) => {
+		const n = normalize(token);
+		return n !== "" && !n.includes(" ");
+	}).length;
+	return {
+		norm,
+		tokens: norm.split(" ").length,
+		digits: (norm.match(/\p{N}+/gu) ?? []).join(","),
+		fuzzy: proseWords >= 2,
+	};
+}
+
+/**
+ * Whether two prepared sentences are the same sentence for loop purposes: the same
+ * numbers, and either the same normalized text or (for prose) a similarity at or
+ * above `similarityThreshold`.
+ * @param {ReturnType<typeof prepare>} a - A prepared sentence
+ * @param {ReturnType<typeof prepare>} b - Another prepared sentence
+ * @param {number} similarityThreshold - Minimum similarity to count as a repeat
+ * @returns {boolean} True when the sentences repeat each other
+ */
+function isRepeat(a, b, similarityThreshold) {
+	if (a.digits !== b.digits) return false;
+	if (a.norm === b.norm) return true;
+	if (!a.fuzzy || !b.fuzzy) return false;
+	// Similarity cannot exceed the token-count ratio, so skip the edit distance when it must fail.
+	if (Math.min(a.tokens, b.tokens) / Math.max(a.tokens, b.tokens) < similarityThreshold) {
+		return false;
+	}
+	return similarity(a.norm, b.norm) >= similarityThreshold;
+}
+
+/**
  * Look for a sentence that is similar (by normalized word-sequence similarity) to
  * another sentence appearing more than `threshold` times in `sentences`. This catches
- * garbled repetition where no two sentences are byte-identical.
+ * garbled repetition where no two sentences are byte-identical. Lines with no letters
+ * or digits are ignored, and sentences that differ in their numbers are not repeats.
  * @param {string[]} sentences - The recent completed sentences
  * @param {number} threshold - Occurrences above which a sentence is looping
  * @param {number} similarityThreshold - Minimum similarity to count as a repeat
  * @returns {boolean} True when a similar sentence repeats
  */
 export function hasSimilarSentence(sentences, threshold, similarityThreshold) {
-	const normalized = sentences.map(normalize);
-	for (let i = 0; i < normalized.length; i++) {
-		let count = 0;
-		for (let j = 0; j < normalized.length; j++) {
-			if (similarity(normalized[i], normalized[j]) >= similarityThreshold) count++;
+	const prepared = meaningful(sentences).map(prepare);
+	const counts = prepared.map(() => 1);
+	for (let i = 0; i < prepared.length; i++) {
+		for (let j = i + 1; j < prepared.length; j++) {
+			if (!isRepeat(prepared[i], prepared[j], similarityThreshold)) continue;
+			counts[i]++;
+			counts[j]++;
 		}
-		if (count > threshold) return true;
+		if (counts[i] > threshold) return true;
+	}
+	return false;
+}
+
+/**
+ * Look for a run of 1..`maxPeriod` sentences repeated back-to-back at the end of
+ * `sentences`, more than `threshold` times (the sentence counterpart of
+ * `hasRepeatedWords`). Copies match when they are the same sentence or a garbled
+ * variant (see `isRepeat`). Lines with no letters or digits are ignored. The cost is
+ * at most `maxPeriod * threshold` comparisons, so it is bounded by the window.
+ * @param {string[]} sentences - The recent completed sentences
+ * @param {number} threshold - Back-to-back repeats above which a loop is flagged
+ * @param {number} similarityThreshold - Minimum similarity to count as a repeat
+ * @param {number} [maxPeriod=DEFAULT_MAX_LOOP_SENTENCES] - Longest loop, in sentences
+ * @returns {boolean} True when the tail is one sentence run repeated more than `threshold` times
+ */
+export function hasRepeatedSentences(
+	sentences,
+	threshold,
+	similarityThreshold,
+	maxPeriod = DEFAULT_MAX_LOOP_SENTENCES,
+) {
+	const prepared = meaningful(sentences).map(prepare);
+	const n = prepared.length;
+	for (let period = 1; period <= maxPeriod && period * (threshold + 1) <= n; period++) {
+		let match = true;
+		for (let i = 0; i < period * threshold && match; i++) {
+			match = isRepeat(prepared[n - 1 - i], prepared[n - 1 - i - period], similarityThreshold);
+		}
+		if (match) return true;
 	}
 	return false;
 }
 
 /**
  * Look for a run of words repeated back-to-back at the end of `words`. This
- * covers loops with no sentence terminator at all, such as "ok ok ok ok".
- * @param {string[]} words - The recent completed words
+ * covers loops with no sentence terminator at all, such as "ok ok ok ok". Words with
+ * no letters or digits (`});`, `|`, `---`) are skipped, as they are in the sentence checks.
+ * @param {string[]} allWords - The recent completed words
  * @param {number} threshold - Back-to-back repeats above which a loop is flagged
  * @returns {boolean} True when the tail is one word run repeated more than `threshold` times
  */
-export function hasRepeatedWords(words, threshold) {
+export function hasRepeatedWords(allWords, threshold) {
+	const words = allWords.filter((word) => normalize(word) !== "");
 	const needed = threshold + 1;
 	const n = words.length;
 	const last = words[n - 1];
@@ -205,11 +300,19 @@ export function hasRepeatedWords(words, threshold) {
  * @param {string[]} task.words - Recent completed words
  * @param {number} task.threshold - Repeats above which a loop is flagged
  * @param {number} [task.similarityThreshold=0.85] - Minimum sentence similarity to count a garbled repeat
+ * @param {number} [task.maxLoopSentences=5] - Longest sentence loop to detect, in sentences
  * @returns {boolean} True when the stream is looping
  */
-export function checkLoop({ sentences, words, threshold, similarityThreshold = 0.85 }) {
+export function checkLoop({
+	sentences,
+	words,
+	threshold,
+	similarityThreshold = 0.85,
+	maxLoopSentences = DEFAULT_MAX_LOOP_SENTENCES,
+}) {
 	return (
 		hasDuplicateSentence(sentences, threshold) ||
+		hasRepeatedSentences(sentences, threshold, similarityThreshold, maxLoopSentences) ||
 		hasRepeatedWords(words, threshold) ||
 		hasSimilarSentence(sentences, threshold, similarityThreshold)
 	);

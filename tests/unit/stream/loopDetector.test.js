@@ -168,7 +168,13 @@ describe("createSegmentLoopDetector (worker-backed)", () => {
 				return false;
 			},
 		};
-		const d = createSegmentLoopDetector({ runner: spy, windowSize: 5, wordWindowSize: 12 });
+		const d = createSegmentLoopDetector({
+			runner: spy,
+			windowSize: 5,
+			maxLoopSentences: 1,
+			threshold: 2,
+			wordWindowSize: 12,
+		});
 		for (let i = 0; i < 100; i++) {
 			d.push("reasoning", `Unique sentence number ${i} here. `);
 			await d.settle();
@@ -177,6 +183,44 @@ describe("createSegmentLoopDetector (worker-backed)", () => {
 		assert.ok(last.sentences.length <= 5, `sentences ${last.sentences.length}`);
 		assert.ok(last.words.length <= 12, `words ${last.words.length}`);
 		assert.strictEqual(last.sentences.at(-1), "Unique sentence number 99 here.");
+	});
+
+	it("widens the sentence window to hold threshold + 1 copies of the longest loop", async () => {
+		const seen = [];
+		const spy = {
+			run: async (task) => {
+				seen.push(task);
+				return false;
+			},
+		};
+		const d = createSegmentLoopDetector({ runner: spy, windowSize: 20, threshold: 10 });
+		for (let i = 0; i < 200; i++) {
+			d.push("reasoning", `Unique sentence number ${i} here. `);
+			await d.settle();
+		}
+		// max(20, 5 * (10 + 1)) = 55
+		assert.strictEqual(seen.at(-1).sentences.length, 55);
+		assert.strictEqual(seen.at(-1).maxLoopSentences, 5);
+		assert.strictEqual(seen.at(-1).similarityThreshold, 0.85);
+	});
+
+	it("passes configured similarityThreshold and maxLoopSentences to the worker task", async () => {
+		const seen = [];
+		const spy = {
+			run: async (task) => {
+				seen.push(task);
+				return false;
+			},
+		};
+		const d = createSegmentLoopDetector({
+			runner: spy,
+			similarityThreshold: 0.9,
+			maxLoopSentences: 3,
+		});
+		d.push("reasoning", "One sentence here. ");
+		await d.settle();
+		assert.strictEqual(seen[0].similarityThreshold, 0.9);
+		assert.strictEqual(seen[0].maxLoopSentences, 3);
 	});
 
 	it("sends the worker a bounded task however long the stream gets", async () => {
