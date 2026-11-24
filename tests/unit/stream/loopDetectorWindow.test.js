@@ -60,17 +60,21 @@ describe("loopDetection config schema", () => {
 		assert.strictEqual(cfg.escalationCount, 3);
 		assert.strictEqual(cfg.escalationWindowMs, 60000);
 		assert.strictEqual(cfg.minChain, 3);
-		assert.strictEqual(cfg.maxChain, 4);
+		assert.strictEqual(cfg.maxChain, 8);
+		assert.strictEqual(cfg.maxRun, 50);
 	});
 
-	it("defaults minChain to 3 and maxChain to 4 and rejects non-positive or fractional values", () => {
+	it("defaults minChain to 3, maxChain to 8 and maxRun to 50 and rejects non-positive or fractional values", () => {
 		assert.strictEqual(LoopDetectionSchema.parse({}).minChain, 3);
-		assert.strictEqual(LoopDetectionSchema.parse({}).maxChain, 4);
+		assert.strictEqual(LoopDetectionSchema.parse({}).maxChain, 8);
+		assert.strictEqual(LoopDetectionSchema.parse({}).maxRun, 50);
 		assert.strictEqual(LoopDetectionSchema.parse({ minChain: 2 }).minChain, 2);
 		assert.strictEqual(LoopDetectionSchema.parse({ maxChain: 5 }).maxChain, 5);
+		assert.strictEqual(LoopDetectionSchema.parse({ maxRun: 20 }).maxRun, 20);
 		for (const bad of [0, -1, 2.5]) {
 			assert.throws(() => LoopDetectionSchema.parse({ minChain: bad }), `${bad}`);
 			assert.throws(() => LoopDetectionSchema.parse({ maxChain: bad }), `${bad}`);
+			assert.throws(() => LoopDetectionSchema.parse({ maxRun: bad }), `${bad}`);
 		}
 	});
 

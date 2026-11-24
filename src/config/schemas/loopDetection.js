@@ -37,12 +37,14 @@ export const LoopDetectionSchema = z
 		// Accumulated stream text older than this many ms is dropped, so past
 		// content cannot cause false positives as new content streams in.
 		ttlMs: z.number().int().positive().default(60000),
-		// A word chain must recur more than this many times to flag a loop.
+		// A word chain or repeated run must recur more than this many times to flag a loop.
 		threshold: z.number().int().positive().default(2),
-		// Shortest word chain length to detect.
+		// Shortest recurring word chain length to detect.
 		minChain: z.number().int().positive().default(3),
-		// Longest word chain length to detect.
-		maxChain: z.number().int().positive().default(4),
+		// Longest recurring word chain length to detect.
+		maxChain: z.number().int().positive().default(8),
+		// Longest repeated run unit, in words, to detect (stutter and phrase loops).
+		maxRun: z.number().int().positive().default(50),
 		// Whether loop detection also applies to subagent reasoning streams.
 		subagent: z.boolean().default(true),
 		// Strike, within the escalation window, that compacts the context instead of

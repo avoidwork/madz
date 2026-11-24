@@ -60,7 +60,8 @@ loopDetection:
   enabled: true
   escalationCount: 3
   escalationWindowMs: 60000
-  maxChain: 4
+  maxChain: 8
+  maxRun: 50
   maxStreams: 4
   maxThreads: 4
   minChain: 3

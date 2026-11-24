@@ -3,6 +3,7 @@ import assert from "node:assert";
 import {
 	checkLoop,
 	hasRepeatedChain,
+	hasRepeatedRun,
 	normalize,
 	takeWords,
 } from "../../../src/stream/loopCheck.js";
@@ -100,6 +101,46 @@ describe("hasRepeatedChain", () => {
 	});
 });
 
+describe("hasRepeatedRun", () => {
+	const w = (s) => s.split(" ");
+
+	it("flags a single word repeated back-to-back (stutter)", () => {
+		assert.strictEqual(hasRepeatedRun(w("Ottawa Ottawa Ottawa Ottawa"), 2), true);
+		assert.strictEqual(hasRepeatedRun(w("Ottawa Ottawa"), 2), false);
+	});
+
+	it("flags a phrase repeated back-to-back", () => {
+		const text = "Turn off phone notifications so you don't get distracted. ".repeat(3);
+		assert.strictEqual(hasRepeatedRun(w(text), 2), true);
+	});
+
+	it("flags a multi-word unit repeated back-to-back", () => {
+		assert.strictEqual(hasRepeatedRun(w("a b c a b c a b c"), 2), true);
+	});
+
+	it("does not flag a unit that is not back-to-back", () => {
+		assert.strictEqual(hasRepeatedRun(w("a b c x a b c y a b c"), 2), false);
+	});
+
+	it("does not flag distinct prose", () => {
+		const text =
+			"The quick brown fox jumps over the lazy dog near the riverbank. " +
+			"The weather today is warm and sunny with a light breeze. " +
+			"We should consider the budget carefully before committing to the plan.";
+		assert.strictEqual(hasRepeatedRun(w(text), 2), false);
+	});
+
+	it("honours a higher threshold", () => {
+		assert.strictEqual(hasRepeatedRun(w("ok ok ok ok"), 4), false);
+		assert.strictEqual(hasRepeatedRun(w("ok ok ok ok ok"), 4), true);
+	});
+
+	it("does not flag an empty or short list", () => {
+		assert.strictEqual(hasRepeatedRun([], 2), false);
+		assert.strictEqual(hasRepeatedRun(w("a b c"), 2), false);
+	});
+});
+
 describe("checkLoop", () => {
 	it("is true for a recurring chain and false otherwise", () => {
 		assert.strictEqual(
@@ -124,6 +165,18 @@ describe("checkLoop", () => {
 			"For the tool implementation, I am mirroring the jira pattern. " +
 			"The tools to read from the cached config object. " +
 			"Tests can inject a policy through options to override the cached config.";
+		assert.strictEqual(checkLoop({ words: text.split(" "), threshold: 2 }), true);
+	});
+
+	it("flags a word stutter", () => {
+		assert.strictEqual(
+			checkLoop({ words: "Ottawa Ottawa Ottawa Ottawa".split(" "), threshold: 2 }),
+			true,
+		);
+	});
+
+	it("flags a phrase loop", () => {
+		const text = "Turn off phone notifications so you don't get distracted. ".repeat(3);
 		assert.strictEqual(checkLoop({ words: text.split(" "), threshold: 2 }), true);
 	});
 });

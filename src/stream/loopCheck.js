@@ -5,11 +5,18 @@
  * running. Kept free of I/O so the worker thread and the unit tests run the
  * exact same code.
  *
- * A loop is a short word chain (3-4 words) that recurs across the stream more
- * than `threshold` times. This catches a model that keeps rephrasing the same
- * thought in different sentences across multiple paragraphs — the chains
- * repeat even though no whole sentence is identical. It is deliberately simple:
- * no fuzzy or garbled matching, no sentence-level comparison.
+ * Two loop shapes are detected, both over the recent word window:
+ * - A recurring chain: a word sequence of `minChain`..`maxChain` words that
+ *   recurs more than `threshold` times anywhere in the window. This catches a
+ *   model that keeps rephrasing the same thought in different sentences across
+ *   multiple paragraphs — the chains repeat even though no whole sentence is
+ *   identical.
+ * - A repeated run: a unit of 1..`maxRun` words repeated back-to-back more than
+ *   `threshold` times. This catches stuttering ("Ottawa, Ottawa, Ottawa") and
+ *   phrase/paragraph loops ("Turn off phone notifications... " repeated).
+ *
+ * It is deliberately simple: no fuzzy or garbled matching, no sentence-level
+ * comparison.
  */
 
 /**
@@ -51,10 +58,10 @@ export function normalize(word) {
  * @param {string[]} words - The recent completed words
  * @param {number} threshold - Occurrences above which a chain is looping
  * @param {number} [minChain=3] - Shortest chain length to detect
- * @param {number} [maxChain=4] - Longest chain length to detect
+ * @param {number} [maxChain=8] - Longest chain length to detect
  * @returns {boolean} True when a chain recurs more than `threshold` times
  */
-export function hasRepeatedChain(words, threshold, minChain = 3, maxChain = 4) {
+export function hasRepeatedChain(words, threshold, minChain = 3, maxChain = 8) {
 	const tokens = words.map(normalize).filter(Boolean);
 	for (let n = minChain; n <= maxChain; n++) {
 		const counts = new Map();
@@ -69,14 +76,53 @@ export function hasRepeatedChain(words, threshold, minChain = 3, maxChain = 4) {
 }
 
 /**
+ * Look for a unit of 1..`maxRun` words repeated back-to-back more than
+ * `threshold` times anywhere in `words`. This catches stuttering ("Ottawa,
+ * Ottawa, Ottawa") and phrase/paragraph loops ("Turn off phone notifications...
+ * " repeated). Units are compared as exact normalized token sequences. Words
+ * with no letters or digits are dropped, as they are structure, not content.
+ * @param {string[]} words - The recent completed words
+ * @param {number} threshold - Back-to-back repeats above which a run is looping
+ * @param {number} [maxRun=50] - Longest unit, in words, to detect
+ * @returns {boolean} True when a unit repeats back-to-back more than `threshold` times
+ */
+export function hasRepeatedRun(words, threshold, maxRun = 50) {
+	const tokens = words.map(normalize).filter(Boolean);
+	const n = tokens.length;
+	const copies = threshold + 1;
+	for (let unit = 1; unit <= maxRun; unit++) {
+		const needed = unit * copies;
+		if (needed > n) break;
+		for (let i = 0; i + needed <= n; i++) {
+			let ok = true;
+			for (let c = 1; c < copies; c++) {
+				for (let k = 0; k < unit; k++) {
+					if (tokens[i + k] !== tokens[i + c * unit + k]) {
+						ok = false;
+						break;
+					}
+				}
+				if (!ok) break;
+			}
+			if (ok) return true;
+		}
+	}
+	return false;
+}
+
+/**
  * Check the recent words for a loop.
  * @param {Object} task - The check
  * @param {string[]} task.words - Recent completed words
- * @param {number} task.threshold - Occurrences above which a chain is looping
- * @param {number} [task.minChain=3] - Shortest chain length to detect
- * @param {number} [task.maxChain=4] - Longest chain length to detect
+ * @param {number} task.threshold - Occurrences above which a loop is flagged
+ * @param {number} [task.minChain=3] - Shortest recurring chain length to detect
+ * @param {number} [task.maxChain=8] - Longest recurring chain length to detect
+ * @param {number} [task.maxRun=50] - Longest repeated run unit, in words, to detect
  * @returns {boolean} True when the stream is looping
  */
-export function checkLoop({ words, threshold, minChain = 3, maxChain = 4 }) {
-	return hasRepeatedChain(words, threshold, minChain, maxChain);
+export function checkLoop({ words, threshold, minChain = 3, maxChain = 8, maxRun = 50 }) {
+	return (
+		hasRepeatedChain(words, threshold, minChain, maxChain) ||
+		hasRepeatedRun(words, threshold, maxRun)
+	);
 }

@@ -55,9 +55,10 @@ export async function destroyPool() {
  *
  * @param {Object} [options] - Options
  * @param {number} [options.wordWindowSize=2090] - Recent completed words kept and compared
- * @param {number} [options.threshold=2] - Occurrences above which a chain is flagged
- * @param {number} [options.minChain=3] - Shortest chain length to detect
- * @param {number} [options.maxChain=4] - Longest chain length to detect
+ * @param {number} [options.threshold=2] - Occurrences above which a loop is flagged
+ * @param {number} [options.minChain=3] - Shortest recurring chain length to detect
+ * @param {number} [options.maxChain=8] - Longest recurring chain length to detect
+ * @param {number} [options.maxRun=50] - Longest repeated run unit, in words, to detect
  * @param {number} [options.maxStreams=4] - Streams tracked at once; the least recently updated is evicted
  * @param {number} [options.maxThreads=4] - Maximum worker threads in the shared pool
  * @param {number} [options.ttlMs] - State older than this is dropped (no expiry when unset)
@@ -68,7 +69,8 @@ export async function destroyPool() {
 export function createSegmentLoopDetector(options = {}) {
 	const threshold = options.threshold ?? 2;
 	const minChain = options.minChain ?? 3;
-	const maxChain = options.maxChain ?? 4;
+	const maxChain = options.maxChain ?? 8;
+	const maxRun = options.maxRun ?? 50;
 	const wordWindowSize = options.wordWindowSize ?? 2090;
 	const maxStreams = options.maxStreams ?? 4;
 	const maxThreads = options.maxThreads ?? 4;
@@ -159,6 +161,7 @@ export function createSegmentLoopDetector(options = {}) {
 			threshold,
 			minChain,
 			maxChain,
+			maxRun,
 		};
 		state.inflight = Promise.resolve(runner.run(task))
 			.then((looping) => {

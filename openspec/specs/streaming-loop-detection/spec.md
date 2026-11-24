@@ -108,10 +108,10 @@ The system SHALL integrate the sentence sampler into `callReactAgentStreaming()`
 - **THEN** the sampler state is cleaned up and no memory leaks occur
 
 ### Requirement: Word Chain Loop Detection
-The system SHALL flag a loop when a word chain of `loopDetection.minChain` (default 3) to `loopDetection.maxChain` (default 4) words recurs more than `loopDetection.threshold` times anywhere in the recent word window. Chains are compared as exact normalized token sequences, so they are found across sentence and paragraph boundaries, not just back-to-back at the tail. This catches a model that keeps rephrasing the same thought in different sentences across multiple paragraphs, where no whole sentence is identical.
+The system SHALL flag a loop when a word chain of `loopDetection.minChain` (default 3) to `loopDetection.maxChain` (default 8) words recurs more than `loopDetection.threshold` times anywhere in the recent word window. Chains are compared as exact normalized token sequences, so they are found across sentence and paragraph boundaries, not just back-to-back at the tail. This catches a model that keeps rephrasing the same thought in different sentences across multiple paragraphs, where no whole sentence is identical.
 
 #### Scenario: A recurring word chain is flagged as a loop
-- **WHEN** the stream repeats a 3-4 word chain more than `threshold` times across different sentences and paragraphs
+- **WHEN** the stream repeats a 3-8 word chain more than `threshold` times across different sentences and paragraphs
 - **THEN** the loop detector flags the stream as looping
 
 #### Scenario: Distinct prose is not flagged
@@ -121,6 +121,21 @@ The system SHALL flag a loop when a word chain of `loopDetection.minChain` (defa
 #### Scenario: Chain length is configurable
 - **WHEN** `loopDetection.minChain` and `loopDetection.maxChain` are configured
 - **THEN** the loop detector uses those values to decide which chain lengths to compare
+
+### Requirement: Repeated Run Loop Detection
+The system SHALL flag a loop when a unit of 1 to `loopDetection.maxRun` (default 50) words is repeated back-to-back more than `loopDetection.threshold` times anywhere in the recent word window. This catches word stuttering ("Ottawa, Ottawa, Ottawa") and phrase/paragraph loops ("Turn off phone notifications... " repeated). Units are compared as exact normalized token sequences.
+
+#### Scenario: A word stutter is flagged as a loop
+- **WHEN** the stream repeats a single word back-to-back more than `threshold` times
+- **THEN** the loop detector flags the stream as looping
+
+#### Scenario: A phrase loop is flagged as a loop
+- **WHEN** the stream repeats a phrase back-to-back more than `threshold` times
+- **THEN** the loop detector flags the stream as looping
+
+#### Scenario: Run length is configurable
+- **WHEN** `loopDetection.maxRun` is configured
+- **THEN** the loop detector uses that value to decide the longest unit to compare
 
 ### Requirement: Subagent Reasoning Loop Detection
 The system SHALL apply loop detection to subagent reasoning streams in addition to the main agent loop, so that a subagent repeating the same reasoning without making progress is detected and its stream abandoned. Subagent reasoning SHALL be keyed per subagent so concurrent subagents do not share detector state, and subagent loop detection SHALL be toggleable via configuration.

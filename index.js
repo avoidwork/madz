@@ -311,6 +311,7 @@ async function runAgent(input, threadExtras, streamingCallback, signal) {
 					threshold: loopConfig.threshold,
 					minChain: loopConfig.minChain,
 					maxChain: loopConfig.maxChain,
+					maxRun: loopConfig.maxRun,
 					ttlMs: loopConfig.ttlMs,
 				});
 	const stream = await agent.stream(input, {

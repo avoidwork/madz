@@ -184,7 +184,7 @@ describe("createSegmentLoopDetector (worker-backed)", () => {
 		assert.strictEqual(last.words.at(-1), "here.");
 	});
 
-	it("passes configured minChain and maxChain to the worker task", async () => {
+	it("passes configured minChain, maxChain and maxRun to the worker task", async () => {
 		const seen = [];
 		const spy = {
 			run: async (task) => {
@@ -196,11 +196,13 @@ describe("createSegmentLoopDetector (worker-backed)", () => {
 			runner: spy,
 			minChain: 2,
 			maxChain: 5,
+			maxRun: 20,
 		});
 		d.push("reasoning", "One sentence here. ");
 		await d.settle();
 		assert.strictEqual(seen[0].minChain, 2);
 		assert.strictEqual(seen[0].maxChain, 5);
+		assert.strictEqual(seen[0].maxRun, 20);
 	});
 
 	it("sends the worker a bounded task however long the stream gets", async () => {
