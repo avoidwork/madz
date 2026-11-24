@@ -305,13 +305,12 @@ async function runAgent(input, threadExtras, streamingCallback, signal) {
 		loopConfig.enabled === false
 			? undefined
 			: createSegmentLoopDetector({
-					windowSize: loopConfig.windowSize,
 					wordWindowSize: loopConfig.wordWindowSize,
 					maxStreams: loopConfig.maxStreams,
 					maxThreads: loopConfig.maxThreads,
 					threshold: loopConfig.threshold,
-					similarityThreshold: loopConfig.similarityThreshold,
-					maxLoopSentences: loopConfig.maxLoopSentences,
+					minChain: loopConfig.minChain,
+					maxChain: loopConfig.maxChain,
 					ttlMs: loopConfig.ttlMs,
 				});
 	const stream = await agent.stream(input, {

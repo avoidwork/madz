@@ -134,7 +134,7 @@ const SHAPES = [
 	["two sentences", sentences(FIRST_PARAGRAPH).slice(0, 2).join(" "), " "],
 	["one sentence", sentences(FIRST_PARAGRAPH)[0], " "],
 	["one sentence (newline separated)", sentences(FIRST_PARAGRAPH)[0], "\n"],
-	["'ok ' with no punctuation", "ok", " "],
+	["'ok ' with no punctuation", "ok ", " "],
 	["a short phrase with no punctuation", "let me check that", " "],
 ];
 const SIZES = [

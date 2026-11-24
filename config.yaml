@@ -60,14 +60,13 @@ loopDetection:
   enabled: true
   escalationCount: 3
   escalationWindowMs: 60000
-  maxLoopSentences: 5
+  maxChain: 4
   maxStreams: 4
   maxThreads: 4
-  similarityThreshold: 0.85
+  minChain: 3
   subagent: true
   threshold: 10
   ttlMs: 60000
-  windowSize: 20
   wordWindowSize: 2090
 memory:
   checkpointsDir: memory/checkpoints/

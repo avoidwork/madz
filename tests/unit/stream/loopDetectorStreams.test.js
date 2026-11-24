@@ -75,13 +75,15 @@ describe("per-stream detection", () => {
 		d.push("message", "ok ", 0);
 		d.push("message", "ok ", "0");
 		d.push("message", "ok ", 0);
+		d.push("message", "ok ", "0");
+		d.push("message", "ok ", 0);
 		assert.strictEqual(await d.settle(), true);
 	});
 
 	it("treats id 0 as a real stream, not as 'no id'", async () => {
 		const d = detector();
-		for (let i = 0; i < 3; i++) d.push("reasoning", "ok ", 0);
-		for (let i = 0; i < 3; i++) d.push("reasoning", "different ");
+		for (let i = 0; i < 5; i++) d.push("reasoning", "ok ", 0);
+		for (let i = 0; i < 5; i++) d.push("reasoning", "different ");
 		assert.strictEqual(await d.settle(), true, "stream 0 looped");
 	});
 
@@ -91,6 +93,8 @@ describe("per-stream detection", () => {
 		d.push("reasoning", "ok", "a");
 		d.push("reasoning", "zzz ", "b");
 		d.push("reasoning", " ok", "a");
+		d.push("reasoning", " ok ", "a");
+		d.push("reasoning", " ok ", "a");
 		d.push("reasoning", " ok ", "a");
 		assert.strictEqual(await d.settle(), true);
 	});
@@ -151,6 +155,8 @@ describe("tracked stream limit", () => {
 		d.push("reasoning", "ok ", "busy"); // refreshes 'busy'
 		d.push("reasoning", "y ", "c"); // evicts 'b', not 'busy'
 		d.push("reasoning", "ok ", "busy");
+		d.push("reasoning", "ok ", "busy");
+		d.push("reasoning", "ok ", "busy");
 		assert.strictEqual(await d.settle(), true);
 	});
 
@@ -177,7 +183,9 @@ describe("tracked stream limit", () => {
 		clock = 120; // a is stale (120 > 100), b is not (70)
 		d.push("reasoning", "ok ", "a");
 		d.push("reasoning", "ok ", "b");
-		assert.strictEqual(await d.settle(), true, "b kept its history and reached 3");
+		d.push("reasoning", "ok ", "b");
+		d.push("reasoning", "ok ", "b");
+		assert.strictEqual(await d.settle(), true, "b kept its history and reached 5");
 	});
 });
 

@@ -131,6 +131,8 @@ describe("a loop is still caught across message boundaries", () => {
 		const stream = (async function* () {
 			yield ev(think("A", "ok "));
 			yield ev(think("A", "ok "));
+			yield ev(think("A", "ok "));
+			yield ev(think("A", "ok "));
 			yield ev(think("A", "ok ", { response_metadata: { finish_reason: "stop" } }));
 		})();
 		const result = await consumeStream(stream, undefined, { loopDetector: d });

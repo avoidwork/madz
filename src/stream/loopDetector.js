@@ -1,7 +1,7 @@
 import { Piscina } from "piscina";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { DEFAULT_MAX_LOOP_SENTENCES, takeSentences, takeWords } from "./loopCheck.js";
+import { takeWords } from "./loopCheck.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -35,33 +35,29 @@ export async function destroyPool() {
 /**
  * Create a streaming loop detector.
  *
- * Each streamed delta is split once, as it arrives, into completed sentences
- * and words. State is kept per stream: the key is the kind (reasoning, message)
- * plus the stream's id, so concurrent streams never mix and detection is
- * restricted to the one stream a delta belongs to. A delta with no id (Chat
- * Completions `reasoning_content`) is keyed by kind alone. At most `maxStreams`
- * streams are tracked at once; the least recently updated is evicted. A looping
- * stream is by definition receiving deltas, so it is never the one evicted; the
- * cap only matters when more than `maxStreams` streams are live at the same
- * moment. Only the last N sentences and `wordWindowSize` words are kept, where N is
- * `max(windowSize, maxLoopSentences * (threshold + 1))` so the window always holds
- * `threshold + 1` copies of the longest sentence loop. Memory and the cost of a check
- * stay bounded however long the stream runs, and the provider's delta boundaries do
- * not matter. A loop is a sentence repeated within the sentence window, a run of up to
- * `maxLoopSentences` sentences repeated back-to-back, or a run of words repeated
- * back-to-back (for loops with no sentence terminator, such as "ok ok ok").
+ * Each streamed delta is split once, as it arrives, into completed words. State
+ * is kept per stream: the key is the kind (reasoning, message) plus the stream's
+ * id, so concurrent streams never mix and detection is restricted to the one
+ * stream a delta belongs to. A delta with no id (Chat Completions
+ * `reasoning_content`) is keyed by kind alone. At most `maxStreams` streams are
+ * tracked at once; the least recently updated is evicted. A looping stream is by
+ * definition receiving deltas, so it is never the one evicted; the cap only
+ * matters when more than `maxStreams` streams are live at the same moment. Only
+ * the last `wordWindowSize` words are kept, so memory and the cost of a check
+ * stay bounded however long the stream runs, and the provider's delta boundaries
+ * do not matter. A loop is a word chain of `minChain`..`maxChain` words that
+ * recurs more than `threshold` times anywhere in the window, so it is found
+ * across sentence and paragraph boundaries, not just back-to-back at the tail.
  *
  * The check runs in a worker thread so it never blocks the main loop. `push`
  * returns immediately with the latest known result. A check starts only when a
- * delta completed a new sentence or word, and at most one check per stream is in
- * flight.
+ * delta completed a new word, and at most one check per stream is in flight.
  *
  * @param {Object} [options] - Options
- * @param {number} [options.windowSize=20] - Minimum recent completed sentences kept and compared
- * @param {number} [options.maxLoopSentences=5] - Longest back-to-back sentence loop to detect
  * @param {number} [options.wordWindowSize=2090] - Recent completed words kept and compared
- * @param {number} [options.threshold=2] - Repeats above which a loop is flagged
- * @param {number} [options.similarityThreshold=0.85] - Minimum sentence similarity to count a garbled repeat
+ * @param {number} [options.threshold=2] - Occurrences above which a chain is flagged
+ * @param {number} [options.minChain=3] - Shortest chain length to detect
+ * @param {number} [options.maxChain=4] - Longest chain length to detect
  * @param {number} [options.maxStreams=4] - Streams tracked at once; the least recently updated is evicted
  * @param {number} [options.maxThreads=4] - Maximum worker threads in the shared pool
  * @param {number} [options.ttlMs] - State older than this is dropped (no expiry when unset)
@@ -71,11 +67,9 @@ export async function destroyPool() {
  */
 export function createSegmentLoopDetector(options = {}) {
 	const threshold = options.threshold ?? 2;
-	const maxLoopSentences = options.maxLoopSentences ?? DEFAULT_MAX_LOOP_SENTENCES;
-	// The window must hold threshold + 1 copies of the longest sentence loop.
-	const windowSize = Math.max(options.windowSize ?? 20, maxLoopSentences * (threshold + 1));
+	const minChain = options.minChain ?? 3;
+	const maxChain = options.maxChain ?? 4;
 	const wordWindowSize = options.wordWindowSize ?? 2090;
-	const similarityThreshold = options.similarityThreshold ?? 0.85;
 	const maxStreams = options.maxStreams ?? 4;
 	const maxThreads = options.maxThreads ?? 4;
 	const ttlMs = options.ttlMs;
@@ -84,14 +78,12 @@ export function createSegmentLoopDetector(options = {}) {
 
 	/**
 	 * @typedef {Object} KindState
-	 * @property {string} pending - Unfinished sentence text
 	 * @property {string} partialWord - Unfinished word
-	 * @property {string[] | null} sentences - Last `windowSize` completed sentences (null once released)
 	 * @property {string[] | null} words - Last `wordWindowSize` completed words (null once released)
 	 * @property {number} ts - Time of the last delta
 	 * @property {boolean} flagged - A check has flagged a loop
 	 * @property {Promise<void> | null} inflight - The running check, if any
-	 * @property {number} version - Bumped when a sentence or word completes
+	 * @property {number} version - Bumped when a word completes
 	 * @property {boolean} dead - The state was replaced, evicted or reset; in-flight answers are stale
 	 */
 	/** @type {Map<string, KindState>} Insertion order is recency order, oldest first. */
@@ -99,9 +91,7 @@ export function createSegmentLoopDetector(options = {}) {
 
 	function freshState() {
 		return {
-			pending: "",
 			partialWord: "",
-			sentences: [],
 			words: [],
 			ts: now(),
 			flagged: false,
@@ -112,19 +102,16 @@ export function createSegmentLoopDetector(options = {}) {
 	}
 
 	/**
-	 * Release a stream's state: clear its word and sentence lists and null them so
-	 * the memory is freed even while a closure (an in-flight check) still holds the
-	 * state object. A released state is dead, so any in-flight answer is ignored.
+	 * Release a stream's state: clear its word list and null it so the memory is
+	 * freed even while a closure (an in-flight check) still holds the state
+	 * object. A released state is dead, so any in-flight answer is ignored.
 	 * @param {KindState} state - State to release
 	 * @returns {void}
 	 */
 	function release(state) {
 		state.dead = true;
-		state.pending = "";
 		state.partialWord = "";
-		if (state.sentences) state.sentences.length = 0;
 		if (state.words) state.words.length = 0;
-		state.sentences = null;
 		state.words = null;
 	}
 
@@ -160,7 +147,7 @@ export function createSegmentLoopDetector(options = {}) {
 	}
 
 	/**
-	 * Start a worker check on a kind's recent sentences and words, unless one is running.
+	 * Start a worker check on a kind's recent words, unless one is running.
 	 * @param {KindState} state - Kind state
 	 * @returns {void}
 	 */
@@ -168,11 +155,10 @@ export function createSegmentLoopDetector(options = {}) {
 		if (state.inflight) return;
 		const checkedVersion = state.version;
 		const task = {
-			sentences: state.sentences.slice(),
 			words: state.words.slice(),
 			threshold,
-			similarityThreshold,
-			maxLoopSentences,
+			minChain,
+			maxChain,
 		};
 		state.inflight = Promise.resolve(runner.run(task))
 			.then((looping) => {
@@ -184,7 +170,7 @@ export function createSegmentLoopDetector(options = {}) {
 			})
 			.finally(() => {
 				state.inflight = null;
-				// Sentences or words completed while checking: check again so the tail is covered.
+				// Words completed while checking: check again so the tail is covered.
 				if (!state.dead && !state.flagged && state.version !== checkedVersion) {
 					startCheck(state);
 				}
@@ -211,22 +197,14 @@ export function createSegmentLoopDetector(options = {}) {
 			}
 			state.ts = nowMs;
 
-			// Split only the new text. The unfinished tail is carried forward.
-			const joined = state.pending + delta;
-			const { sentences, rest } = takeSentences(joined, state.pending.length);
-			state.pending = rest;
 			const { words, rest: partialWord } = takeWords(state.partialWord, delta);
 			state.partialWord = partialWord;
 
-			if (sentences.length > 0) {
-				state.sentences.push(...sentences);
-				trim(state.sentences, windowSize);
-			}
 			if (words.length > 0) {
 				state.words.push(...words);
 				trim(state.words, wordWindowSize);
 			}
-			if (sentences.length > 0 || words.length > 0) {
+			if (words.length > 0) {
 				state.version++;
 				if (!state.flagged) startCheck(state);
 			}
@@ -254,7 +232,7 @@ export function createSegmentLoopDetector(options = {}) {
 
 		/**
 		 * Release a single stream's state (called when a subagent's reasoning turn
-		 * ends), so its lists are freed without disturbing any other stream.
+		 * ends), so its list is freed without disturbing any other stream.
 		 * @param {string} kind - Stream kind, e.g. "reasoning" or "message"
 		 * @param {string | number} [id] - The stream's id; a stream with no id is keyed by kind alone
 		 * @returns {void}
@@ -270,7 +248,7 @@ export function createSegmentLoopDetector(options = {}) {
 
 		/**
 		 * End a message turn: collect the verdict of any check still running (the
-		 * last deltas may have started one), then release every stream's lists. The
+		 * last deltas may have started one), then release every stream's list. The
 		 * verdict is read before the release, so a loop in the final deltas of the
 		 * message is not lost.
 		 * @returns {Promise<boolean>} True when a loop was flagged during the message
