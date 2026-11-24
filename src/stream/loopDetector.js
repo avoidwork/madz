@@ -1,7 +1,7 @@
 import { Piscina } from "piscina";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { takeSentences, takeWords } from "./loopCheck.js";
+import { DEFAULT_MAX_LOOP_SENTENCES, takeSentences, takeWords } from "./loopCheck.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -43,12 +43,13 @@ export async function destroyPool() {
  * streams are tracked at once; the least recently updated is evicted. A looping
  * stream is by definition receiving deltas, so it is never the one evicted; the
  * cap only matters when more than `maxStreams` streams are live at the same
- * moment. Only the last `windowSize` sentences
- * and `wordWindowSize` words are kept, so memory and the cost of a check stay
- * bounded however long the stream runs, and the provider's delta boundaries do
- * not matter. A loop is a sentence repeated within the sentence window, or a
- * run of words repeated back-to-back (for loops with no sentence terminator,
- * such as "ok ok ok").
+ * moment. Only the last N sentences and `wordWindowSize` words are kept, where N is
+ * `max(windowSize, maxLoopSentences * (threshold + 1))` so the window always holds
+ * `threshold + 1` copies of the longest sentence loop. Memory and the cost of a check
+ * stay bounded however long the stream runs, and the provider's delta boundaries do
+ * not matter. A loop is a sentence repeated within the sentence window, a run of up to
+ * `maxLoopSentences` sentences repeated back-to-back, or a run of words repeated
+ * back-to-back (for loops with no sentence terminator, such as "ok ok ok").
  *
  * The check runs in a worker thread so it never blocks the main loop. `push`
  * returns immediately with the latest known result. A check starts only when a
@@ -56,8 +57,9 @@ export async function destroyPool() {
  * flight.
  *
  * @param {Object} [options] - Options
- * @param {number} [options.windowSize=20] - Recent completed sentences kept and compared
- * @param {number} [options.wordWindowSize=1000] - Recent completed words kept and compared
+ * @param {number} [options.windowSize=20] - Minimum recent completed sentences kept and compared
+ * @param {number} [options.maxLoopSentences=5] - Longest back-to-back sentence loop to detect
+ * @param {number} [options.wordWindowSize=2090] - Recent completed words kept and compared
  * @param {number} [options.threshold=2] - Repeats above which a loop is flagged
  * @param {number} [options.similarityThreshold=0.85] - Minimum sentence similarity to count a garbled repeat
  * @param {number} [options.maxStreams=4] - Streams tracked at once; the least recently updated is evicted
@@ -68,9 +70,11 @@ export async function destroyPool() {
  * @returns {{ push: (kind: string, delta: string, id?: string | number) => boolean, settle: () => Promise<boolean>, end: () => Promise<boolean>, reset: () => void, release: (kind: string, id?: string | number) => void, size: () => number }} Detector
  */
 export function createSegmentLoopDetector(options = {}) {
-	const windowSize = options.windowSize ?? 20;
-	const wordWindowSize = options.wordWindowSize ?? 1000;
 	const threshold = options.threshold ?? 2;
+	const maxLoopSentences = options.maxLoopSentences ?? DEFAULT_MAX_LOOP_SENTENCES;
+	// The window must hold threshold + 1 copies of the longest sentence loop.
+	const windowSize = Math.max(options.windowSize ?? 20, maxLoopSentences * (threshold + 1));
+	const wordWindowSize = options.wordWindowSize ?? 2090;
 	const similarityThreshold = options.similarityThreshold ?? 0.85;
 	const maxStreams = options.maxStreams ?? 4;
 	const maxThreads = options.maxThreads ?? 4;
@@ -168,6 +172,7 @@ export function createSegmentLoopDetector(options = {}) {
 			words: state.words.slice(),
 			threshold,
 			similarityThreshold,
+			maxLoopSentences,
 		};
 		state.inflight = Promise.resolve(runner.run(task))
 			.then((looping) => {

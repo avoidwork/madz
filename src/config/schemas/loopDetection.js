@@ -5,10 +5,14 @@ import { z } from "zod";
  *
  * When `enabled` is false, no loop detection occurs. When enabled, each
  * streamed delta is split once, as it arrives, into completed sentences and
- * words per kind (reasoning, message), and only the last `windowSize` sentences
- * and `wordWindowSize` words are kept. A loop is a sentence repeated more than
- * `threshold` times within the sentence window, or a run of words repeated
- * back-to-back more than `threshold` times (loops with no punctuation). State
+ * words per kind (reasoning, message), and only the last sentences and
+ * `wordWindowSize` words are kept. The sentence window is
+ * `max(windowSize, maxLoopSentences * (threshold + 1))`. A loop is a sentence
+ * repeated more than `threshold` times within the sentence window, a run of up to
+ * `maxLoopSentences` sentences repeated back-to-back more than `threshold` times, or
+ * a run of words repeated back-to-back more than `threshold` times (loops with no
+ * punctuation). Lines with no letters or digits (`});`, `---`) never count, and
+ * sentences that differ in a number are not repeats. State
  * is kept per stream (a kind plus an id), at most `maxStreams` at once. The
  * stream is then abandoned and the TUI sends a silent "You're looping" nudge.
  * If `escalationCount` nudges occur within `escalationWindowMs`, the context is
@@ -17,13 +21,22 @@ import { z } from "zod";
 export const LoopDetectionSchema = z
 	.object({
 		enabled: z.boolean().default(true),
-		// Number of recent completed sentences compared for duplicates.
+		// Minimum number of recent completed sentences compared for duplicates. The
+		// effective window is raised to `maxLoopSentences * (threshold + 1)` if larger.
 		windowSize: z.number().int().positive().default(20),
+		// Longest back-to-back sentence loop (in sentences) to detect. The user's
+		// requirement is loops of 4-5 sentences, hence 5.
+		maxLoopSentences: z.number().int().positive().default(5),
 		// Number of recent completed words compared for a back-to-back repeat (loops
 		// with no sentence terminator, such as "ok ok ok"). Must hold `threshold + 1`
-		// copies of the longest repeating unit: the two-paragraph capture is 190
-		// words, so 3 copies need 570.
-		wordWindowSize: z.number().int().positive().default(1000),
+		// copies of the longest repeating unit, so a unit of U words needs
+		// U * (threshold + 1) words. The 190-word two-paragraph capture needs 570 at
+		// the default threshold of 2 and 2090 at the production threshold of 10, so
+		// the default is 2090: it holds three copies at threshold 2 and eleven at
+		// threshold 10. Raise this alongside `threshold` if longer unpunctuated
+		// loops matter; sentence-terminated loops are covered by the sentence
+		// window instead.
+		wordWindowSize: z.number().int().positive().default(2090),
 		// Maximum number of streams (a kind plus an id) tracked at once. Two live at
 		// the same moment is the realistic edge case; 4 leaves headroom. Streams that
 		// are done are released, so a long turn with hundreds of sequential messages

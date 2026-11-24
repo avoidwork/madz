@@ -175,3 +175,28 @@ The system SHALL apply loop detection to subagent message streams in addition to
 #### Scenario: Subagent message loop surfaces through the loop-detected signal
 - **WHEN** a subagent message loop is detected
 - **THEN** the loop-detected signal is returned so the orchestrator can nudge, escalate, or abort the subagent
+
+### Requirement: Multi-Sentence Loop Detection
+The system SHALL flag a loop when a run of 1 to `loopDetection.maxLoopSentences` (default 5) sentences repeats back-to-back at the end of the sentence list more than `loopDetection.threshold` times, comparing copies by exact match or by the similarity threshold. The sentence window SHALL be at least `maxLoopSentences * (threshold + 1)`, i.e. `max(windowSize, maxLoopSentences * (threshold + 1))`. The cost of a check SHALL be bounded by the window.
+
+#### Scenario: Multi-sentence loop is flagged
+- **WHEN** a unit of 2 to 5 distinct sentences is repeated more than `threshold` times in a row
+- **THEN** the loop detector flags the stream as looping
+
+### Requirement: Legitimate Repetitive Output Is Not Flagged
+The system SHALL NOT count lines with no letters or digits (such as `});` or `| --- | --- |`) toward loop detection, SHALL NOT treat sentences that differ in a numeric token as repeats, and SHALL match one-per-line paths and identifiers only exactly (never by similarity). Exact repeats of prose sentences SHALL still be detected.
+
+#### Scenario: Structural lines are not a loop
+- **WHEN** a stream contains more than `threshold` lines such as `});` or markdown table separator rows
+- **THEN** the loop detector does not flag the stream
+
+#### Scenario: Numbered sentences are not a loop
+- **WHEN** a stream contains sentences identical except for a number (e.g. `Step N of the process completed successfully now.`)
+- **THEN** the loop detector does not flag the stream
+
+### Requirement: Loop Detection Tunables Reach the Detector
+The system SHALL pass `loopDetection.similarityThreshold` and `loopDetection.maxLoopSentences` from configuration to the loop detector.
+
+#### Scenario: Configured similarity threshold is used
+- **WHEN** `loopDetection.similarityThreshold` is configured
+- **THEN** the detector's worker task carries that value

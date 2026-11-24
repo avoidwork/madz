@@ -33,8 +33,8 @@ async function flaggedWithWordWindow(wordWindowSize, copies) {
 }
 
 describe("loopDetection config schema", () => {
-	it("defaults wordWindowSize to 1000", () => {
-		assert.strictEqual(LoopDetectionSchema.parse({}).wordWindowSize, 1000);
+	it("defaults wordWindowSize to 2090", () => {
+		assert.strictEqual(LoopDetectionSchema.parse({}).wordWindowSize, 2090);
 	});
 
 	it("accepts a configured wordWindowSize", () => {
@@ -62,6 +62,14 @@ describe("loopDetection config schema", () => {
 		assert.strictEqual(cfg.ttlMs, 60000);
 		assert.strictEqual(cfg.escalationCount, 3);
 		assert.strictEqual(cfg.escalationWindowMs, 60000);
+	});
+
+	it("defaults maxLoopSentences to 5 and rejects non-positive or fractional values", () => {
+		assert.strictEqual(LoopDetectionSchema.parse({}).maxLoopSentences, 5);
+		assert.strictEqual(LoopDetectionSchema.parse({ maxLoopSentences: 3 }).maxLoopSentences, 3);
+		for (const bad of [0, -1, 2.5]) {
+			assert.throws(() => LoopDetectionSchema.parse({ maxLoopSentences: bad }), `${bad}`);
+		}
 	});
 
 	it("defaults subagent to true", () => {
@@ -130,12 +138,12 @@ describe("wordWindowSize is big enough for the captured loop", () => {
 		assert.ok(WORDS.length * 3 > 200, `3 copies = ${WORDS.length * 3} words`);
 	});
 
-	it("the default 1000 holds three copies of the two-paragraph passage", () => {
-		assert.ok(WORDS.length * 3 <= 1000, `3 copies = ${WORDS.length * 3} words`);
+	it("the default 2090 holds eleven copies (threshold 10 + 1) of the two-paragraph passage", () => {
+		assert.ok(WORDS.length * 11 <= 2090, `11 copies = ${WORDS.length * 11} words`);
 	});
 
 	it("catches the two-paragraph loop with no punctuation at the default size", async () => {
-		assert.strictEqual(await flaggedWithWordWindow(1000, 4), true);
+		assert.strictEqual(await flaggedWithWordWindow(2090, 4), true);
 	});
 
 	it("misses the same loop when the window is too small to hold three copies", async () => {
