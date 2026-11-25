@@ -321,6 +321,10 @@ export const MessageList = React.memo(
 				dataRef.current = new Map();
 				contentRef.current = new Map();
 				lastMsgCountRef.current = 0;
+				// Invalidate the render-data cache. It is keyed on message count, so a
+				// clear() followed by an addMessage() in the same batch (as /new does)
+				// can land on an unchanged count and skip rebuilding the list.
+				prevRenderCountRef.current = -1;
 				triggerRender();
 			},
 
