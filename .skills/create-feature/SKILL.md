@@ -2,7 +2,7 @@
 name: create-feature
 description: Orchestrates a complete feature lifecycle: receive goals, synthesize specs, propose via OpenSpec, commit specs to PR, apply tasks, commit implementation, archive, update PR, and post audit results. Creates an isolated git worktree for each run.
 license: BSD 3-Clause
-compatibility: Requires Node.js 24+, npm, git with remote access, gh CLI, openspec CLI, and a project root with openspec/ directory. Requires git worktree support. When invoked as a sub-agent, requires a 30–60 minute timeout — the full pipeline (spec → PR → implement → archive → update PR) can take that long.
+compatibility: Requires Node.js 24+, npm, git with remote access, and gh CLI. OpenSpec is used only when the project root has an openspec/ directory; the openspec CLI is always installed and is never a signal. Requires git worktree support. When invoked as a sub-agent, requires a 30–60 minute timeout — the full pipeline (spec → PR → implement → archive → update PR) can take that long.
 metadata:
   agent: coding
 ---
@@ -16,10 +16,21 @@ Orchestrate a complete feature lifecycle from raw goals to shipped code. This is
 ## Prerequisites
 
 Before starting, ensure:
-- You are in the project root directory (contains `package.json`, `openspec/`)
+- You are in the project root directory (contains `package.json`)
 - `gh` CLI is authenticated and configured
-- `openspec` CLI is available
 - The current branch is `main` (or will be checked out at step 0)
+
+## OpenSpec Detection
+
+Whether this run uses OpenSpec is decided by exactly one signal: **the project root has an `openspec/` directory.** The `openspec` CLI is always installed, so its presence says nothing about the project and must never be checked or used as a signal.
+
+```bash
+if [ -d "$(git rev-parse --show-toplevel)/openspec" ]; then USE_OPENSPEC=true; else USE_OPENSPEC=false; fi
+echo "USE_OPENSPEC=$USE_OPENSPEC"
+```
+
+- **`USE_OPENSPEC=true`:** run every step as written.
+- **`USE_OPENSPEC=false`:** skip Step 4, Step 5, Step 6, the `openspec-apply-change` portion of Step 7, and the archive portion of Step 10. Implement the detailed goals from Step 1 directly, and run the other steps as written. Step 6.5 takes its source files from the Step 1 goals instead of `tasks.md`. Step 9 audits against the Step 1 goals only. Step 7.5 and the `commit-push` in Step 10 create the PR when none exists yet, since Step 6 did not.
 
 ## Input Parsing
 
