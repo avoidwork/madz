@@ -18,7 +18,7 @@ Orchestrate a complete feature lifecycle from raw goals to shipped code. This is
 Before starting, ensure:
 - You are in the project root directory (contains `package.json`, `openspec/`)
 - `gh` CLI is authenticated and configured
-- `openspec` CLI is available
+- The project uses OpenSpec — **detected by the presence of an `openspec/` directory in the project root.** Do NOT use the `openspec` CLI as this signal: the CLI is baked into the container and is always present, so its availability tells you nothing about whether *this project* uses OpenSpec. If the `openspec/` directory is absent, the project does not use OpenSpec and this skill must not run.
 - The current branch is `main` (or will be checked out at step 0)
 
 ## Input Parsing
@@ -58,6 +58,16 @@ if [ -z "$GH_REPO" ]; then
   exit 1
 fi
 echo "GH_REPO=$GH_REPO"
+```
+
+**Determine whether this project uses OpenSpec.** The signal is the presence of an `openspec/` directory in the project root — *not* the `openspec` CLI, which is baked into the container and is always present, so its availability tells you nothing about this project. If the directory is absent, the project does not use OpenSpec and this skill must not run.
+
+```bash
+if [ ! -d "$PROJECT_ROOT/openspec" ]; then
+  echo "ERROR: No 'openspec/' directory in project root ($PROJECT_ROOT). This project does not use OpenSpec; create-feature must not run."
+  exit 1
+fi
+echo "OpenSpec detected: openspec/ directory present in project root."
 ```
 
 **Create a dedicated worktree directory as a sibling of the repo root.** Placing it *outside* the repo (e.g., `madz.worktrees/` next to `madz/`) avoids nesting a git repository inside the main working tree. A nested worktree is a known git footgun: it shows up as a nested repo to `git status`/`git clean`, and requires a `.gitignore` entry to hide it. A sibling directory keeps the repo pristine — no ignore entry needed, `git clean -fdx` is a no-op, and the worktree is still tracked normally via the `.git` file pointing back into the repo's `.git/worktrees/`.
