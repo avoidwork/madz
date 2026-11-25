@@ -18,7 +18,6 @@ Orchestrate a complete feature lifecycle from raw goals to shipped code. This is
 Before starting, ensure:
 - You are in the project root directory (contains `package.json`, `openspec/`)
 - `gh` CLI is authenticated and configured
-- The project uses OpenSpec — **detected by the presence of an `openspec/` directory in the project root.** Do NOT use the `openspec` CLI as this signal: the CLI is baked into the container and is always present, so its availability tells you nothing about whether *this project* uses OpenSpec. If the `openspec/` directory is absent, the project does not use OpenSpec and this skill must not run.
 - The current branch is `main` (or will be checked out at step 0)
 
 ## Input Parsing
