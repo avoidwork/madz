@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useMemo } from "react";
 import { Box, Text, useInput } from "ink";
 
 /** Maximum number of visible options in the picker list. */
@@ -101,25 +101,27 @@ export function replaceCommandToken(value, tokenStart, tokenEnd, command) {
 export function CommandPicker({ value, onChange, onClose, commandList = [] }) {
 	const [cursor, setCursor] = useState(value.length);
 	const [selectedIndex, setSelectedIndex] = useState(0);
-	const commandListRef = useRef(commandList);
-
-	// Keep the command list in a ref so the filter can read the latest value
-	// without re-deriving on every render.
-	useEffect(() => {
-		commandListRef.current = commandList;
-	}, [commandList]);
+	// Sorted copy of the command list, derived once per commandList change so
+	// the filter never re-sorts on every keystroke. Computed synchronously via
+	// useMemo (not an effect) so the initial render and synchronous render
+	// paths (e.g. renderToString in tests) see the sorted list immediately.
+	const sortedCommandList = useMemo(
+		() => [...commandList].sort((a, b) => a.localeCompare(b)),
+		[commandList],
+	);
 
 	const { filter, tokenStart, tokenEnd } = useMemo(
 		() => deriveCommandFilter(value, cursor),
 		[value, cursor],
 	);
 
-	// Filter the command list in JS (substring match, case-insensitive).
+	// Filter the command list in JS (prefix match, case-insensitive). Prefix
+	// matching means 'ex' matches 'exit' but not 'openspec-explore'.
 	const filteredCommands = useMemo(() => {
 		const needle = filter.toLowerCase();
-		if (!needle) return commandListRef.current;
-		return commandListRef.current.filter((c) => c.toLowerCase().includes(needle));
-	}, [filter]);
+		if (!needle) return sortedCommandList;
+		return sortedCommandList.filter((c) => c.toLowerCase().startsWith(needle));
+	}, [filter, sortedCommandList]);
 
 	// Clamp selected index when the filtered list shrinks.
 	const clampedIndex = Math.min(selectedIndex, Math.max(0, filteredCommands.length - 1));
