@@ -229,8 +229,28 @@ export const JiraInputSchema = z
 			.object({
 				url: z.string().min(1).describe("Remote link URL (required to create a remote link)"),
 				title: z.string().min(1).describe("Remote link title (required to create a remote link)"),
-				icon: z.string().optional().describe("Remote link icon URL"),
-				status: z.string().optional().describe("Remote link status"),
+				icon: z
+					.object({
+						url16x16: z.string().optional().describe("Icon URL (16x16)"),
+						title: z.string().optional().describe("Icon title"),
+						link: z.string().optional().describe("Icon link URL"),
+					})
+					.optional()
+					.describe("Remote link icon"),
+				status: z
+					.object({
+						resolved: z.boolean().optional().describe("Whether the linked object is resolved"),
+						icon: z
+							.object({
+								url16x16: z.string().optional().describe("Icon URL (16x16)"),
+								title: z.string().optional().describe("Icon title"),
+								link: z.string().optional().describe("Icon link URL"),
+							})
+							.optional()
+							.describe("Status icon"),
+					})
+					.optional()
+					.describe("Remote link status"),
 			})
 			.optional()
 			.describe(

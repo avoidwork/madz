@@ -464,7 +464,7 @@ describe("jira remote links", () => {
 		});
 	});
 
-	it("creates a remote link with icon and status", async () => {
+	it("creates a remote link with icon and status objects", async () => {
 		const { fetch, calls } = stub([res({ status: 201, body: "{}" })]);
 		const r = await jiraImpl(
 			{
@@ -473,8 +473,8 @@ describe("jira remote links", () => {
 				link: {
 					url: "https://github.com/x",
 					title: "PR",
-					icon: "https://i.example.com/i.png",
-					status: "done",
+					icon: { url16x16: "https://i.example.com/i.png", title: "PR icon" },
+					status: { resolved: true, icon: { url16x16: "https://i.example.com/s.png" } },
 				},
 			},
 			withUrl({ fetch }),
@@ -484,10 +484,25 @@ describe("jira remote links", () => {
 			object: {
 				url: "https://github.com/x",
 				title: "PR",
-				icon: "https://i.example.com/i.png",
-				status: "done",
+				icon: { url16x16: "https://i.example.com/i.png", title: "PR icon" },
+				status: { resolved: true, icon: { url16x16: "https://i.example.com/s.png" } },
 			},
 		});
+	});
+
+	it("rejects a link with a string icon or status", async () => {
+		const { fetch, calls } = stub([res({ body: "{}" })]);
+		const r = await jiraImpl(
+			{
+				action: "remoteLinks",
+				key: "PROJ-1",
+				link: { url: "https://x", title: "PR", icon: "https://i.png" },
+			},
+			withUrl({ fetch }),
+		);
+		assert.strictEqual(r.ok, false);
+		assert.match(r.error, /Invalid input/);
+		assert.strictEqual(calls.length, 0);
 	});
 
 	it("requires a key to list remote links", async () => {
