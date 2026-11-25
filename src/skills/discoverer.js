@@ -222,12 +222,14 @@ async function findSkillFiles(dir, bundled) {
  * @param {object} [options] - Discovery options
  * @param {string} [options.cwd] - Directory that relative scope paths resolve against
  * @param {boolean} [options.bundledSkills=true] - Whether to load bundled `.skills/` skills. When `false`,
- *   only the `reflection` skill is loaded from the `.skills/` scope; user skills in `skills/` are unaffected.
+ *   only the `reflection` skill plus any skill named in `bundledSkillOverrides` is loaded from the `.skills/`
+ *   scope; user skills in `skills/` are unaffected.
+ * @param {string[]} [options.bundledSkillOverrides=[]] - Bundled skill names to keep when `bundledSkills` is `false`.
  * @returns {Promise<Array<{ path: string, name: string, bundled: boolean, metadata: Object }>>}
  */
 export async function discoverSkills(scope = defaultScope, options = {}) {
 	const cwdParam = options.cwd || cwd;
-	const { bundledSkills = true } = options;
+	const { bundledSkills = true, bundledSkillOverrides = [] } = options;
 	const allSkills = [];
 	const indexByName = new Map();
 
@@ -242,10 +244,13 @@ export async function discoverSkills(scope = defaultScope, options = {}) {
 		const bundled = basename(fullScope) === BUNDLED_SCOPE_DIR;
 		let skills = await findSkillFiles(fullScope, bundled);
 
-		// When bundled skills are disabled, only the `reflection` skill is loaded
-		// from the bundled scope. User skills are unaffected.
+		// When bundled skills are disabled, only the `reflection` skill plus any
+		// skill named in the override list is loaded from the bundled scope.
+		// User skills are unaffected.
 		if (!bundledSkills && bundled) {
-			skills = skills.filter((skill) => skill.name === "reflection");
+			skills = skills.filter(
+				(skill) => skill.name === "reflection" || bundledSkillOverrides.includes(skill.name),
+			);
 		}
 
 		for (const skill of skills) {

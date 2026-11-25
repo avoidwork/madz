@@ -206,4 +206,98 @@ describe("discoverSkills bundledSkills filtering", () => {
 		assert.strictEqual(skills.length, 1);
 		assert.strictEqual(skills[0].name, "my-skill");
 	});
+
+	it("loads reflection plus overridden skills when bundledSkills is false", async () => {
+		const systemDir = join(testDir, ".skills");
+		mkdirSync(join(systemDir, "reflection"), { recursive: true });
+		mkdirSync(join(systemDir, "commit-push"), { recursive: true });
+		writeFileSync(
+			join(systemDir, "reflection", "SKILL.md"),
+			"---\nname: reflection\ndescription: A reflection skill\n---\n\nBody",
+		);
+		writeFileSync(
+			join(systemDir, "commit-push", "SKILL.md"),
+			"---\nname: commit-push\ndescription: A commit skill\n---\n\nBody",
+		);
+
+		const skills = await discoverSkills([".skills"], {
+			bundledSkills: false,
+			bundledSkillOverrides: ["commit-push"],
+		});
+		assert.strictEqual(skills.length, 2);
+		assert.deepStrictEqual(skills.map((skill) => skill.name).sort(), ["commit-push", "reflection"]);
+	});
+
+	it("loads only reflection when bundledSkills is false and overrides are empty", async () => {
+		const systemDir = join(testDir, ".skills");
+		mkdirSync(join(systemDir, "reflection"), { recursive: true });
+		mkdirSync(join(systemDir, "commit-push"), { recursive: true });
+		writeFileSync(
+			join(systemDir, "reflection", "SKILL.md"),
+			"---\nname: reflection\ndescription: A reflection skill\n---\n\nBody",
+		);
+		writeFileSync(
+			join(systemDir, "commit-push", "SKILL.md"),
+			"---\nname: commit-push\ndescription: A commit skill\n---\n\nBody",
+		);
+
+		const skills = await discoverSkills([".skills"], {
+			bundledSkills: false,
+			bundledSkillOverrides: [],
+		});
+		assert.strictEqual(skills.length, 1);
+		assert.strictEqual(skills[0].name, "reflection");
+	});
+
+	it("ignores bundledSkillOverrides when bundledSkills is true", async () => {
+		const systemDir = join(testDir, ".skills");
+		mkdirSync(join(systemDir, "reflection"), { recursive: true });
+		mkdirSync(join(systemDir, "commit-push"), { recursive: true });
+		writeFileSync(
+			join(systemDir, "reflection", "SKILL.md"),
+			"---\nname: reflection\ndescription: A reflection skill\n---\n\nBody",
+		);
+		writeFileSync(
+			join(systemDir, "commit-push", "SKILL.md"),
+			"---\nname: commit-push\ndescription: A commit skill\n---\n\nBody",
+		);
+
+		const skills = await discoverSkills([".skills"], {
+			bundledSkills: true,
+			bundledSkillOverrides: ["commit-push"],
+		});
+		assert.strictEqual(skills.length, 2);
+	});
+
+	it("loads reflection once even when listed in bundledSkillOverrides", async () => {
+		const systemDir = join(testDir, ".skills");
+		mkdirSync(join(systemDir, "reflection"), { recursive: true });
+		writeFileSync(
+			join(systemDir, "reflection", "SKILL.md"),
+			"---\nname: reflection\ndescription: A reflection skill\n---\n\nBody",
+		);
+
+		const skills = await discoverSkills([".skills"], {
+			bundledSkills: false,
+			bundledSkillOverrides: ["reflection"],
+		});
+		assert.strictEqual(skills.length, 1);
+		assert.strictEqual(skills[0].name, "reflection");
+	});
+
+	it("ignores a non-existent skill in bundledSkillOverrides", async () => {
+		const systemDir = join(testDir, ".skills");
+		mkdirSync(join(systemDir, "reflection"), { recursive: true });
+		writeFileSync(
+			join(systemDir, "reflection", "SKILL.md"),
+			"---\nname: reflection\ndescription: A reflection skill\n---\n\nBody",
+		);
+
+		const skills = await discoverSkills([".skills"], {
+			bundledSkills: false,
+			bundledSkillOverrides: ["does-not-exist"],
+		});
+		assert.strictEqual(skills.length, 1);
+		assert.strictEqual(skills[0].name, "reflection");
+	});
 });
