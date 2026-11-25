@@ -43,13 +43,21 @@ export class SkillRegistry {
 	 * results with their errors.
 	 * @param {string[]} [scope] - Array of directories to scan (defaults to sandbox.skillScanPaths from config)
 	 * @param {object} [options] - Discovery options
-	 * @param {boolean} [options.bundledSkills=true] - When `false`, only the `reflection` skill is loaded from `.skills/`
+	 * @param {boolean} [options.bundledSkills=true] - When `false`, only the `reflection` skill plus any skill named in
+	 *   `bundledSkillOverrides` is loaded from `.skills/`
+	 * @param {string[]} [options.bundledSkillOverrides=[]] - Bundled skill names to keep when `bundledSkills` is `false`
 	 * @returns {Promise<Array<{ name: string, errors: string[], warnings: string[] }>>} Registration results
 	 */
 	async discover(scope = defaultScope, options = {}) {
 		// Default bundledSkills from config when not explicitly passed.
 		const bundledSkills = options.bundledSkills ?? config.agent?.bundledSkills ?? true;
-		const discovered = await discoverSkills(scope, { ...options, bundledSkills });
+		const bundledSkillOverrides =
+			options.bundledSkillOverrides ?? config.agent?.bundledSkillOverrides ?? [];
+		const discovered = await discoverSkills(scope, {
+			...options,
+			bundledSkills,
+			bundledSkillOverrides,
+		});
 		const results = [];
 		const found = new Set();
 

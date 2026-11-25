@@ -1,6 +1,7 @@
 agent:
   autoContinueLimit: 1000 # max silent "Continue" nudges when a turn ends on reasoning or a tool message
   bundledSkills: true     # false = only 'reflection' loaded from .skills/
+  bundledSkillOverrides: [] # only honored when bundledSkills is false; additive list of bundled skills to keep
   decision:
     baseUrl: ""           # empty = tool not registered
     model: tev1:4b

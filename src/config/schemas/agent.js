@@ -11,5 +11,6 @@ export const AgentSchema = z.object({
 	sampling: z.boolean().default(true),
 	silent: z.boolean().default(false),
 	bundledSkills: z.boolean().default(true),
+	bundledSkillOverrides: z.array(z.string()).default([]),
 	autoContinueLimit: z.number().int().positive().default(1000),
 });
