@@ -23,6 +23,7 @@ import {
 	calibratedContextSize,
 	getContextInputTokens,
 	getContextOverhead,
+	resetContextCalibration,
 } from "../provider/contextCalibration.js";
 
 /**
@@ -729,11 +730,16 @@ const ConversationArea = forwardRef(function ConversationArea(
 		autoContinueCountRef.current = 0;
 		loopNudgesRef.current = [];
 		messageListRef.current?.clear();
-		// Recompute the context size for the fresh thread rather than hard-setting
-		// 0. The system prompt (SYSTEM_PROMPT.md + AGENTS.md + memory context) is
-		// still in the window even with an empty conversation, so the counter must
-		// reflect that baseline — not a misleading 0.
-		await updateContextSize(sessionState, config);
+		// A new session starts with an empty context meter. Drop the prior
+		// thread's provider-reported calibration (otherwise the meter would hold
+		// the old value) and cancel any pending debounced update that could
+		// overwrite the reset.
+		resetContextCalibration();
+		if (contextUpdateTimerRef.current) {
+			clearTimeout(contextUpdateTimerRef.current);
+			contextUpdateTimerRef.current = null;
+		}
+		updateContextDisplay(0);
 		addMessage({
 			role: "system",
 			content: `New session started (thread: ${newSession.sessionId.slice(0, 8)}...).`,
