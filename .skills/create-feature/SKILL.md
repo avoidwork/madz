@@ -2,7 +2,7 @@
 name: create-feature
 description: Orchestrates a complete feature lifecycle: receive goals, synthesize specs, propose via OpenSpec, commit specs to PR, apply tasks, commit implementation, archive, update PR, and post audit results. Creates an isolated git worktree for each run.
 license: BSD 3-Clause
-compatibility: Requires Node.js 24+, npm, git with remote access, and gh CLI. OpenSpec is used only when the project root has an openspec/ directory; the openspec CLI is always installed and is never a signal. Requires git worktree support. When invoked as a sub-agent, requires a 30–60 minute timeout — the full pipeline (spec → PR → implement → archive → update PR) can take that long.
+compatibility: Requires git with remote access, and gh CLI. OpenSpec is used only when the project root has an openspec/ directory; the openspec CLI is always installed and is never a signal. Requires git worktree support. When invoked as a sub-agent, requires a 30–60 minute timeout — the full pipeline (spec → PR → implement → archive → update PR) can take that long.
 metadata:
   agent: coding
 ---
