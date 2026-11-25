@@ -114,11 +114,14 @@ export function CommandPicker({ value, onChange, onClose, commandList = [] }) {
 		[value, cursor],
 	);
 
-	// Filter the command list in JS (substring match, case-insensitive).
+	// Filter the command list in JS (prefix match, case-insensitive) and sort
+	// the results alphabetically so the picker reads cleanly. Prefix matching
+	// means 'ex' matches 'exit' but not 'openspec-explore'.
 	const filteredCommands = useMemo(() => {
 		const needle = filter.toLowerCase();
-		if (!needle) return commandListRef.current;
-		return commandListRef.current.filter((c) => c.toLowerCase().includes(needle));
+		const sorted = [...commandListRef.current].sort((a, b) => a.localeCompare(b));
+		if (!needle) return sorted;
+		return sorted.filter((c) => c.toLowerCase().startsWith(needle));
 	}, [filter]);
 
 	// Clamp selected index when the filtered list shrinks.

@@ -131,6 +131,38 @@ describe("CommandPicker render", () => {
 		);
 		assert.ok(result.includes("/confg"));
 	});
+
+	it("matches only commands whose name starts with the filter prefix", () => {
+		// 'ex' should match 'exit' but not 'openspec-explore'.
+		const result = renderToString(
+			React.createElement(CommandPicker, {
+				value: "/ex",
+				onChange: () => {},
+				onClose: () => {},
+				commandList: ["exit", "openspec-explore", "export"],
+			}),
+		);
+		assert.ok(result.includes("exit"));
+		assert.ok(result.includes("export"));
+		assert.ok(!result.includes("openspec-explore"));
+	});
+
+	it("sorts matching commands alphabetically", () => {
+		// The picker renders the visible commands in sorted order.
+		const result = renderToString(
+			React.createElement(CommandPicker, {
+				value: "/e",
+				onChange: () => {},
+				onClose: () => {},
+				commandList: ["export", "exit", "edit"],
+			}),
+		);
+		const editIdx = result.indexOf("edit");
+		const exitIdx = result.indexOf("exit");
+		const exportIdx = result.indexOf("export");
+		assert.ok(editIdx !== -1 && exitIdx !== -1 && exportIdx !== -1);
+		assert.ok(editIdx < exitIdx && exitIdx < exportIdx);
+	});
 });
 
 describe("shouldOpenCommandPicker", () => {
