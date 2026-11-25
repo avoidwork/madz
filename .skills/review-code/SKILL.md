@@ -1,10 +1,10 @@
 ---
 name: review-code
-description: Audits a directory tree for bugs, security vulnerabilities, and performance issues across the languages installed in the project Dockerfile (JavaScript/TypeScript, Python, Ruby, Go, Java, Rust, Terraform, Shell). Uses a deterministic per-language rule catalog with fixed severities and a weighted scoring rubric. Generates one consolidated issue per directory via /create-issue. Use when auditing a codebase for language-specific code quality.
+description: Audits a directory tree for bugs, security vulnerabilities, and performance issues across the languages installed in the project Dockerfile (JavaScript/TypeScript, Python, Ruby, Go, Java, Rust, Terraform, Shell). Uses a deterministic per-language rule catalog with fixed severities and a weighted scoring rubric. Generates one consolidated issue per target via /create-issue. Supports four input modes — a pull request (`/review-code pr <number>`), pending working-tree changes (`/review-code pending`, `--staged`, `--unstaged`), a named path (a single file or directory), and the default directory-tree discovery (`/review-code` with no target). Use when auditing a codebase for language-specific code quality.
 license: BSD 3-Clause
 compatibility: Supports JS/TS, Python, Ruby, Go, Java, Rust, Terraform, and Shell. Requires git CLI and gh CLI for issue creation, and the decision tool for grade assignment.
 metadata:
-  version: 2.5.0
+  version: 2.6.0
   target: .  # source directories are discovered within the cwd at runtime
   agent: code-review
 ---
@@ -169,6 +169,76 @@ STATE_FILE="${STATE_FILE_PATH:-review-state-${SESSION_ID}.md}"
 ## Phase Protocol
 
 ### Phase 0: Discovery
+
+0. **Parse the target argument.** Read the text after `/review-code` (the *target argument*) and classify it into exactly one of four modes. Validation runs before derivation.
+
+   ```bash
+   # The target argument is the text after /review-code.
+   TARGET="$1"   # e.g. "pr 42", "pending", "src/tools/web", or ""
+
+   # Reject unsafe URL schemes up front.
+   case "$TARGET" in
+     file://*|gopher://*|dict://*)
+       echo "ERROR: Unsafe URL scheme in target argument. Rejected."
+       exit 1 ;;
+   esac
+
+   # Classify the mode (first token wins).
+   FIRST_TOKEN=$(echo "$TARGET" | awk '{print $1}')
+   SECOND_TOKEN=$(echo "$TARGET" | awk '{print $2}')
+
+   case "$FIRST_TOKEN" in
+     pr)
+       # PR mode: the next token must be a numeric PR number.
+       if ! echo "$SECOND_TOKEN" | grep -qE '^[0-9]+$'; then
+         echo "ERROR: Invalid PR number '$SECOND_TOKEN'. Expected a numeric PR number."
+         exit 1
+       fi
+       MODE="pr"
+       PR_NUMBER="$SECOND_TOKEN"
+       ;;
+     pending|--staged|--unstaged)
+       MODE="pending"
+       PENDING_SCOPE="$FIRST_TOKEN"   # pending | --staged | --unstaged
+       ;;
+     "")
+       MODE="default"
+       ;;
+     *)
+       # Path mode: the target must resolve to an existing path within the repo root.
+       REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
+       if [ ! -e "$TARGET" ]; then
+         echo "WARNING: Target path '$TARGET' does not exist. Nothing to audit."
+         exit 0
+       fi
+       RESOLVED=$(realpath "$TARGET" 2>/dev/null || echo "$TARGET")
+       case "$RESOLVED" in
+         "$REPO_ROOT"/*) MODE="path"; TARGET_PATH="$RESOLVED" ;;
+         *)
+           echo "ERROR: Target path '$TARGET' resolves outside the repository root. Rejected."
+           exit 1 ;;
+       esac
+       ;;
+   esac
+   echo "MODE=$MODE"
+   ```
+
+   **Mode grammar (precedence, first token wins):**
+   - `pr <number>` → **PR mode** (number must match `^[0-9]+$`).
+   - `pending`, `--staged`, `--unstaged` → **pending-changes mode**.
+   - Any other token that resolves to an existing path within the repo root → **path mode** (a single file or directory).
+   - Empty → **default mode** (existing directory-tree discovery).
+
+   **Validation (runs before derivation):** a PR number must match `^[0-9]+$`; a path must exist and resolve within the repository root; inputs beginning with `file://`, `gopher://`, or `dict://` are rejected.
+
+   **File-set derivation per mode** — the derived file set becomes the phase queue; the audit engine (classification → catalog → rules → score → grade → issue) is identical across all modes.
+
+   - **PR mode:** derive the changed-file list via `gh pr view "$PR_NUMBER" --json files` and use `gh pr diff "$PR_NUMBER"` for context. Build the phase queue from that file set. **One issue per PR.** If the PR has no changed source files, report "nothing to audit" and produce no issue.
+   - **Pending-changes mode:** derive changed files via `git diff --staged --name-only` and/or `git diff --name-only` (scope set by `PENDING_SCOPE`: `--staged` → staged only, `--unstaged` → unstaged only, `pending` → both). Build the phase queue from that file set. **One issue for the pending changes.** If the working tree is clean, report "nothing to audit" and produce no issue.
+   - **Path mode:** accept a single directory OR a single file as the target; build the phase queue from just that path. **One issue for the path.** If the path does not exist, skip with a warning and produce no issue.
+   - **Default mode:** unchanged — the existing `find . -maxdepth 2` directory-tree discovery below (steps 3–6) applies.
+
+   For PR, pending-changes, and path modes, the derived file set replaces the directory enumeration in steps 3–6; the phase queue holds one entry per derived target (one issue per target). For default mode, steps 3–6 run unchanged.
 
 1. **Derive repository info** once at the start (used for all issue operations):
    ```bash
@@ -419,6 +489,10 @@ For each directory in the queue:
 - **clarify declined:** If the user declines to file an issue, skip issue creation and body update for that directory, update state, and continue to the next directory.
 - **Partial audit:** If some directories succeed and others fail, report what was accomplished. Never leave the audit half-done.
 - **Rate limit:** If GitHub API returns 403 rate limit, wait 60 seconds and retry once.
+- **PR with no changed source files:** In PR mode, if `gh pr view` returns no changed source files, report "nothing to audit" and produce no issue.
+- **Clean working tree in pending-changes mode:** If `git diff --staged --name-only` and `git diff --name-only` both return nothing, report "nothing to audit" and produce no issue.
+- **Non-existent path in path mode:** If the target path does not exist, skip with a warning and produce no issue.
+- **Invalid target argument:** Reject per the validation rules — a non-numeric PR number, a path that resolves outside the repository root, or an input beginning with `file://`, `gopher://`, or `dict://`.
 
 ## Gotchas
 
