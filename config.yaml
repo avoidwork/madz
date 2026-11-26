@@ -68,6 +68,8 @@ loopDetection:
   minChain: 5
   subagent: true
   threshold: 10
+  toolCallThreshold: 5
+  toolCallsEnabled: true
   ttlMs: 60000
   wordWindowSize: 2090
 memory:

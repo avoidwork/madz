@@ -290,6 +290,50 @@ describe("createSegmentLoopDetector (worker-backed)", () => {
 		assert.strictEqual(await d.settle(), true);
 		await destroyPool();
 	});
+
+	it("flags repeated identical tool calls via pushTool", async () => {
+		const d = detector({ toolCallThreshold: 3 });
+		for (let i = 0; i < 4; i++) d.pushTool("read", "file.txt");
+		assert.strictEqual(await d.settle(), true);
+	});
+
+	it("does not flag tool calls with an intervening state change", async () => {
+		const d = detector({ toolCallThreshold: 3 });
+		d.pushTool("read", "file.txt");
+		d.pushTool("read", "other.txt");
+		d.pushTool("read", "file.txt");
+		d.pushTool("read", "file.txt");
+		assert.strictEqual(await d.settle(), false);
+	});
+
+	it("does not flag a single tool call", async () => {
+		const d = detector({ toolCallThreshold: 3 });
+		d.pushTool("read", "file.txt");
+		assert.strictEqual(await d.settle(), false);
+	});
+
+	it("ignores invalid tool-call metadata", async () => {
+		const d = detector({ toolCallThreshold: 3 });
+		assert.strictEqual(d.pushTool("", "file.txt"), false);
+		assert.strictEqual(d.pushTool("read", ""), false);
+		assert.strictEqual(d.pushTool(undefined, "file.txt"), false);
+		assert.strictEqual(await d.settle(), false);
+	});
+
+	it("passes toolCallThreshold to the worker task", async () => {
+		const seen = [];
+		const spy = {
+			run: async (task) => {
+				seen.push(task);
+				return false;
+			},
+		};
+		const d = createSegmentLoopDetector({ runner: spy, toolCallThreshold: 5 });
+		d.pushTool("read", "file.txt");
+		await d.settle();
+		assert.strictEqual(seen[0].toolCallThreshold, 5);
+		assert.deepStrictEqual(seen[0].toolCalls, [{ name: "read", target: "file.txt" }]);
+	});
 });
 
 describe("consumeStream with loopDetector", () => {
@@ -412,5 +456,28 @@ describe("consumeStream with loopDetector", () => {
 			yield reasoning("hello");
 		})();
 		assert.strictEqual((await consumeStream(stream)).loopDetected, false);
+	});
+
+	it("feeds tool-call metadata to the detector and flags a repeated call", async () => {
+		const tool = (name, input) => [[], "tools", { event: "on_tool_start", name, input }];
+		const stream = (async function* () {
+			for (let i = 0; i < 4; i++) yield tool("read", "file.txt");
+		})();
+		const result = await consumeStream(stream, undefined, {
+			loopDetector: detector({ toolCallThreshold: 3 }),
+		});
+		assert.strictEqual(result.loopDetected, true);
+	});
+
+	it("does not feed tool-call metadata when toolCalls is disabled", async () => {
+		const tool = (name, input) => [[], "tools", { event: "on_tool_start", name, input }];
+		const stream = (async function* () {
+			for (let i = 0; i < 4; i++) yield tool("read", "file.txt");
+		})();
+		const result = await consumeStream(stream, undefined, {
+			loopDetector: detector({ toolCallThreshold: 3 }),
+			toolCalls: false,
+		});
+		assert.strictEqual(result.loopDetected, false);
 	});
 });
