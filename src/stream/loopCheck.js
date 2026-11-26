@@ -111,18 +111,57 @@ export function hasRepeatedRun(words, threshold, maxRun = 50) {
 }
 
 /**
- * Check the recent words for a loop.
+ * Look for a run of identical tool calls (same tool name + same target) that
+ * recurs more than `threshold` times with no state change between calls. A
+ * state change is a call whose name or target differs from the previous one,
+ * which resets the run. This is a distinct signal from the word-chain text
+ * detector: it observes tool-call metadata, which streamed text cannot.
+ * @param {Array<{name: string, target: string}>} toolCalls - Recent tool-call records
+ * @param {number} [threshold=3] - Consecutive identical calls above which a loop is flagged
+ * @returns {boolean} True when the same tool call recurs more than `threshold` times
+ */
+export function hasRepeatedToolCall(toolCalls, threshold = 3) {
+	let run = 0;
+	let prev = null;
+	for (const call of toolCalls) {
+		const name = call?.name;
+		const target = call?.target;
+		if (typeof name !== "string" || typeof target !== "string") continue;
+		if (name === prev?.name && target === prev?.target) {
+			run++;
+		} else {
+			run = 1;
+		}
+		if (run > threshold) return true;
+		prev = { name, target };
+	}
+	return false;
+}
+
+/**
+ * Check the recent words (and tool calls) for a loop.
  * @param {Object} task - The check
  * @param {string[]} task.words - Recent completed words
  * @param {number} task.threshold - Occurrences above which a loop is flagged
  * @param {number} [task.minChain=5] - Shortest recurring chain length to detect
  * @param {number} [task.maxChain=8] - Longest recurring chain length to detect
  * @param {number} [task.maxRun=50] - Longest repeated run unit, in words, to detect
+ * @param {Array<{name: string, target: string}>} [task.toolCalls] - Recent tool-call records
+ * @param {number} [task.toolCallThreshold=3] - Consecutive identical tool calls above which a loop is flagged
  * @returns {boolean} True when the stream is looping
  */
-export function checkLoop({ words, threshold, minChain = 5, maxChain = 8, maxRun = 50 }) {
+export function checkLoop({
+	words,
+	threshold,
+	minChain = 5,
+	maxChain = 8,
+	maxRun = 50,
+	toolCalls,
+	toolCallThreshold = 3,
+}) {
 	return (
 		hasRepeatedChain(words, threshold, minChain, maxChain) ||
-		hasRepeatedRun(words, threshold, maxRun)
+		hasRepeatedRun(words, threshold, maxRun) ||
+		(toolCalls?.length ? hasRepeatedToolCall(toolCalls, toolCallThreshold) : false)
 	);
 }

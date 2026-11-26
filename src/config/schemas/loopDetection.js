@@ -45,6 +45,12 @@ export const LoopDetectionSchema = z
 		maxChain: z.number().int().positive().default(8),
 		// Longest repeated run unit, in words, to detect (stutter and phrase loops).
 		maxRun: z.number().int().positive().default(50),
+		// Whether tool-call loop detection is enabled. When false, tool-call
+		// metadata is not evaluated for loops.
+		toolCallsEnabled: z.boolean().default(true),
+		// Consecutive identical tool calls (same name + same target) above which a
+		// loop is flagged. A state change between calls resets the run.
+		toolCallThreshold: z.number().int().positive().default(3),
 		// Whether loop detection also applies to subagent reasoning streams.
 		subagent: z.boolean().default(true),
 		// Strike, within the escalation window, that compacts the context instead of

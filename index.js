@@ -326,6 +326,7 @@ async function runAgent(input, threadExtras, streamingCallback, signal) {
 					minChain: loopConfig.minChain,
 					maxChain: loopConfig.maxChain,
 					maxRun: loopConfig.maxRun,
+					toolCallThreshold: loopConfig.toolCallThreshold,
 					ttlMs: loopConfig.ttlMs,
 				});
 	const stream = await agent.stream(input, {
@@ -343,6 +344,7 @@ async function runAgent(input, threadExtras, streamingCallback, signal) {
 			showToolResults,
 			loopDetector,
 			subagent: loopConfig.subagent !== false,
+			toolCalls: loopConfig.toolCallsEnabled !== false,
 			silent: config.agent?.silent === true,
 		});
 	return {

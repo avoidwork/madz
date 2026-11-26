@@ -4,6 +4,7 @@ import {
 	checkLoop,
 	hasRepeatedChain,
 	hasRepeatedRun,
+	hasRepeatedToolCall,
 	normalize,
 	takeWords,
 } from "../../../src/stream/loopCheck.js";
@@ -154,6 +155,55 @@ describe("hasRepeatedRun", () => {
 	});
 });
 
+describe("hasRepeatedToolCall", () => {
+	it("flags the same tool name and target repeated more than threshold times", () => {
+		const calls = Array.from({ length: 4 }, () => ({ name: "read", target: "file.txt" }));
+		assert.strictEqual(hasRepeatedToolCall(calls, 3), true);
+		assert.strictEqual(hasRepeatedToolCall(calls.slice(0, 3), 3), false);
+	});
+
+	it("does not flag calls with an intervening state change", () => {
+		const calls = [
+			{ name: "read", target: "file.txt" },
+			{ name: "read", target: "other.txt" },
+			{ name: "read", target: "file.txt" },
+			{ name: "read", target: "file.txt" },
+		];
+		assert.strictEqual(hasRepeatedToolCall(calls, 3), false);
+	});
+
+	it("does not flag calls to different targets", () => {
+		const calls = [
+			{ name: "read", target: "a.txt" },
+			{ name: "read", target: "b.txt" },
+			{ name: "read", target: "c.txt" },
+			{ name: "read", target: "d.txt" },
+		];
+		assert.strictEqual(hasRepeatedToolCall(calls, 3), false);
+	});
+
+	it("does not flag a single call", () => {
+		assert.strictEqual(hasRepeatedToolCall([{ name: "read", target: "file.txt" }], 3), false);
+	});
+
+	it("does not flag an empty list", () => {
+		assert.strictEqual(hasRepeatedToolCall([], 3), false);
+	});
+
+	it("ignores malformed tool-call records", () => {
+		const calls = [
+			{ name: "read", target: "file.txt" },
+			{ name: "read", target: "file.txt" },
+			{ name: "read", target: "file.txt" },
+			{ name: "read", target: "file.txt" },
+			{ name: "read" },
+			{ target: "file.txt" },
+			null,
+		];
+		assert.strictEqual(hasRepeatedToolCall(calls, 3), true);
+	});
+});
+
 describe("checkLoop", () => {
 	it("is true for a recurring chain and false otherwise", () => {
 		assert.strictEqual(
@@ -198,5 +248,24 @@ describe("checkLoop", () => {
 	it("flags a genuine sustained loop at the default threshold (3)", () => {
 		const text = "let me reconsider the plan ".repeat(4);
 		assert.strictEqual(checkLoop({ words: text.split(" "), threshold: 3 }), true);
+	});
+
+	it("flags a repeated identical tool call", () => {
+		const toolCalls = Array.from({ length: 4 }, () => ({ name: "read", target: "file.txt" }));
+		assert.strictEqual(checkLoop({ words: [], threshold: 3, toolCalls }), true);
+	});
+
+	it("does not flag tool calls with a state change", () => {
+		const toolCalls = [
+			{ name: "read", target: "file.txt" },
+			{ name: "read", target: "other.txt" },
+			{ name: "read", target: "file.txt" },
+			{ name: "read", target: "file.txt" },
+		];
+		assert.strictEqual(checkLoop({ words: [], threshold: 3, toolCalls }), false);
+	});
+
+	it("does not flag when no tool calls are present", () => {
+		assert.strictEqual(checkLoop({ words: [], threshold: 3 }), false);
 	});
 });

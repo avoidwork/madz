@@ -12,6 +12,8 @@ import { checkLoop } from "./loopCheck.js";
  * @param {number} [task.minChain=5] - Shortest recurring chain length to detect
  * @param {number} [task.maxChain=8] - Longest recurring chain length to detect
  * @param {number} [task.maxRun=50] - Longest repeated run unit, in words, to detect
+ * @param {Array<{name: string, target: string}>} [task.toolCalls] - Recent tool-call records
+ * @param {number} [task.toolCallThreshold=3] - Consecutive identical tool calls above which a loop is flagged
  * @returns {boolean} True when the stream is looping
  */
 export default function loopWorker(task) {

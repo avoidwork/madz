@@ -35,6 +35,8 @@ function subagentId(namespace) {
  * @param {boolean} [options.subagent=true] - Whether loop detection also applies to
  *   subagent reasoning and message streams. When false, subagent reasoning and
  *   message text are not fed to the detector.
+ * @param {boolean} [options.toolCalls=true] - Whether tool-call metadata is fed to the
+ *   loop detector. When false, tool-call metadata is not evaluated for loops.
  * @param {{push: Function, settle?: Function, reset: Function}} [options.loopDetector] - Loop
  *   detector. Each non-subagent message/reasoning delta is pushed to it together with
  *   the stream block's id (the content-block index for messages, `block.id` for
@@ -69,6 +71,7 @@ export async function consumeStream(stream, streamingCallback, options = {}) {
 async function drainStream(stream, streamingCallback, options) {
 	const showToolResults = options.showToolResults;
 	const includeSubagent = options.subagent !== false;
+	const includeToolCalls = options.toolCalls !== false;
 	let content = "";
 	let reasoning = "";
 	let interrupted = false;
@@ -239,23 +242,44 @@ async function drainStream(stream, streamingCallback, options) {
 			if (!isSubagent && msg?.response_metadata?.finish_reason) await endMessage();
 			if (isSubagent && includeSubagent && msg?.response_metadata?.finish_reason)
 				endSubagentMessage(namespace);
-		} else if (mode === "tools" && streamingCallback) {
+		} else if (mode === "tools") {
 			if (payload?.event === "on_tool_start") {
-				streamingCallback({
-					type: isSubagent ? "subagent_tool_start" : "on_tool_start",
-					name: payload.name,
-					data: { input: payload.input },
-					namespace,
-				});
+				// Feed tool-call metadata (tool name + target) into the loop detector,
+				// a distinct signal from streamed text. The target is the serialized
+				// input, so repeated calls to the same target with no state change are
+				// flagged as a loop.
+				if (includeToolCalls && loopDetector?.pushTool && typeof payload.name === "string") {
+					const target =
+						typeof payload.input === "string" ? payload.input : JSON.stringify(payload.input ?? "");
+					if (
+						loopDetector.pushTool(
+							payload.name,
+							target,
+							isSubagent ? subagentId(namespace) : undefined,
+						)
+					) {
+						loopDetected = true;
+					}
+				}
+				if (streamingCallback) {
+					streamingCallback({
+						type: isSubagent ? "subagent_tool_start" : "on_tool_start",
+						name: payload.name,
+						data: { input: payload.input },
+						namespace,
+					});
+				}
 				if (!isSubagent) lastEventType = "on_tool_start";
 			}
 			if (payload?.event === "on_tool_end") {
-				streamingCallback({
-					type: isSubagent ? "subagent_tool_end" : "on_tool_end",
-					name: payload.name,
-					data: { output: payload.output },
-					namespace,
-				});
+				if (streamingCallback) {
+					streamingCallback({
+						type: isSubagent ? "subagent_tool_end" : "on_tool_end",
+						name: payload.name,
+						data: { output: payload.output },
+						namespace,
+					});
+				}
 				if (!isSubagent) lastEventType = "on_tool_end";
 			}
 		}

@@ -61,16 +61,18 @@ export async function destroyPool() {
  * @param {number} [options.maxRun=50] - Longest repeated run unit, in words, to detect
  * @param {number} [options.maxStreams=4] - Streams tracked at once; the least recently updated is evicted
  * @param {number} [options.maxThreads=4] - Maximum worker threads in the shared pool
+ * @param {number} [options.toolCallThreshold=3] - Consecutive identical tool calls above which a loop is flagged
  * @param {number} [options.ttlMs] - State older than this is dropped (no expiry when unset)
  * @param {Function} [options.now] - Clock returning ms (injectable for tests)
  * @param {{ run: Function }} [options.runner] - Runs a check; defaults to the shared pool, injectable for tests
- * @returns {{ push: (kind: string, delta: string, id?: string | number) => boolean, settle: () => Promise<boolean>, end: () => Promise<boolean>, reset: () => void, release: (kind: string, id?: string | number) => void, size: () => number }} Detector
+ * @returns {{ push: (kind: string, delta: string, id?: string | number) => boolean, pushTool: (name: string, target: string, id?: string | number) => boolean, settle: () => Promise<boolean>, end: () => Promise<boolean>, reset: () => void, release: (kind: string, id?: string | number) => void, size: () => number }} Detector
  */
 export function createSegmentLoopDetector(options = {}) {
 	const threshold = options.threshold ?? 3;
 	const minChain = options.minChain ?? 5;
 	const maxChain = options.maxChain ?? 8;
 	const maxRun = options.maxRun ?? 50;
+	const toolCallThreshold = options.toolCallThreshold ?? 3;
 	const wordWindowSize = options.wordWindowSize ?? 2090;
 	const maxStreams = options.maxStreams ?? 4;
 	const maxThreads = options.maxThreads ?? 4;
@@ -82,6 +84,7 @@ export function createSegmentLoopDetector(options = {}) {
 	 * @typedef {Object} KindState
 	 * @property {string} partialWord - Unfinished word
 	 * @property {string[] | null} words - Last `wordWindowSize` completed words (null once released)
+	 * @property {Array<{name: string, target: string}> | null} toolCalls - Recent tool-call records (null once released)
 	 * @property {number} ts - Time of the last delta
 	 * @property {boolean} flagged - A check has flagged a loop
 	 * @property {Promise<void> | null} inflight - The running check, if any
@@ -95,6 +98,7 @@ export function createSegmentLoopDetector(options = {}) {
 		return {
 			partialWord: "",
 			words: [],
+			toolCalls: [],
 			ts: now(),
 			flagged: false,
 			inflight: null,
@@ -115,6 +119,8 @@ export function createSegmentLoopDetector(options = {}) {
 		state.partialWord = "";
 		if (state.words) state.words.length = 0;
 		state.words = null;
+		if (state.toolCalls) state.toolCalls.length = 0;
+		state.toolCalls = null;
 	}
 
 	/**
@@ -162,6 +168,8 @@ export function createSegmentLoopDetector(options = {}) {
 			minChain,
 			maxChain,
 			maxRun,
+			toolCalls: state.toolCalls?.slice() ?? [],
+			toolCallThreshold,
 		};
 		state.inflight = Promise.resolve(runner.run(task))
 			.then((looping) => {
@@ -211,6 +219,32 @@ export function createSegmentLoopDetector(options = {}) {
 				state.version++;
 				if (!state.flagged) startCheck(state);
 			}
+			return state.flagged;
+		},
+
+		/**
+		 * Record a tool call against a target. Tool-call metadata is a distinct
+		 * signal from streamed text: a loop is flagged when the same tool name +
+		 * same target recurs with no state change between calls. The metadata is
+		 * validated as untrusted input before it is recorded.
+		 * @param {string} name - The tool name
+		 * @param {string} target - The tool's target/argument
+		 * @param {string | number} [id] - The stream's id; a call with no id is keyed by kind alone
+		 * @returns {boolean} True when a completed check has flagged a loop for this stream
+		 */
+		pushTool(name, target, id) {
+			if (typeof name !== "string" || name.length === 0) return false;
+			if (typeof target !== "string" || target.length === 0) return false;
+			const key = id == null ? "tools" : `tools\0${id}`;
+			let state = touch(key);
+			const nowMs = now();
+			if (ttlMs !== undefined && nowMs - state.ts > ttlMs) {
+				state = touch(key, freshState());
+			}
+			state.ts = nowMs;
+			state.toolCalls.push({ name, target });
+			state.version++;
+			if (!state.flagged) startCheck(state);
 			return state.flagged;
 		},
 
