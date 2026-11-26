@@ -35,7 +35,7 @@ async function exists(path) {
  */
 export async function searchSessionImpl(input, options = {}) {
 	const config = loadConfig();
-	const cwd = options.cwd || config.cwd;
+	const cwd = options.cwd || config.appPath;
 	const memory = config.memory || {};
 	const sessionsDir = join(cwd, options.sessionsDir || memory.sessionsDir || "memory/sessions/");
 

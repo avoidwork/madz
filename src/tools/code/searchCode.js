@@ -81,9 +81,10 @@ export async function searchCodeImpl(input, options = {}) {
 	}
 
 	const proj = projects[projectName];
-	// Resolve against the original working directory, not process.cwd(), which
-	// the TUI changes when switching projects.
-	const dbPath = resolve(config.cwd, proj.dbPath);
+	// Resolve against the immutable application root (appPath), falling back to
+	// the cached config.cwd when appPath has not been pinned at bootstrap yet.
+	// Neither follows process.cwd(), which the TUI changes when switching projects.
+	const dbPath = resolve(config.appPath || config.cwd, proj.dbPath);
 	const mode = input.mode || cfg.searchMode || "hybrid";
 
 	let store;

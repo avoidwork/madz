@@ -5,7 +5,9 @@ import { loadConfig } from "../config/loader.js";
 import { logger } from "../shared/logger.js";
 import { sessionFilePath } from "./sessionId.js";
 
-const cwd = loadConfig().cwd;
+// Resolve session storage against the immutable application root, not the mutable
+// process.cwd() that the TUI moves via safeChdir() on a /projects switch.
+const cwd = loadConfig().appPath;
 
 /**
  * Escape a string for safe inclusion in a YAML double-quoted scalar.

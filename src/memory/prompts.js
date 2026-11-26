@@ -74,7 +74,7 @@ const RUNTIME_HEADER = "### RUNTIME CAPABILITIES";
  */
 export async function loadSystemPrompt(baseDir) {
 	const config = loadConfig();
-	const root = baseDir ?? config.cwd;
+	const root = baseDir ?? config.appPath;
 	const path = join(root, "prompts", "SYSTEM_PROMPT.md");
 	try {
 		let content = await readFile(path, "utf-8");

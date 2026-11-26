@@ -50,7 +50,7 @@ export async function writeMemoryFile(subdirectory, title, frontmatter = {}, bod
 	if (typeof title !== "string") throw new TypeError("title must be a string");
 	const extra = sanitizeFrontmatter(frontmatter);
 	const config = loadConfig();
-	const directory = await ensureDir(config.cwd, subdirectory);
+	const directory = await ensureDir(config.appPath, subdirectory);
 	const now = new Date().toISOString();
 	const slug = title
 		.toLowerCase()

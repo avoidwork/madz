@@ -375,7 +375,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	if (!providerName) {
 		throw new Error("No enabled provider found: configure and enable a provider in `providers`");
 	}
-	const memoryDir = resolve(config.cwd ?? ".", config.memory?.directory || "memory/");
+	const memoryDir = resolve(config.appPath || ".", config.memory?.directory || "memory/");
 	// For GitHub Copilot, resolve the configured model against the tenant's
 	// available models (best-effort; falls back to the configured string).
 	if (providerConfig.type === "github-copilot") {
@@ -427,8 +427,8 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		permissions: config.sandbox.permissions || [],
 		allowedPaths: config.sandbox.paths,
 		registry: skillRegistry,
-		sessionsDir: join(config.cwd, config.memory.sessionsDir),
-		contextDir: join(config.cwd, config.memory.contextDir),
+		sessionsDir: join(config.appPath, config.memory.sessionsDir),
+		contextDir: join(config.appPath, config.memory.contextDir),
 		config,
 	};
 

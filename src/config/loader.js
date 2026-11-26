@@ -1,6 +1,13 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import {
+	readFileSync,
+	writeFileSync,
+	existsSync,
+	mkdirSync,
+	statSync,
+	realpathSync,
+} from "node:fs";
 import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { createRequire } from "node:module";
 import { ConfigSchema, _setResolvedConfig } from "./config.js";
 import { applyDotPathMutation } from "./patch.js";
@@ -543,6 +550,39 @@ let cachedConfig = null;
  */
 export function _resetConfigCache() {
 	cachedConfig = null;
+}
+
+/**
+ * Pin the immutable application root (`config.appPath`) to an absolute,
+ * existing directory. Called once at bootstrap (before any `process.chdir()`),
+ * so app-centric tools resolve their storage paths against a stable root that
+ * never drifts when the TUI switches the process working directory.
+ *
+ * The value is normalized to an absolute, real, existing directory. A
+ * non-existent, non-directory, or escaping path throws and leaves
+ * `config.appPath` unchanged.
+ * @param {string} appPath - The application root directory
+ * @throws {Error} If the path does not exist, is not a directory, or cannot be resolved
+ */
+export function setAppPath(appPath) {
+	if (typeof appPath !== "string" || appPath.length === 0) {
+		throw new Error("setAppPath requires a non-empty string path");
+	}
+	const candidate = resolve(appPath);
+	let real;
+	try {
+		real = realpathSync(candidate);
+	} catch (err) {
+		throw new Error(`setAppPath: cannot resolve path "${appPath}": ${err.message}`);
+	}
+	const stat = statSync(real);
+	if (!stat.isDirectory()) {
+		throw new Error(`setAppPath: "${appPath}" is not a directory`);
+	}
+	const config = loadConfig();
+	config.appPath = real;
+	_setResolvedConfig(config);
+	return real;
 }
 
 /**

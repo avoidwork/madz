@@ -44,7 +44,7 @@ async function recordClarification(file, { question, choices, answer }) {
 	try {
 		const config = loadConfig();
 		const toolsDir = config.memory?.toolsDir || "memory/tools/";
-		const target = file || join(config.cwd, toolsDir, "clarifications.md");
+		const target = file || join(config.appPath, toolsDir, "clarifications.md");
 		const lines = [
 			`## Clarification: ${oneLine(question)}`,
 			"",

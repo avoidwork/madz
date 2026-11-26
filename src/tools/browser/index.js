@@ -307,7 +307,7 @@ async function runAction(page, input, ctx) {
 				type: "jpeg",
 				quality: 80,
 			});
-			const dir = ctx.screenshotsDir || join(config.cwd, config.memory.screenshotsDir);
+			const dir = ctx.screenshotsDir || join(config.appPath, config.memory.screenshotsDir);
 			await mkdir(dir, { recursive: true });
 			const path = join(dir, `screenshot-${Date.now()}-${randomUUID()}.jpg`);
 			await writeFile(path, Buffer.from(data, "base64"));

@@ -5,7 +5,9 @@ import { mkdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { loadConfig } from "../config/loader.js";
 
-const cwd = loadConfig().cwd;
+// Resolve session storage against the immutable application root, not the mutable
+// process.cwd() that the TUI moves via safeChdir() on a /projects switch.
+const cwd = loadConfig().appPath;
 
 /**
  * Ensure the checkpoints directory exists by creating it if necessary.

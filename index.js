@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { realpathSync } from "node:fs";
+import { realpathSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { HumanMessage } from "@langchain/core/messages";
@@ -138,6 +138,26 @@ export function bootstrap() {
 
 async function doBootstrap() {
 	config = loadConfig();
+
+	// Pin the immutable application root ONCE, before any safeChdir()/process.chdir()
+	// runs later in the TUI. App-centric tools resolve their storage paths against
+	// config.appPath so a /projects switch (which moves process.cwd()) cannot redirect
+	// app files (memory, todo, session, etc.) into the selected project. Nothing mutates
+	// appPath after this point; config.cwd keeps tracking the live process cwd for display.
+	if (!config.appPath) {
+		const candidate = resolve(config.cwd || process.cwd());
+		try {
+			const real = realpathSync(candidate);
+			if (existsSync(real)) {
+				config.appPath = real;
+			}
+		} catch (_err) {
+			// Fall back to the non-realpathed absolute path if realpath fails.
+			if (existsSync(candidate)) {
+				config.appPath = candidate;
+			}
+		}
+	}
 
 	const { createDeepAgentsOrchestrator } = await import("./src/agent/deepAgents.js");
 	const { ensureToolsDir, ensureScreenshotsDir, ensureContextDir, expireEphemeralMemories } =

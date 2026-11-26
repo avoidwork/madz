@@ -506,10 +506,10 @@ export async function createPptx(input) {
 	const config = loadConfig();
 	const toolsDir = config.memory?.toolsDir || "memory/tools/";
 	const outputPath =
-		validated.data.outputPath || join(config.cwd, toolsDir, `presentation-${Date.now()}.pptx`);
+		validated.data.outputPath || join(config.appPath, toolsDir, `presentation-${Date.now()}.pptx`);
 
 	// Validate output path
-	const pathValidation = validateOutputPath(outputPath, config.cwd);
+	const pathValidation = validateOutputPath(outputPath, config.appPath);
 	if (!pathValidation.valid) {
 		return { ok: false, error: pathValidation.error };
 	}
