@@ -40,7 +40,7 @@ export const LoopDetectionSchema = z
 		// A word chain or repeated run must recur more than this many times to flag a loop.
 		threshold: z.number().int().positive().default(2),
 		// Shortest recurring word chain length to detect.
-		minChain: z.number().int().positive().default(3),
+		minChain: z.number().int().positive().default(5),
 		// Longest recurring word chain length to detect.
 		maxChain: z.number().int().positive().default(8),
 		// Longest repeated run unit, in words, to detect (stutter and phrase loops).

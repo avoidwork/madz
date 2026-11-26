@@ -9,7 +9,7 @@ import { checkLoop } from "./loopCheck.js";
  * @param {Object} task - The check to run
  * @param {string[]} task.words - Recent completed words
  * @param {number} task.threshold - Occurrences above which a loop is flagged
- * @param {number} [task.minChain=3] - Shortest recurring chain length to detect
+ * @param {number} [task.minChain=5] - Shortest recurring chain length to detect
  * @param {number} [task.maxChain=8] - Longest recurring chain length to detect
  * @param {number} [task.maxRun=50] - Longest repeated run unit, in words, to detect
  * @returns {boolean} True when the stream is looping

@@ -65,7 +65,7 @@ loopDetection:
   maxRun: 50
   maxStreams: 4
   maxThreads: 4
-  minChain: 3
+  minChain: 5
   subagent: true
   threshold: 10
   ttlMs: 60000

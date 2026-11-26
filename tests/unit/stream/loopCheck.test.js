@@ -54,18 +54,28 @@ describe("normalize", () => {
 describe("hasRepeatedChain", () => {
 	const w = (s) => s.split(" ");
 
-	it("flags a 3-word chain repeated more than threshold times", () => {
+	it("flags a 5-word chain repeated more than threshold times", () => {
 		assert.strictEqual(
-			hasRepeatedChain(w("let me reconsider let me reconsider let me reconsider"), 2),
+			hasRepeatedChain(w("let me reconsider the plan let me reconsider the plan let me reconsider the plan"), 2),
 			true,
 		);
-		assert.strictEqual(hasRepeatedChain(w("let me reconsider let me reconsider"), 2), false);
+		assert.strictEqual(
+			hasRepeatedChain(w("let me reconsider the plan let me reconsider the plan"), 2),
+			false,
+		);
+	});
+
+	it("does not flag a 3-word chain by default (minChain is 5)", () => {
+		assert.strictEqual(
+			hasRepeatedChain(w("let me reconsider let me reconsider let me reconsider"), 2),
+			false,
+		);
 	});
 
 	it("finds a chain across sentence and paragraph boundaries, not just at the tail", () => {
 		const text =
-			"Let me reconsider the approach here. Let me reconsider the plan now. " +
-			"Let me reconsider the steps again. Let me reconsider the order next.";
+			"Let me reconsider the approach here. Let me reconsider the plan here. " +
+			"Let me reconsider the steps here. Let me reconsider the order here.";
 		assert.strictEqual(hasRepeatedChain(w(text), 2), true);
 	});
 
@@ -78,7 +88,7 @@ describe("hasRepeatedChain", () => {
 	});
 
 	it("honours a higher threshold", () => {
-		const text = "let me reconsider ".repeat(3);
+		const text = "let me reconsider the plan ".repeat(3);
 		assert.strictEqual(hasRepeatedChain(w(text), 3), false);
 		assert.strictEqual(hasRepeatedChain(w(text), 2), true);
 	});
@@ -91,7 +101,7 @@ describe("hasRepeatedChain", () => {
 	});
 
 	it("ignores words with no letters or digits", () => {
-		const text = "ok ok ok }); ok ok ok";
+		const text = "ok ok ok ok ok }); ok ok ok ok ok";
 		assert.strictEqual(hasRepeatedChain(w(text), 2), true);
 	});
 
@@ -144,7 +154,7 @@ describe("hasRepeatedRun", () => {
 describe("checkLoop", () => {
 	it("is true for a recurring chain and false otherwise", () => {
 		assert.strictEqual(
-			checkLoop({ words: "let me reconsider ".repeat(3).split(" "), threshold: 2 }),
+			checkLoop({ words: "let me reconsider the plan ".repeat(3).split(" "), threshold: 2 }),
 			true,
 		);
 		assert.strictEqual(
@@ -158,14 +168,11 @@ describe("checkLoop", () => {
 	});
 
 	it("flags a chain that recurs across multiple paragraphs", () => {
-		const text =
+		const para =
 			"For the tool implementation, I am mirroring the jira pattern. " +
 			"The tools to read from the cached config object. " +
-			"Tests can inject a policy through options to override the cached config. " +
-			"For the tool implementation, I am mirroring the jira pattern. " +
-			"The tools to read from the cached config object. " +
-			"Tests can inject a policy through options to override the cached config.";
-		assert.strictEqual(checkLoop({ words: text.split(" "), threshold: 2 }), true);
+			"Tests can inject a policy through options to override the cached config. ";
+		assert.strictEqual(checkLoop({ words: para.repeat(3).split(" "), threshold: 2 }), true);
 	});
 
 	it("flags a word stutter", () => {

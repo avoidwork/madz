@@ -56,7 +56,7 @@ export async function destroyPool() {
  * @param {Object} [options] - Options
  * @param {number} [options.wordWindowSize=2090] - Recent completed words kept and compared
  * @param {number} [options.threshold=2] - Occurrences above which a loop is flagged
- * @param {number} [options.minChain=3] - Shortest recurring chain length to detect
+ * @param {number} [options.minChain=5] - Shortest recurring chain length to detect
  * @param {number} [options.maxChain=8] - Longest recurring chain length to detect
  * @param {number} [options.maxRun=50] - Longest repeated run unit, in words, to detect
  * @param {number} [options.maxStreams=4] - Streams tracked at once; the least recently updated is evicted
@@ -68,7 +68,7 @@ export async function destroyPool() {
  */
 export function createSegmentLoopDetector(options = {}) {
 	const threshold = options.threshold ?? 2;
-	const minChain = options.minChain ?? 3;
+	const minChain = options.minChain ?? 5;
 	const maxChain = options.maxChain ?? 8;
 	const maxRun = options.maxRun ?? 50;
 	const wordWindowSize = options.wordWindowSize ?? 2090;
