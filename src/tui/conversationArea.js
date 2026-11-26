@@ -910,7 +910,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 					if (event.type === "clarify") {
 						const question = event.question || "";
 						const choices = event.choices || [];
-						addMessage({ role: "system", content: formatClarifyPrompt(question, choices) });
+						addMessage({ role: "assistant", content: formatClarifyPrompt(question, choices) });
 						pendingClarifyRef.current = { question, choices };
 						return;
 					}

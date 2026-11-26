@@ -9,7 +9,7 @@
 ℹ   compaction.js                |  97.69 |    73.21 |  100.00 | 86-87 140 142-143
 ℹ   contextBackend.js            | 100.00 |   100.00 |  100.00 | 
 ℹ   coreBackend.js               | 100.00 |   100.00 |  100.00 | 
-ℹ   deepAgents.js                |  94.94 |    72.97 |   78.95 | 167-168 192 208-210 340-347 376-377 382-383 490-492 584-588 596-600
+ℹ   deepAgents.js                |  94.94 |    71.68 |   78.95 | 167-168 192 208-210 340-347 376-377 382-383 490-492 584-588 596-600
 ℹ   effectiveMessages.js         | 100.00 |   100.00 |  100.00 | 
 ℹ   evictionCeiling.js           | 100.00 |   100.00 |  100.00 | 
 ℹ   skillsMiddleware.js          | 100.00 |    87.50 |  100.00 | 
@@ -94,7 +94,7 @@
 ℹ   logger.js                    |  80.17 |    67.92 |  100.00 | 98-109 134-143 148 150-152 175-177 187-191 214-222 228-233 250 284-285 287-289 308-310 318-320 328-330 338-340 348-350
 ℹ  skills                        |        |          |         | 
 ℹ   agentMapper.js               |  93.75 |    75.00 |  100.00 | 14-15
-ℹ   discoverer.js                |  97.89 |    95.00 |  100.00 | 132-134 197-199
+ℹ   discoverer.js                |  97.89 |    94.94 |  100.00 | 132-134 197-199
 ℹ   registry.js                  |  95.90 |    81.97 |   94.74 | 125-126 205-207 236-243
 ℹ   types.js                     | 100.00 |   100.00 |  100.00 | 
 ℹ   validator.js                 | 100.00 |   100.00 |  100.00 | 
@@ -219,7 +219,7 @@
 ℹ    extensions.js               |  94.77 |    91.67 |   90.00 | 70-71 94-95 154-158
 ℹ    identity.js                 |  96.00 |    94.68 |   95.24 | 54-64 441-442 444-448
 ℹ    index.js                    |  83.62 |    68.75 |   66.67 | 255-261 263-269 271-277 279-285 303-326 336-341
-ℹ    oauth.js                    |  90.56 |    67.86 |   91.67 | 219-226 311-314 361-364 374-378 386 392-393 436-440 460-463 519-520 547-548 581-582 590-591 607-608 631-632 635-636 645-646 654-658 687-688 703-704 708-709 712-713 726-727 742-743 747-748 750-751 761-762
+ℹ    oauth.js                    |  90.56 |    67.57 |   91.67 | 219-226 311-314 361-364 374-378 386 392-393 436-440 460-463 519-520 547-548 581-582 590-591 607-608 631-632 635-636 645-646 654-658 687-688 703-704 708-709 712-713 726-727 742-743 747-748 750-751 761-762
 ℹ    security.js                 |  94.15 |    76.84 |   97.30 | 129 167-168 347 385-386 403-404 408-409 422-430 443-444 497-498 515-516 534-535 541-542 557-558 560-561 571-572
 ℹ    session.js                  |  99.29 |    94.29 |  100.00 | 105-106
 ℹ    tasks.js                    |  93.95 |    85.07 |   81.82 | 195-196 207-208 216-219 263-264 270-271 279-280 296-300
@@ -256,7 +256,7 @@
 ℹ   web                          |        |          |         | 
 ℹ    index.js                    |  95.55 |    69.92 |   60.00 | 36-37 51-52 55-57 98-100 314-316 385-387 454-455 457-458 460-461
 ℹ   webhook                      |        |          |         | 
-ℹ    index.js                    | 100.00 |    98.25 |  100.00 | 
+ℹ    index.js                    |  97.99 |    96.43 |  100.00 | 21-25
 ℹ   yaml                         |        |          |         | 
 ℹ    index.js                    | 100.00 |    94.38 |  100.00 | 
 ℹ  tui                           |        |          |         | 
@@ -295,7 +295,7 @@
 ℹ   useMouseScroll.js            | 100.00 |   100.00 |  100.00 | 
 ℹ  vector                        |        |          |         | 
 ℹ   chunker.js                   |  96.30 |    97.22 |  100.00 | 98-101
-ℹ   embedder.js                  |  91.54 |    88.46 |   94.12 | 71-74 136-150 180-182
+ℹ   embedder.js                  |  88.08 |    86.27 |   88.24 | 29-33 71-74 118-121 136-150 180-182
 ℹ   fileFilters.js               |  98.71 |    80.00 |  100.00 | 153-154
 ℹ   indexer.js                   |  88.48 |    75.31 |   88.89 | 43-44 61-63 90-91 130-132 169-171 173-175 232-233 275-277 285-287 291-293 297-300 308-312 323-324
 ℹ   indexerWorker.js             |  96.00 |    55.00 |   71.43 | 115-119
@@ -304,6 +304,66 @@
 ℹ   loadAgents.js                |  74.29 |    78.57 |   50.00 | 25-26 41 56-70
 ℹ   project.js                   | 100.00 |   100.00 |  100.00 | 
 ℹ --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-ℹ all files                      |  92.07 |    86.19 |   87.94 | 
+ℹ all files                      |  92.04 |    86.14 |   87.89 | 
 ℹ --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ℹ end of coverage report
+
+✖ failing tests:
+
+test at tests/unit/checkpointer.test.js:69:2
+✖ creates SQLite checkpointer for sqlite mode (10.841375ms)
+  Error: /app/projects/madz/node_modules/@langchain/langgraph-checkpoint-sqlite/node_modules/better-sqlite3/build/Release/better_sqlite3.node: invalid ELF header
+      at Object..node (node:internal/modules/cjs/loader:2135:18)
+      at Module.load (node:internal/modules/cjs/loader:1690:32)
+      at Module._load (node:internal/modules/cjs/loader:1480:12)
+      at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+      at Module.require (node:internal/modules/cjs/loader:1713:12)
+      at require (node:internal/modules/helpers:318:16)
+      at bindings (/app/projects/madz/node_modules/bindings/bindings.js:112:48)
+      at new Database (/app/projects/madz/node_modules/@langchain/langgraph-checkpoint-sqlite/node_modules/better-sqlite3/lib/database.js:48:64)
+      at SqliteSaver.fromConnString (file:///app/projects/madz/node_modules/@langchain/langgraph-checkpoint-sqlite/dist/index.js:92:26)
+      at createSqliteCheckpointer (file:///app/projects/madz/src/session/checkpointer.js:69:28) {
+    code: 'ERR_DLOPEN_FAILED'
+  }
+
+test at tests/unit/checkpointer.test.js:101:2
+✖ creates a missing checkpoints dir under fullConfig.cwd (2.665292ms)
+  Error: /app/projects/madz/node_modules/@langchain/langgraph-checkpoint-sqlite/node_modules/better-sqlite3/build/Release/better_sqlite3.node: invalid ELF header
+      at Object..node (node:internal/modules/cjs/loader:2135:18)
+      at Module.load (node:internal/modules/cjs/loader:1690:32)
+      at Module._load (node:internal/modules/cjs/loader:1480:12)
+      at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+      at Module.require (node:internal/modules/cjs/loader:1713:12)
+      at require (node:internal/modules/helpers:318:16)
+      at bindings (/app/projects/madz/node_modules/bindings/bindings.js:112:48)
+      at new Database (/app/projects/madz/node_modules/@langchain/langgraph-checkpoint-sqlite/node_modules/better-sqlite3/lib/database.js:48:64)
+      at SqliteSaver.fromConnString (file:///app/projects/madz/node_modules/@langchain/langgraph-checkpoint-sqlite/dist/index.js:92:26)
+      at createSqliteCheckpointer (file:///app/projects/madz/src/session/checkpointer.js:69:28) {
+    code: 'ERR_DLOPEN_FAILED'
+  }
+
+test at tests/unit/vector/embedder.test.js:169:2
+✖ configures WASM backend when local embedding is attempted (0.450041ms)
+  Error: 
+  Something went wrong installing the "sharp" module
+  
+  Cannot find module '../build/Release/sharp-linux-arm64v8.node'
+  Require stack:
+  - /app/projects/madz/node_modules/@xenova/transformers/node_modules/sharp/lib/sharp.js
+  - /app/projects/madz/node_modules/@xenova/transformers/node_modules/sharp/lib/constructor.js
+  - /app/projects/madz/node_modules/@xenova/transformers/node_modules/sharp/lib/index.js
+  
+  Possible solutions:
+  - Install with verbose logging and look for errors: "npm install --ignore-scripts=false --foreground-scripts --verbose sharp"
+  - Install for the current linux-arm64v8 runtime: "npm install --platform=linux --arch=arm64v8 sharp"
+  - Consult the installation documentation: https://sharp.pixelplumbing.com/install
+      at Object.<anonymous> (/app/projects/madz/node_modules/@xenova/transformers/node_modules/sharp/lib/sharp.js:37:9)
+      at Module._compile (node:internal/modules/cjs/loader:1968:14)
+      at Object..js (node:internal/modules/cjs/loader:2108:10)
+      at Module.load (node:internal/modules/cjs/loader:1690:32)
+      at Module._load (node:internal/modules/cjs/loader:1480:12)
+      at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+      at Module.require (node:internal/modules/cjs/loader:1713:12)
+      at require (node:internal/modules/helpers:318:16)
+      at Object.<anonymous> (/app/projects/madz/node_modules/@xenova/transformers/node_modules/sharp/lib/constructor.js:11:1)
+      at Module._compile (node:internal/modules/cjs/loader:1968:14)
