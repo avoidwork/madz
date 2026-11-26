@@ -58,7 +58,7 @@ let cachedSource = null;
  * @param {z.infer<typeof GetConfigSchema>} [_input] - The tool input (empty object)
  * @returns {Promise<{ ok: boolean, config?: object, error?: string }>} Structured result with the masked config on success or an error message on failure
  */
-export async function getConfigImpl(_input = {}) {
+export async function configImpl(_input = {}) {
 	try {
 		const config = loadConfig();
 		if (cachedSource !== config) {
@@ -72,16 +72,16 @@ export async function getConfigImpl(_input = {}) {
 }
 
 /**
- * @internal - Reset the cached masked config so the next getConfigImpl()
+ * @internal - Reset the cached masked config so the next configImpl()
  * recomputes it. Used by tests and after config mutations.
  */
-export function _resetGetConfigCache() {
+export function _resetConfigCache() {
 	cachedMasked = null;
 	cachedSource = null;
 }
 
-export const getConfig = tool(getConfigImpl, {
-	name: "getConfig",
+export const config = tool(configImpl, {
+	name: "config",
 	description:
 		"Get the full harness configuration as a parsed JSON object, with secrets masked. " +
 		"Calls loadConfig() and returns the result with any apiKey/secret/token values replaced by '***'. " +

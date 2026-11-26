@@ -38,7 +38,7 @@ import { diagram } from "./diagram/index.js";
 import { sql } from "./sql/index.js";
 import { nosql } from "./nosql/index.js";
 import { env } from "./env/index.js";
-import { getConfig } from "./config/index.js";
+import { config } from "./config/index.js";
 import { decision } from "./decision/index.js";
 import { poppy, poppyImpl } from "./poppy/index.js";
 import { tool } from "@langchain/core/tools";
@@ -95,7 +95,7 @@ export const TOOL_PERMISSIONS = {
 	data: ["filesystem:read"],
 	webhook: ["filesystem:read", "filesystem:write"],
 	code: ["filesystem:read", "filesystem:write"],
-	getConfig: ["filesystem:read"],
+	config: ["filesystem:read"],
 	decision: ["network:outbound"],
 	poppy: ["network:outbound"],
 };
@@ -244,7 +244,7 @@ export const TOOL_CLASSIFICATIONS = {
 		"documentation",
 		"seoAnalyst",
 	],
-	getConfig: [
+	config: [
 		"coding",
 		"debug",
 		"performance",
@@ -329,7 +329,7 @@ export const ORCHESTRATOR_TOOLS = [
 	"discovery",
 	"env",
 	"file",
-	"getConfig",
+	"config",
 	"git",
 	"jira",
 	"memory",
@@ -393,7 +393,7 @@ export const TOOLS = {
 	data,
 	webhook,
 	code,
-	getConfig,
+	config,
 	decision,
 };
 
