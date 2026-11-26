@@ -5,20 +5,7 @@ import { loadConfig } from "../config/loader.js";
 import { logger } from "../shared/logger.js";
 import { sessionFilePath } from "./sessionId.js";
 
-// cwd is pinned at init via setConfig(). Defaults to loadConfig().cwd (captured
-// once at load) but is overridden during bootstrap() so it reflects the
-// intended project root rather than whatever process.cwd() was at import time.
-let cwd = loadConfig().cwd;
-
-/**
- * Pin the saver's base directory. Called once during bootstrap().
- * @param {string} newCwd - Absolute path to the project root
- */
-export function setConfig(newCwd) {
-	if (typeof newCwd === "string" && newCwd.length > 0) {
-		cwd = newCwd;
-	}
-}
+const cwd = loadConfig().cwd;
 
 /**
  * Escape a string for safe inclusion in a YAML double-quoted scalar.

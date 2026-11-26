@@ -5,20 +5,7 @@ import { mkdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { loadConfig } from "../config/loader.js";
 
-// cwd is pinned at init via setConfig(). Defaults to loadConfig().cwd (captured
-// once at load) but is overridden during bootstrap() so it reflects the
-// intended project root rather than whatever process.cwd() was at import time.
-let cwd = loadConfig().cwd;
-
-/**
- * Pin the checkpointer's base directory. Called once during bootstrap().
- * @param {string} newCwd - Absolute path to the project root
- */
-export function setConfig(newCwd) {
-	if (typeof newCwd === "string" && newCwd.length > 0) {
-		cwd = newCwd;
-	}
-}
+const cwd = loadConfig().cwd;
 
 /**
  * Ensure the checkpoints directory exists by creating it if necessary.

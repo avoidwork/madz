@@ -6,22 +6,7 @@ import { loadConfig } from "../config/loader.js";
 import { logger } from "../shared/logger.js";
 
 const config = loadConfig();
-
-// cwd is pinned at init via setConfig(). Defaults to config.cwd (captured once
-// at load) but is overridden during bootstrap() so it reflects the intended
-// project root rather than whatever process.cwd() was at import time.
-let cwd = config.cwd || process.cwd();
-
-/**
- * Pin the skill registry's base directory. Called once during bootstrap().
- * Used by #relativePath to convert absolute skill paths to relative paths.
- * @param {string} newCwd - Absolute path to the project root
- */
-export function setConfig(newCwd) {
-	if (typeof newCwd === "string" && newCwd.length > 0) {
-		cwd = newCwd;
-	}
-}
+const cwd = config.cwd || process.cwd();
 
 /**
  * Ensure the skills directory exists by creating it if necessary.
