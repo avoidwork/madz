@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 
-import { realpathSync, existsSync } from "node:fs";
+import { realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { HumanMessage } from "@langchain/core/messages";
 import { Command } from "@langchain/langgraph";
 import React from "react";
 import yargs from "yargs";
-import { loadConfig, setConfigValue } from "./src/config/loader.js";
+import { loadConfig, setAppPath, setConfigValue } from "./src/config/loader.js";
 import {
 	createSession,
 	ensureSessionsDir,
@@ -145,17 +145,11 @@ async function doBootstrap() {
 	// app files (memory, todo, session, etc.) into the selected project. Nothing mutates
 	// appPath after this point; config.cwd keeps tracking the live process cwd for display.
 	if (!config.appPath) {
-		const candidate = resolve(config.cwd || process.cwd());
 		try {
-			const real = realpathSync(candidate);
-			if (existsSync(real)) {
-				config.appPath = real;
-			}
+			config.appPath = await setAppPath(config.cwd || process.cwd());
 		} catch (_err) {
-			// Fall back to the non-realpathed absolute path if realpath fails.
-			if (existsSync(candidate)) {
-				config.appPath = candidate;
-			}
+			// Bootstrap cwd could not be validated as an existing directory; leave
+			// appPath empty so consumers fall back to the cached config.cwd.
 		}
 	}
 

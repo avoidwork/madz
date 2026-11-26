@@ -32,10 +32,10 @@ describe("config.appPath — immutable application root", () => {
 		assert.strictEqual(config.appPath, "");
 	});
 
-	it("keeps appPath stable across cached loadConfig calls after a chdir", () => {
+	it("keeps appPath stable across cached loadConfig calls after a chdir", async () => {
 		const dir = mkdtempSync(join(tmpdir(), "appPath-stable-"));
 		try {
-			const pinned = loader.setAppPath(dir);
+			const pinned = await loader.setAppPath(dir);
 			// Simulate the TUI switching into a project.
 			process.chdir(tmpdir());
 			const again = loader.loadConfig();
@@ -45,14 +45,14 @@ describe("config.appPath — immutable application root", () => {
 		}
 	});
 
-	it("does not overwrite appPath with the live process cwd on a fresh load", () => {
+	it("does not overwrite appPath with the live process cwd on a fresh load", async () => {
 		// Pin appPath explicitly, then change cwd and force a re-read of
 		// config.yaml (cache reset); appPath must NOT be re-derived from the
 		// new process.cwd(). loadConfig() caches the config object, so a
 		// second call without a cache reset returns the same pinned value.
 		const dir = mkdtempSync(join(tmpdir(), "appPath-pinned-"));
 		try {
-			const pinned = loader.setAppPath(dir);
+			const pinned = await loader.setAppPath(dir);
 			const other = mkdtempSync(join(tmpdir(), "appPath-"));
 			process.chdir(other);
 			// Without a cache reset, loadConfig() returns the cached config
@@ -66,9 +66,9 @@ describe("config.appPath — immutable application root", () => {
 		}
 	});
 
-	it("throws when setAppPath is given a non-existent path and leaves appPath unchanged", () => {
+	it("throws when setAppPath is given a non-existent path and leaves appPath unchanged", async () => {
 		const before = loader.loadConfig().appPath;
-		assert.throws(
+		await assert.rejects(
 			() => loader.setAppPath(join(tmpdir(), "does-not-exist-xyz")),
 			/resolve|not a directory/i,
 		);
@@ -79,17 +79,17 @@ describe("config.appPath — immutable application root", () => {
 		);
 	});
 
-	it("throws when setAppPath is given an empty or non-string value", () => {
-		assert.throws(() => loader.setAppPath(""), /non-empty string path/i);
-		assert.throws(() => loader.setAppPath(123), /non-empty string path/i);
+	it("throws when setAppPath is given an empty or non-string value", async () => {
+		await assert.rejects(() => loader.setAppPath(""), /non-empty string path/i);
+		await assert.rejects(() => loader.setAppPath(123), /non-empty string path/i);
 	});
 
-	it("throws when setAppPath is given a file (not a directory) and leaves appPath unchanged", () => {
+	it("throws when setAppPath is given a file (not a directory) and leaves appPath unchanged", async () => {
 		const before = loader.loadConfig().appPath;
 		const filePath = join(tmpdir(), `appPath-file-${Date.now()}.txt`);
 		writeFileSync(filePath, "not a dir");
 		try {
-			assert.throws(() => loader.setAppPath(filePath), /not a directory/i);
+			await assert.rejects(() => loader.setAppPath(filePath), /not a directory/i);
 			assert.strictEqual(
 				loader.loadConfig().appPath,
 				before,
@@ -100,10 +100,10 @@ describe("config.appPath — immutable application root", () => {
 		}
 	});
 
-	it("allows an explicit appPath override via setAppPath and preserves it across chdir", () => {
+	it("allows an explicit appPath override via setAppPath and preserves it across chdir", async () => {
 		const dir = mkdtempSync(join(tmpdir(), "appPath-set-"));
 		try {
-			const normalized = loader.setAppPath(dir);
+			const normalized = await loader.setAppPath(dir);
 			assert.strictEqual(loader.loadConfig().appPath, normalized);
 			// A subsequent chdir must not move it.
 			process.chdir(tmpdir());
@@ -134,7 +134,7 @@ describe("memory module resolves against appPath after chdir", () => {
 		loader._resetConfigCache();
 		// Pin the immutable app root, then import the memory module so its
 		// top-level cwd accessor captures appRoot.
-		loader.setAppPath(appRoot);
+		await loader.setAppPath(appRoot);
 		memory = await import("../../../src/tools/memory/index.js");
 	});
 
