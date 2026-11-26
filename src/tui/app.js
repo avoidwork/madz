@@ -13,7 +13,7 @@ import { SessionsPanel } from "./sessionsPanel.js";
 import { ProjectsPanel } from "./projectsPanel.js";
 import { SubagentsPanel } from "./subagentsPanel.js";
 import { SystemPanel } from "./systemPanel.js";
-import { updateSubagentStore } from "./subagentStore.js";
+import { createSubagentStore, updateSubagentStore } from "./subagentStore.js";
 import { setProjectCwd } from "../workspace/project.js";
 import { logger } from "../shared/logger.js";
 import { getActiveProviderConfig } from "../provider/index.js";
@@ -394,6 +394,10 @@ function App({
 		// Restore the process cwd to the configured root, consistent with
 		// clearing the active project.
 		safeChdir(config.cwd || process.cwd());
+		// Clear the subagent store so the SUBAGENTS panel starts empty for the
+		// new session. The prior thread's subagent activity is no longer
+		// relevant once a new session begins.
+		setSubagentStore(createSubagentStore());
 	}, [config]);
 
 	/**

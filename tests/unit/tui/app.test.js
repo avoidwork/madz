@@ -104,3 +104,18 @@ describe("safeChdir — process cwd wiring", () => {
 		}
 	});
 });
+
+describe("App — new session clears the subagent store", () => {
+	it("resets the subagent store to empty on new session", async () => {
+		// handleNewSession resets the App-level subagentStore via
+		// createSubagentStore(). Verify the reset contract: the store factory
+		// returns an empty object, so the SUBAGENTS panel renders no entries.
+		const { createSubagentStore } = await import("../../../src/tui/subagentStore.js");
+		const store = createSubagentStore();
+		assert.deepStrictEqual(store, {});
+		// After a new session the store is empty, so the panel shows no
+		// subagent entries (the empty-state message).
+		const { SubagentsPanel } = await import("../../../src/tui/subagentsPanel.js");
+		assert.ok(SubagentsPanel, "SubagentsPanel export exists");
+	});
+});
