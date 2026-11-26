@@ -3,7 +3,7 @@ import { z } from "zod";
 /**
  * A named credential profile for the `api` tool. Secrets are never stored in
  * config: a profile only names the environment variables that hold them, so the
- * model (and `getConfig`) never sees a token and the tool resolves it at call time.
+ * model (and `config`) never sees a token and the tool resolves it at call time.
  */
 export const ApiCredentialSchema = z
 	.object({
