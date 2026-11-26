@@ -139,6 +139,13 @@ export function bootstrap() {
 async function doBootstrap() {
 	config = loadConfig();
 
+	// Pin the memory tool's base directory to the configured project root
+	// before any subsystem that caches config.cwd is imported. This prevents
+	// the tool from freezing to whatever process.cwd() was at import time
+	// (e.g. an active coding project) instead of the intended root.
+	const { setConfig: setMemoryConfigDir } = await import("./src/memory/index.js");
+	setMemoryConfigDir(config.cwd);
+
 	const { createDeepAgentsOrchestrator } = await import("./src/agent/deepAgents.js");
 	const { ensureToolsDir, ensureScreenshotsDir, ensureContextDir, expireEphemeralMemories } =
 		await import("./src/memory/index.js");
