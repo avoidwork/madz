@@ -308,31 +308,39 @@ function App({
 		if (activeProvider.type !== "github-copilot") return;
 		let disposed = false;
 		const myGen = ++authHandlerGenRef.current;
-		import("../provider/copilotAuth.js").then(({ setAuthRequiredHandler }) => {
-			if (disposed) return;
-			setAuthRequiredHandler(async () => {
-				const { getAuthPrompt } = await import("../provider/copilotAuth.js");
-				const memoryDir = config?.memory?.directory || "memory/";
-				const deploymentType = activeProvider.enterpriseUrl
-					? activeProvider.enterpriseUrl.replace(/^https?:\/\//i, "").replace(/\/+$/, "")
-					: "github.com";
-				const prompt = await getAuthPrompt({ deploymentType, memoryDir });
-				if (prompt) {
-					startAuthPoll(prompt);
-				} else {
-					conversationAreaRef.current?.addMessage({
-						role: "system",
-						content: "GitHub Copilot authentication expired. Please restart to re-authenticate.",
-					});
-				}
+		import("../provider/copilotAuth.js")
+			.then(({ setAuthRequiredHandler }) => {
+				if (disposed) return;
+				setAuthRequiredHandler(async () => {
+					const { getAuthPrompt } = await import("../provider/copilotAuth.js");
+					const memoryDir = config?.memory?.directory || "memory/";
+					const deploymentType = activeProvider.enterpriseUrl
+						? activeProvider.enterpriseUrl.replace(/^https?:\/\//i, "").replace(/\/+$/, "")
+						: "github.com";
+					const prompt = await getAuthPrompt({ deploymentType, memoryDir });
+					if (prompt) {
+						startAuthPoll(prompt);
+					} else {
+						conversationAreaRef.current?.addMessage({
+							role: "system",
+							content: "GitHub Copilot authentication expired. Please restart to re-authenticate.",
+						});
+					}
+				});
+			})
+			.catch((err) => {
+				if (!disposed) logger.error("Failed to register Copilot auth handler", err);
 			});
-		});
 		return () => {
 			disposed = true;
-			import("../provider/copilotAuth.js").then(({ setAuthRequiredHandler }) => {
-				// Skip if a newer effect run has since registered its own handler.
-				if (authHandlerGenRef.current === myGen) setAuthRequiredHandler(null);
-			});
+			import("../provider/copilotAuth.js")
+				.then(({ setAuthRequiredHandler }) => {
+					// Skip if a newer effect run has since registered its own handler.
+					if (authHandlerGenRef.current === myGen) setAuthRequiredHandler(null);
+				})
+				.catch((err) => {
+					logger.error("Failed to unregister Copilot auth handler", err);
+				});
 		};
 	}, [activeProvider, config, startAuthPoll]);
 
