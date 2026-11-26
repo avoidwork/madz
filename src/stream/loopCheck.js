@@ -57,11 +57,11 @@ export function normalize(word) {
  * dropped, as they are structure, not content.
  * @param {string[]} words - The recent completed words
  * @param {number} threshold - Occurrences above which a chain is looping
- * @param {number} [minChain=3] - Shortest chain length to detect
+ * @param {number} [minChain=5] - Shortest chain length to detect
  * @param {number} [maxChain=8] - Longest chain length to detect
  * @returns {boolean} True when a chain recurs more than `threshold` times
  */
-export function hasRepeatedChain(words, threshold, minChain = 3, maxChain = 8) {
+export function hasRepeatedChain(words, threshold, minChain = 5, maxChain = 8) {
 	const tokens = words.map(normalize).filter(Boolean);
 	for (let n = minChain; n <= maxChain; n++) {
 		const counts = new Map();
@@ -115,12 +115,12 @@ export function hasRepeatedRun(words, threshold, maxRun = 50) {
  * @param {Object} task - The check
  * @param {string[]} task.words - Recent completed words
  * @param {number} task.threshold - Occurrences above which a loop is flagged
- * @param {number} [task.minChain=3] - Shortest recurring chain length to detect
+ * @param {number} [task.minChain=5] - Shortest recurring chain length to detect
  * @param {number} [task.maxChain=8] - Longest recurring chain length to detect
  * @param {number} [task.maxRun=50] - Longest repeated run unit, in words, to detect
  * @returns {boolean} True when the stream is looping
  */
-export function checkLoop({ words, threshold, minChain = 3, maxChain = 8, maxRun = 50 }) {
+export function checkLoop({ words, threshold, minChain = 5, maxChain = 8, maxRun = 50 }) {
 	return (
 		hasRepeatedChain(words, threshold, minChain, maxChain) ||
 		hasRepeatedRun(words, threshold, maxRun)

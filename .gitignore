@@ -11,6 +11,7 @@ tmp
 *-pr-number.txt
 *-archive-output.md
 *-archive-error.md
+review-state-*.md
 !src/downloads
 !src/memory
 !src/skills
