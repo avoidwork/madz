@@ -5,7 +5,24 @@ import { join, basename } from "node:path";
 import { loadConfig } from "../../config/loader.js";
 
 const config = loadConfig();
-const cwd = config.cwd;
+
+// cwd is pinned at init via setConfig(). It defaults to config.cwd (captured
+// once at load) but is overridden during bootstrap() so it reflects the
+// intended project root rather than whatever process.cwd() happened to be
+// when this module was first imported.
+let cwd = config.cwd;
+
+/**
+ * Pin the memory tool's base directory. Called once during bootstrap() so the
+ * module is pinned to the correct project root regardless of process.cwd() at
+ * import time.
+ * @param {string} newCwd - Absolute path to the project root
+ */
+export function setConfig(newCwd) {
+	if (typeof newCwd === "string" && newCwd.length > 0) {
+		cwd = newCwd;
+	}
+}
 
 const DEFAULT_MAX_ENTRIES = 100;
 

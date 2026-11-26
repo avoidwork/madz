@@ -5,9 +5,23 @@ import { dirname, join } from "node:path";
 import { loadConfig } from "../../config/loader.js";
 
 const config = loadConfig();
-const cwd = config.cwd;
 
-const DEFAULT_FILE = join(cwd, config.memory.toolsDir, "todo.json");
+// cwd is pinned at init via setConfig(). Defaults to config.cwd (captured once
+// at load) but is overridden during bootstrap() so it reflects the intended
+// project root rather than whatever process.cwd() was at import time.
+let cwd = config.cwd;
+
+/**
+ * Pin the todo tool's base directory. Called once during bootstrap().
+ * @param {string} newCwd - Absolute path to the project root
+ */
+export function setConfig(newCwd) {
+	if (typeof newCwd === "string" && newCwd.length > 0) {
+		cwd = newCwd;
+	}
+}
+
+const DEFAULT_FILE = () => join(cwd, config.memory.toolsDir, "todo.json");
 const VALID_ACTIONS = ["create", "update", "complete", "delete", "list", "clear"];
 const VALID_PRIORITIES = ["low", "medium", "high"];
 
@@ -129,7 +143,7 @@ function sortTodos(todos) {
  * @returns {Promise<object>} Result of the operation
  */
 export async function todoImpl(input, options = {}) {
-	const filePath = options.filePath || DEFAULT_FILE;
+	const filePath = options.filePath || DEFAULT_FILE();
 	const maxTodos = options.maxTodos;
 	const { action } = input;
 
