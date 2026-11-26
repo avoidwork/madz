@@ -3,7 +3,20 @@ import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { loadConfig } from "../config/loader.js";
 
-const cwd = loadConfig().cwd;
+// cwd is pinned at init via setConfig(). Defaults to loadConfig().cwd (captured
+// once at load) but is overridden during bootstrap() so it reflects the
+// intended project root rather than whatever process.cwd() was at import time.
+let cwd = loadConfig().cwd;
+
+/**
+ * Pin the session factory's base directory. Called once during bootstrap().
+ * @param {string} newCwd - Absolute path to the project root
+ */
+export function setConfig(newCwd) {
+	if (typeof newCwd === "string" && newCwd.length > 0) {
+		cwd = newCwd;
+	}
+}
 
 /**
  * Generate a session UUID and create initial session state.

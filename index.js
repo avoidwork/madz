@@ -139,12 +139,27 @@ export function bootstrap() {
 async function doBootstrap() {
 	config = loadConfig();
 
-	// Pin the memory tool's base directory to the configured project root
-	// before any subsystem that caches config.cwd is imported. This prevents
-	// the tool from freezing to whatever process.cwd() was at import time
-	// (e.g. an active coding project) instead of the intended root.
+	// Pin every subsystem that caches config.cwd to the intended project root
+	// before any of those modules is used. This prevents them from freezing to
+	// whatever process.cwd() was at import time (e.g. an active coding project)
+	// instead of the configured root. Each setConfig() is a no-op guard: it only
+	// replaces the frozen cwd with the absolute config.cwd.
 	const { setConfig: setMemoryConfigDir } = await import("./src/memory/index.js");
 	setMemoryConfigDir(config.cwd);
+	const { setConfig: setTodoConfigDir } = await import("./src/tools/todo/index.js");
+	setTodoConfigDir(config.cwd);
+	const { setConfig: setCheckpointerConfigDir } = await import("./src/session/checkpointer.js");
+	setCheckpointerConfigDir(config.cwd);
+	const { setConfig: setFactoryConfigDir } = await import("./src/session/factory.js");
+	setFactoryConfigDir(config.cwd);
+	const { setConfig: setSaverConfigDir } = await import("./src/session/saver.js");
+	setSaverConfigDir(config.cwd);
+	const { setConfig: setLoaderConfigDir } = await import("./src/session/loader.js");
+	setLoaderConfigDir(config.cwd);
+	const { setConfig: setRegistryConfigDir } = await import("./src/skills/registry.js");
+	setRegistryConfigDir(config.cwd);
+	const { setCwd: setDiscovererCwd } = await import("./src/skills/discoverer.js");
+	setDiscovererCwd(config.cwd);
 
 	const { createDeepAgentsOrchestrator } = await import("./src/agent/deepAgents.js");
 	const { ensureToolsDir, ensureScreenshotsDir, ensureContextDir, expireEphemeralMemories } =
@@ -213,6 +228,11 @@ async function doBootstrap() {
 
 	// Skill registry
 	const { SkillRegistry, ensureSkillsDir } = await import("./src/skills/index.js");
+	// Pin the discoverer and registry base directories to the configured project
+	// root before discovery so relative skill paths resolve against the intended
+	// root rather than whatever process.cwd() was at import time.
+	const discoverer = await import("./src/skills/discoverer.js");
+	discoverer.setCwd(config.cwd);
 	registry = new SkillRegistry();
 	await ensureSkillsDir(fromCwd("skills/"));
 	await registry.discover();
