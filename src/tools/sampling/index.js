@@ -42,7 +42,7 @@ export async function writeEphemeralMemory(contextDir, content, expiresAt) {
 	const now = new Date();
 	const timestamp = now.toISOString().replace(/[:.]/g, "-");
 	const slug = "ephemeral-" + timestamp.substring(0, 23).replace(/[:.]/g, "-");
-	const filepath = join(config.cwd, contextDir, `${slug}.md`);
+	const filepath = join(config.appPath, contextDir, `${slug}.md`);
 	const frontmatter = {
 		title: "Ephemeral Memory",
 		timestamp: now.toISOString(),
@@ -60,7 +60,7 @@ export async function writeEphemeralMemory(contextDir, content, expiresAt) {
 		content,
 		"",
 	];
-	await mkdir(join(config.cwd, contextDir), { recursive: true });
+	await mkdir(join(config.appPath, contextDir), { recursive: true });
 	await writeFile(filepath, lines.join("\n"), "utf-8");
 	return filepath;
 }
@@ -75,7 +75,7 @@ export async function countEphemeralMemoryFiles(contextDir, nowStr) {
 	const now = nowStr ? new Date(nowStr) : new Date();
 	let files;
 	try {
-		files = await readdir(join(config.cwd, contextDir));
+		files = await readdir(join(config.appPath, contextDir));
 	} catch (_err) {
 		return 0;
 	}

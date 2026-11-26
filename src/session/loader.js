@@ -6,7 +6,9 @@ import { logger } from "../shared/logger.js";
 import { sessionFilePath } from "./sessionId.js";
 import { normalizeWindowSize } from "./window.js";
 
-const cwd = loadConfig().cwd;
+// Resolve session storage against the immutable application root, not the mutable
+// process.cwd() that the TUI moves via safeChdir() on a /projects switch.
+const cwd = loadConfig().appPath;
 const UNSAVED_FILE = "unsaved.md";
 
 /**

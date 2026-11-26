@@ -141,7 +141,7 @@ export async function textToSpeechImpl(input, options = {}) {
 	// Save to config.memory.toolsDir, or an explicit outputPath override
 	const toolsDir = config.memory?.toolsDir || "memory/tools/";
 	const timestamp = Date.now();
-	const filePath = outputPath || join(config.cwd, toolsDir, `${timestamp}_${voice}.mp3`);
+	const filePath = outputPath || join(config.appPath, toolsDir, `${timestamp}_${voice}.mp3`);
 
 	// Validate the output path against the sandbox allowlist
 	const allowedPaths = options.allowedPaths || config.sandbox?.paths || [];

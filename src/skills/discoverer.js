@@ -6,7 +6,9 @@ import { logger } from "../shared/logger.js";
 import { getAgentForSkill } from "./agentMapper.js";
 
 export const defaultScope = loadConfig().sandbox.skillScanPaths;
-export let cwd = loadConfig().cwd;
+// Resolve skill discovery against the immutable application root, not the mutable
+// process.cwd() that the TUI moves via safeChdir() on a /projects switch.
+export let cwd = loadConfig().appPath;
 
 /**
  * Set the working directory for skill discovery.

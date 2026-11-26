@@ -7,7 +7,7 @@ import { HumanMessage } from "@langchain/core/messages";
 import { Command } from "@langchain/langgraph";
 import React from "react";
 import yargs from "yargs";
-import { loadConfig, setConfigValue } from "./src/config/loader.js";
+import { loadConfig, setAppPath, setConfigValue } from "./src/config/loader.js";
 import {
 	createSession,
 	ensureSessionsDir,
@@ -138,6 +138,20 @@ export function bootstrap() {
 
 async function doBootstrap() {
 	config = loadConfig();
+
+	// Pin the immutable application root ONCE, before any safeChdir()/process.chdir()
+	// runs later in the TUI. App-centric tools resolve their storage paths against
+	// config.appPath so a /projects switch (which moves process.cwd()) cannot redirect
+	// app files (memory, todo, session, etc.) into the selected project. Nothing mutates
+	// appPath after this point; config.cwd keeps tracking the live process cwd for display.
+	if (!config.appPath) {
+		try {
+			config.appPath = await setAppPath(config.cwd || process.cwd());
+		} catch (_err) {
+			// Bootstrap cwd could not be validated as an existing directory; leave
+			// appPath empty so consumers fall back to the cached config.cwd.
+		}
+	}
 
 	const { createDeepAgentsOrchestrator } = await import("./src/agent/deepAgents.js");
 	const { ensureToolsDir, ensureScreenshotsDir, ensureContextDir, expireEphemeralMemories } =

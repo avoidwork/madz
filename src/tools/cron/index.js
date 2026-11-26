@@ -147,7 +147,7 @@ function execChild(file, args, { timeout, cwd }) {
  * @returns {Promise<{ stdout: string, stderr: string, exitCode: number, timedOut: boolean, error?: string }>}
  */
 export function runScript(scriptPath, args = [], options = {}) {
-	const { timeout = DEFAULT_SCRIPT_TIMEOUT_MS, cwd = config.cwd } = options;
+	const { timeout = DEFAULT_SCRIPT_TIMEOUT_MS, cwd = config.appPath } = options;
 	return execChild(scriptPath, args, { timeout, cwd });
 }
 
@@ -160,7 +160,7 @@ export function runScript(scriptPath, args = [], options = {}) {
  * @returns {Promise<{ stdout: string, stderr: string, exitCode: number, timedOut: boolean, error?: string }>}
  */
 function runCommand(command, options = {}) {
-	const { timeout = DEFAULT_RUN_TIMEOUT_MS, cwd = config.cwd } = options;
+	const { timeout = DEFAULT_RUN_TIMEOUT_MS, cwd = config.appPath } = options;
 	return execChild("/bin/sh", ["-c", command], { timeout, cwd });
 }
 

@@ -84,6 +84,7 @@ export const ConfigSchema = z.object({
 	agent: AgentSchema.default({}),
 	persistence: PersistenceSchema.default({}),
 	skillAgentMap: SkillAgentMapSchema,
+	appPath: z.string().default(""),
 	cwd: z.string().default(""),
 	subAgentsTemperature: SubAgentsTemperatureSchema,
 	subAgentsReasoning: SubAgentsReasoningSchema,

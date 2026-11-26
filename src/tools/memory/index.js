@@ -5,14 +5,16 @@ import { join, basename } from "node:path";
 import { loadConfig } from "../../config/loader.js";
 
 const config = loadConfig();
-const cwd = config.cwd;
+// Resolve app files against the immutable application root, not the mutable
+// process.cwd() that the TUI moves via safeChdir() on a /projects switch.
+const cwd = loadConfig().appPath;
 
 const DEFAULT_MAX_ENTRIES = 100;
 
 /**
  * Resolve the entries directory against the project root.
  * @param {string} contextDir - Relative or absolute entries directory
- * @param {string} [cwdParam] - Project root (defaults to config.cwd)
+ * @param {string} [cwdParam] - App root (defaults to config.appPath)
  * @returns {string} Absolute path to the entries directory
  */
 function resolveContextDir(contextDir, cwdParam = cwd) {

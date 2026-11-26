@@ -5,7 +5,9 @@ import { dirname, join } from "node:path";
 import { loadConfig } from "../../config/loader.js";
 
 const config = loadConfig();
-const cwd = config.cwd;
+// Resolve app files against the immutable application root, not the mutable
+// process.cwd() that the TUI moves via safeChdir() on a /projects switch.
+const cwd = loadConfig().appPath;
 
 const DEFAULT_FILE = join(cwd, config.memory.toolsDir, "todo.json");
 const VALID_ACTIONS = ["create", "update", "complete", "delete", "list", "clear"];
