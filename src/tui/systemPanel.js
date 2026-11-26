@@ -3,6 +3,7 @@ import { Box, Text, useInput, useWindowSize } from "ink";
 import os from "node:os";
 import { statfs } from "node:fs/promises";
 import { partial } from "filesize";
+import { logger } from "../shared/logger.js";
 
 const format = partial({ precision: 3 });
 
@@ -139,9 +140,13 @@ export function SystemPanel({ onViewChange, activeView, refreshMs = DEFAULT_REFR
 	useEffect(() => {
 		let cancelled = false;
 		const load = () => {
-			gatherSystemInfo().then((result) => {
-				if (!cancelled) setInfo(result);
-			});
+			gatherSystemInfo()
+				.then((result) => {
+					if (!cancelled) setInfo(result);
+				})
+				.catch((err) => {
+					if (!cancelled) logger.error("Failed to gather system info", err);
+				});
 		};
 		load();
 		const interval = setInterval(load, refreshMs);
