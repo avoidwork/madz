@@ -55,7 +55,7 @@ describe("loopDetection config schema", () => {
 	it("keeps the other defaults", () => {
 		const cfg = LoopDetectionSchema.parse({});
 		assert.strictEqual(cfg.maxStreams, 4);
-		assert.strictEqual(cfg.threshold, 2);
+		assert.strictEqual(cfg.threshold, 3);
 		assert.strictEqual(cfg.ttlMs, 60000);
 		assert.strictEqual(cfg.escalationCount, 3);
 		assert.strictEqual(cfg.escalationWindowMs, 60000);

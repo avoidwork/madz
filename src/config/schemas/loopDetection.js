@@ -38,7 +38,7 @@ export const LoopDetectionSchema = z
 		// content cannot cause false positives as new content streams in.
 		ttlMs: z.number().int().positive().default(60000),
 		// A word chain or repeated run must recur more than this many times to flag a loop.
-		threshold: z.number().int().positive().default(2),
+		threshold: z.number().int().positive().default(3),
 		// Shortest recurring word chain length to detect.
 		minChain: z.number().int().positive().default(5),
 		// Longest recurring word chain length to detect.

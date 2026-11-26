@@ -189,4 +189,14 @@ describe("checkLoop", () => {
 		const text = "Turn off phone notifications so you don't get distracted. ".repeat(3);
 		assert.strictEqual(checkLoop({ words: text.split(" "), threshold: 2 }), true);
 	});
+
+	it("does not flag a common short phrase recurring a few times at the default threshold (3)", () => {
+		const text = "the end of the day the end of the day the end of the day";
+		assert.strictEqual(checkLoop({ words: text.split(" "), threshold: 3 }), false);
+	});
+
+	it("flags a genuine sustained loop at the default threshold (3)", () => {
+		const text = "let me reconsider the plan ".repeat(4);
+		assert.strictEqual(checkLoop({ words: text.split(" "), threshold: 3 }), true);
+	});
 });
