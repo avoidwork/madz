@@ -56,7 +56,10 @@ describe("hasRepeatedChain", () => {
 
 	it("flags a 5-word chain repeated more than threshold times", () => {
 		assert.strictEqual(
-			hasRepeatedChain(w("let me reconsider the plan let me reconsider the plan let me reconsider the plan"), 2),
+			hasRepeatedChain(
+				w("let me reconsider the plan let me reconsider the plan let me reconsider the plan"),
+				2,
+			),
 			true,
 		);
 		assert.strictEqual(
