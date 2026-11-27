@@ -15,7 +15,7 @@
 ℹ   skillsMiddleware.js          | 100.00 |    87.50 |  100.00 | 
 ℹ  config                        |        |          |         | 
 ℹ   config.js                    | 100.00 |   100.00 |  100.00 | 
-ℹ   loader.js                    |  95.96 |    90.60 |   91.67 | 97-98 106-107 417-427 497 499 626-630 640-643
+ℹ   loader.js                    |  95.94 |    90.00 |   91.67 | 97-98 106-107 391-392 464-474 544 546 673-677 687-690
 ℹ   parse.js                     | 100.00 |   100.00 |  100.00 | 
 ℹ   patch.js                     | 100.00 |   100.00 |  100.00 | 
 ℹ   schemas                      |        |          |         | 
@@ -65,7 +65,7 @@
 ℹ   copilotRetryMiddleware.js    |  88.52 |    79.49 |   83.33 | 75-88
 ℹ   index.js                     | 100.00 |   100.00 |  100.00 | 
 ℹ   modelInfo.js                 |  97.80 |    96.08 |  100.00 | 142-143 193-194 241-242
-ℹ   openai.js                    |  92.72 |    74.65 |   78.57 | 65 90-92 138-139 145-146 233 236-238 257-259 267-271 279-280 292-295
+ℹ   openai.js                    |  91.60 |    72.60 |   78.57 | 65 90-92 138-139 145-146 181-184 233 236-238 257-259 267-271 279-280 292-295
 ℹ   tokenBudget.js               |  97.14 |    85.71 |   82.35 | 50-51 83-84
 ℹ   tokenBudgetMiddleware.js     |  98.17 |    82.28 |   87.50 | 99-100 102-103
 ℹ  sandbox                       |        |          |         | 
@@ -150,7 +150,7 @@
 ℹ   confluence                   |        |          |         | 
 ℹ    index.js                    |  97.13 |    83.56 |   85.71 | 88-95 145
 ℹ   cron                         |        |          |         | 
-ℹ    index.js                    |  93.59 |    85.08 |   82.50 | 47-48 87-92 199-200 255-256 278-280 294-295 367-368 517-519 548-549 559-562 569-570 585-589 600-602 614-616 627-628
+ℹ    index.js                    |  93.59 |    84.53 |   82.50 | 47-48 87-92 199-200 255-256 278-280 294-295 367-368 517-519 548-549 559-562 569-570 585-589 600-602 614-616 627-628
 ℹ   data                         |        |          |         | 
 ℹ    index.js                    |  98.90 |    96.49 |  100.00 | 158 240-241
 ℹ   date                         |        |          |         | 
@@ -196,7 +196,7 @@
 ℹ    index.js                    |  97.85 |    98.13 |   93.75 | 57-68
 ℹ   image                        |        |          |         | 
 ℹ    index.js                    |  94.17 |    80.70 |   84.62 | 134-135 158-159 189-190 192-193 203-204 210-211 221-222 238-239 246-247 253-254 276-277 279-280 290-291 297-298 305-306
-ℹ   index.js                     |  98.54 |    98.20 |   76.92 | 527-530 545-548 670-671
+ℹ   index.js                     |  98.24 |    97.25 |   61.54 | 527-530 545-548 647-648 670-671
 ℹ   jira                         |        |          |         | 
 ℹ    index.js                    |  99.73 |    90.79 |   88.89 | 158
 ℹ   json                         |        |          |         | 
@@ -219,7 +219,7 @@
 ℹ    extensions.js               |  94.77 |    91.67 |   90.00 | 70-71 94-95 154-158
 ℹ    identity.js                 |  96.00 |    94.68 |   95.24 | 54-64 441-442 444-448
 ℹ    index.js                    |  83.62 |    68.75 |   66.67 | 255-261 263-269 271-277 279-285 303-326 336-341
-ℹ    oauth.js                    |  90.56 |    67.57 |   91.67 | 219-226 311-314 361-364 374-378 386 392-393 436-440 460-463 519-520 547-548 581-582 590-591 607-608 631-632 635-636 645-646 654-658 687-688 703-704 708-709 712-713 726-727 742-743 747-748 750-751 761-762
+ℹ    oauth.js                    |  90.56 |    67.86 |   91.67 | 219-226 311-314 361-364 374-378 386 392-393 436-440 460-463 519-520 547-548 581-582 590-591 607-608 631-632 635-636 645-646 654-658 687-688 703-704 708-709 712-713 726-727 742-743 747-748 750-751 761-762
 ℹ    security.js                 |  94.15 |    76.84 |   97.30 | 129 167-168 347 385-386 403-404 408-409 422-430 443-444 497-498 515-516 534-535 541-542 557-558 560-561 571-572
 ℹ    session.js                  |  99.29 |    94.29 |  100.00 | 105-106
 ℹ    tasks.js                    |  93.95 |    85.07 |   81.82 | 195-196 207-208 216-219 263-264 270-271 279-280 296-300
@@ -295,7 +295,7 @@
 ℹ   useMouseScroll.js            | 100.00 |   100.00 |  100.00 | 
 ℹ  vector                        |        |          |         | 
 ℹ   chunker.js                   |  96.30 |    97.22 |  100.00 | 98-101
-ℹ   embedder.js                  |  88.08 |    86.27 |   88.24 | 29-33 71-74 118-121 136-150 180-182
+ℹ   embedder.js                  |  91.54 |    88.46 |   94.12 | 71-74 136-150 180-182
 ℹ   fileFilters.js               |  98.71 |    80.00 |  100.00 | 153-154
 ℹ   indexer.js                   |  88.48 |    75.31 |   88.89 | 43-44 61-63 90-91 130-132 169-171 173-175 232-233 275-277 285-287 291-293 297-300 308-312 323-324
 ℹ   indexerWorker.js             |  96.00 |    55.00 |   71.43 | 115-119
@@ -304,66 +304,82 @@
 ℹ   loadAgents.js                |  74.29 |    78.57 |   50.00 | 25-26 41 56-70
 ℹ   project.js                   | 100.00 |   100.00 |  100.00 | 
 ℹ --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-ℹ all files                      |  92.04 |    86.14 |   87.89 | 
+ℹ all files                      |  92.05 |    86.11 |   87.85 | 
 ℹ --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ℹ end of coverage report
 
 ✖ failing tests:
 
-test at tests/unit/checkpointer.test.js:69:2
-✖ creates SQLite checkpointer for sqlite mode (10.841375ms)
-  Error: /app/projects/madz/node_modules/@langchain/langgraph-checkpoint-sqlite/node_modules/better-sqlite3/build/Release/better_sqlite3.node: invalid ELF header
-      at Object..node (node:internal/modules/cjs/loader:2135:18)
-      at Module.load (node:internal/modules/cjs/loader:1690:32)
-      at Module._load (node:internal/modules/cjs/loader:1480:12)
-      at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
-      at Module.require (node:internal/modules/cjs/loader:1713:12)
-      at require (node:internal/modules/helpers:318:16)
-      at bindings (/app/projects/madz/node_modules/bindings/bindings.js:112:48)
-      at new Database (/app/projects/madz/node_modules/@langchain/langgraph-checkpoint-sqlite/node_modules/better-sqlite3/lib/database.js:48:64)
-      at SqliteSaver.fromConnString (file:///app/projects/madz/node_modules/@langchain/langgraph-checkpoint-sqlite/dist/index.js:92:26)
-      at createSqliteCheckpointer (file:///app/projects/madz/src/session/checkpointer.js:69:28) {
-    code: 'ERR_DLOPEN_FAILED'
+test at tests/integration/mcpTools.test.js:50:2
+✖ discovers and registers tools from the MCP server (4.379709ms)
+  AssertionError [ERR_ASSERTION]: should register the 'add' tool
+      at TestContext.<anonymous> (file:///app/projects/madz.worktrees/ab6bc028fc95e939/tests/integration/mcpTools.test.js:52:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1905:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
   }
 
-test at tests/unit/checkpointer.test.js:101:2
-✖ creates a missing checkpoints dir under fullConfig.cwd (2.665292ms)
-  Error: /app/projects/madz/node_modules/@langchain/langgraph-checkpoint-sqlite/node_modules/better-sqlite3/build/Release/better_sqlite3.node: invalid ELF header
-      at Object..node (node:internal/modules/cjs/loader:2135:18)
-      at Module.load (node:internal/modules/cjs/loader:1690:32)
-      at Module._load (node:internal/modules/cjs/loader:1480:12)
-      at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
-      at Module.require (node:internal/modules/cjs/loader:1713:12)
-      at require (node:internal/modules/helpers:318:16)
-      at bindings (/app/projects/madz/node_modules/bindings/bindings.js:112:48)
-      at new Database (/app/projects/madz/node_modules/@langchain/langgraph-checkpoint-sqlite/node_modules/better-sqlite3/lib/database.js:48:64)
-      at SqliteSaver.fromConnString (file:///app/projects/madz/node_modules/@langchain/langgraph-checkpoint-sqlite/dist/index.js:92:26)
-      at createSqliteCheckpointer (file:///app/projects/madz/src/session/checkpointer.js:69:28) {
-    code: 'ERR_DLOPEN_FAILED'
+test at tests/integration/mcpTools.test.js:56:2
+✖ appends MCP tools to the built-in tool list (0.370458ms)
+  AssertionError [ERR_ASSERTION]: should have at least the two MCP tools
+      at TestContext.<anonymous> (file:///app/projects/madz.worktrees/ab6bc028fc95e939/tests/integration/mcpTools.test.js:61:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
   }
 
-test at tests/unit/vector/embedder.test.js:169:2
-✖ configures WASM backend when local embedding is attempted (0.450041ms)
-  Error: 
-  Something went wrong installing the "sharp" module
+test at tests/integration/mcpTools.test.js:64:2
+✖ classifies MCP tools by the per-server agents list (0.722042ms)
+  AssertionError [ERR_ASSERTION]: add tool should be classified for coding + search
+  + actual - expected
   
-  Cannot find module '../build/Release/sharp-linux-arm64v8.node'
-  Require stack:
-  - /app/projects/madz/node_modules/@xenova/transformers/node_modules/sharp/lib/sharp.js
-  - /app/projects/madz/node_modules/@xenova/transformers/node_modules/sharp/lib/constructor.js
-  - /app/projects/madz/node_modules/@xenova/transformers/node_modules/sharp/lib/index.js
+  + undefined
+  - [
+  -   'coding',
+  -   'search'
+  - ]
   
-  Possible solutions:
-  - Install with verbose logging and look for errors: "npm install --ignore-scripts=false --foreground-scripts --verbose sharp"
-  - Install for the current linux-arm64v8 runtime: "npm install --platform=linux --arch=arm64v8 sharp"
-  - Consult the installation documentation: https://sharp.pixelplumbing.com/install
-      at Object.<anonymous> (/app/projects/madz/node_modules/@xenova/transformers/node_modules/sharp/lib/sharp.js:37:9)
-      at Module._compile (node:internal/modules/cjs/loader:1968:14)
-      at Object..js (node:internal/modules/cjs/loader:2108:10)
-      at Module.load (node:internal/modules/cjs/loader:1690:32)
-      at Module._load (node:internal/modules/cjs/loader:1480:12)
-      at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
-      at Module.require (node:internal/modules/cjs/loader:1713:12)
-      at require (node:internal/modules/helpers:318:16)
-      at Object.<anonymous> (/app/projects/madz/node_modules/@xenova/transformers/node_modules/sharp/lib/constructor.js:11:1)
-      at Module._compile (node:internal/modules/cjs/loader:1968:14)
+      at TestContext.<anonymous> (file:///app/projects/madz.worktrees/ab6bc028fc95e939/tests/integration/mcpTools.test.js:65:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: [ 'coding', 'search' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at tests/integration/mcpTools.test.js:82:2
+✖ returns executable LangChain tools (0.261916ms)
+  AssertionError [ERR_ASSERTION]: add tool should be present
+      at TestContext.<anonymous> (file:///app/projects/madz.worktrees/ab6bc028fc95e939/tests/integration/mcpTools.test.js:84:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

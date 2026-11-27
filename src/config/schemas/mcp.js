@@ -8,6 +8,10 @@ import { z } from "zod";
  * - `http` — Streamable HTTP (the default for remote servers)
  * - `sse` — HTTP + SSE (backwards compatibility)
  *
+ * The `http` and `sse` variants also accept optional `headers` (a flat
+ * `string -> string` record) and `authProvider` (an opaque OAuth2 provider
+ * passed through to the adapter) for OAuth2-protected remote servers.
+ *
  * Each server also carries an optional `agents` list used to classify its
  * discovered tools for subagent assignment. When absent, tools default to the
  * orchestrator only.
@@ -26,6 +30,8 @@ const McpServerSchema = z.discriminatedUnion("transport", [
 		.object({
 			transport: z.literal("http"),
 			url: z.string().url(),
+			headers: z.record(z.string(), z.string()).optional(),
+			authProvider: z.unknown().optional(),
 			agents: z.array(z.string()).optional(),
 		})
 		.strict(),
@@ -33,6 +39,8 @@ const McpServerSchema = z.discriminatedUnion("transport", [
 		.object({
 			transport: z.literal("sse"),
 			url: z.string().url(),
+			headers: z.record(z.string(), z.string()).optional(),
+			authProvider: z.unknown().optional(),
 			agents: z.array(z.string()).optional(),
 		})
 		.strict(),

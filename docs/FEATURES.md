@@ -178,11 +178,31 @@ The `env` record materializes as a flat `string -> string` map — `MCP_<NAME>_E
 
 #### Transports
 
-| Transport | Fields                    | Description                                                 |
-| --------- | ------------------------- | ----------------------------------------------------------- |
-| `stdio`   | `command`, `args`, `env?` | Local, process-spawned server (e.g., `npx`-launched).       |
-| `http`    | `url`                     | Streamable HTTP — the default for remote servers.           |
-| `sse`     | `url`                     | HTTP + SSE, for backwards compatibility with older servers. |
+| Transport | Fields                                    | Description                                                 |
+| --------- | ----------------------------------------- | ----------------------------------------------------------- |
+| `stdio`   | `command`, `args`, `env?`                 | Local, process-spawned server (e.g., `npx`-launched).       |
+| `http`    | `url`, `headers?`, `authProvider?`        | Streamable HTTP — the default for remote servers.           |
+| `sse`     | `url`, `headers?`, `authProvider?`        | HTTP + SSE, for backwards compatibility with older servers. |
+
+#### OAuth2 authentication
+
+`http` and `sse` servers can authenticate to OAuth2-protected services (e.g. base44.com) via two optional fields:
+
+- **`headers`** — a flat `string -> string` record of HTTP headers sent with each request (e.g. `Authorization: "Bearer <token>"`).
+- **`authProvider`** — an OAuth2 provider passed through to `@langchain/mcp-adapters`. It must be either an `OAuthClientProvider` (with `redirectUrl`, `clientMetadata`, and the SDK methods) or an `AuthProvider` (with a `token()` method). madz does not validate its internal shape — the library owns it.
+
+```yaml
+mcp:
+  base44:
+    transport: http
+    url: https://base44.com/mcp
+    headers:
+      Authorization: "Bearer ${BASE44_TOKEN}"
+    authProvider:
+      token: "${BASE44_TOKEN}"
+```
+
+Credentials should come from environment variables (e.g. `${BASE44_TOKEN}`), never be committed to `config.yaml`. The `stdio` transport does not accept these fields.
 
 #### Classifying tools
 
