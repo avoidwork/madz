@@ -86,6 +86,17 @@ describe("McpSchema", () => {
 			assert.strictEqual(result.success, true);
 			assert.deepStrictEqual(result.data["local-fs"].env, { API_KEY: "secret" });
 		});
+
+		test("should reject stdio with headers", () => {
+			const result = McpSchema.safeParse({
+				"local-fs": {
+					transport: "stdio",
+					command: "npx",
+					headers: { Authorization: "Bearer token" },
+				},
+			});
+			assert.strictEqual(result.success, false);
+		});
 	});
 
 	describe("http transport", () => {
@@ -116,6 +127,33 @@ describe("McpSchema", () => {
 			});
 			assert.strictEqual(result.success, false);
 		});
+
+		test("should accept http with headers and authProvider", () => {
+			const result = McpSchema.safeParse({
+				docs: {
+					transport: "http",
+					url: "https://base44.com/mcp",
+					headers: { Authorization: "Bearer token" },
+					authProvider: { clientId: "client" },
+				},
+			});
+			assert.strictEqual(result.success, true);
+			assert.deepStrictEqual(result.data.docs.headers, {
+				Authorization: "Bearer token",
+			});
+			assert.deepStrictEqual(result.data.docs.authProvider, { clientId: "client" });
+		});
+
+		test("should reject http with non-string header value", () => {
+			const result = McpSchema.safeParse({
+				docs: {
+					transport: "http",
+					url: "https://base44.com/mcp",
+					headers: { Authorization: { nested: "x" } },
+				},
+			});
+			assert.strictEqual(result.success, false);
+		});
 	});
 
 	describe("sse transport", () => {
@@ -136,6 +174,22 @@ describe("McpSchema", () => {
 				legacy: { transport: "sse" },
 			});
 			assert.strictEqual(result.success, false);
+		});
+
+		test("should accept sse with headers and authProvider", () => {
+			const result = McpSchema.safeParse({
+				legacy: {
+					transport: "sse",
+					url: "https://base44.com/mcp",
+					headers: { Authorization: "Bearer token" },
+					authProvider: { clientId: "client" },
+				},
+			});
+			assert.strictEqual(result.success, true);
+			assert.deepStrictEqual(result.data.legacy.headers, {
+				Authorization: "Bearer token",
+			});
+			assert.deepStrictEqual(result.data.legacy.authProvider, { clientId: "client" });
 		});
 	});
 
