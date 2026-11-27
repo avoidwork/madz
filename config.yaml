@@ -87,6 +87,24 @@ memory:
   screenshotsDir: memory/screenshots/
   sessionsDir: memory/sessions/
   toolsDir: memory/tools/
+mcp:
+  localfs:
+    transport: stdio
+    command: npx
+    args:
+      - "-y"
+      - "@modelcontextprotocol/server-filesystem"
+      - "/tmp"
+    env:
+      API_KEY: "" # MCP_LOCALFS_ENV_API_KEY
+    agents:
+      - coding
+  docs:
+    transport: http
+    url: https://docs.langchain.com/mcp # MCP_DOCS_URL
+    agents:
+      - search
+      - research
 nosql:
   mongodb:
     connectionString: "" # MONGODB_CONNECTION_STRING

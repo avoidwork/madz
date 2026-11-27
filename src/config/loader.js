@@ -188,13 +188,34 @@ export function buildReverseMap(schema, path = [], map = new Map()) {
 			// Recurse into the value schema to register static sub-path templates.
 			// These are stored as __subpath__:<envPrefix> → <dotSuffix> entries
 			// so syncEnv() can reconstruct the full dot-path for dynamic keys.
+			// The value schema may be a plain object or a discriminated union
+			// (e.g. mcp servers), so recurse into each object option.
 			const valueSchema = _getInnerType(inner._def.valueType);
-			if (valueSchema && valueSchema._def && valueSchema._def.type === "object") {
+			if (valueSchema && valueSchema._def) {
 				const subMap = new Map();
-				buildReverseMap(valueSchema, [], subMap);
+				if (valueSchema._def.type === "object") {
+					buildReverseMap(valueSchema, [], subMap);
+				} else if (valueSchema._def.type === "union" || valueSchema._def.type === "effects") {
+					const options =
+						valueSchema._def.options ||
+						(valueSchema._def.type === "effects" ? [valueSchema._def.schema] : []);
+					for (const opt of options) {
+						const optInner = _getInnerType(opt);
+						if (optInner && optInner._def && optInner._def.type === "object") {
+							buildReverseMap(optInner, [], subMap);
+						}
+					}
+				}
 				for (const [subEnvName, subDotPath] of subMap) {
-					// Store the sub-path template relative to the record
-					map.set(`__subpath__:${envPrefix}:${subEnvName}`, subDotPath);
+					if (subEnvName.startsWith("__record__:")) {
+						// A nested record field (e.g. stdio `env`) — mark it so
+						// syncEnv() knows the remaining parts form a flat key.
+						const recordField = subEnvName.slice("__record__:".length);
+						map.set(`__record_subpath__:${envPrefix}:${recordField}`, subDotPath);
+					} else {
+						// Store the sub-path template relative to the record
+						map.set(`__subpath__:${envPrefix}:${subEnvName}`, subDotPath);
+					}
 				}
 			}
 		} else if (typeName === "enum") {
@@ -292,14 +313,30 @@ export function syncEnv(raw, knownSections = KNOWN_SECTIONS) {
 	// __record__:<envPrefix> → <dotPrefix> marks a z.record() container.
 	// __subpath__:<envPrefix>:<subEnvName> → <subDotPath> marks sub-paths
 	// within the record's value schema.
+	// __record_subpath__:<envPrefix>:<recordField> → <dotPrefix> marks a
+	// nested record field (e.g. stdio `env`) whose remaining parts form a
+	// flat key rather than a nested path.
 	const recordPatterns = [];
 	const subPathTemplates = new Map();
+	const recordSubPathTemplates = new Map();
 	for (const [key, value] of reverseMap) {
 		if (key.startsWith("__record__:")) {
 			recordPatterns.push({
 				envPrefix: key.slice("__record__:".length),
 				dotPrefix: value,
 			});
+		} else if (key.startsWith("__record_subpath__:")) {
+			// key format: __record_subpath__:<envPrefix>:<recordField>
+			const rest = key.slice("__record_subpath__:".length);
+			const colonIdx = rest.indexOf(":");
+			if (colonIdx > 0) {
+				const envPrefix = rest.slice(0, colonIdx);
+				const recordField = rest.slice(colonIdx + 1).toLowerCase();
+				if (!recordSubPathTemplates.has(envPrefix)) {
+					recordSubPathTemplates.set(envPrefix, new Map());
+				}
+				recordSubPathTemplates.get(envPrefix).set(recordField, value);
+			}
 		} else if (key.startsWith("__subpath__:")) {
 			// key format: __subpath__:<envPrefix>:<subEnvName>
 			const rest = key.slice("__subpath__:".length);
@@ -360,9 +397,19 @@ export function syncEnv(raw, knownSections = KNOWN_SECTIONS) {
 						if (templates && templates.has(subEnvName)) {
 							dotPath = pattern.dotPrefix + "." + dynamicKey + "." + templates.get(subEnvName);
 						} else {
-							// Fallback: lowercase all remaining segments
-							dotPath =
-								pattern.dotPrefix + "." + dynamicKey + "." + restParts.join(".").toLowerCase();
+							// Check if the first remaining part is a nested record field
+							// (e.g. stdio `env`). If so, the remaining parts form a flat
+							// key under that field, not a nested path.
+							const recordField = restParts[0].toLowerCase();
+							const recordTemplates = recordSubPathTemplates.get(pattern.envPrefix);
+							if (recordTemplates && recordTemplates.has(recordField)) {
+								const flatKey = restParts.slice(1).join("_");
+								dotPath = pattern.dotPrefix + "." + dynamicKey + "." + recordField + "." + flatKey;
+							} else {
+								// Fallback: lowercase all remaining segments
+								dotPath =
+									pattern.dotPrefix + "." + dynamicKey + "." + restParts.join(".").toLowerCase();
+							}
 						}
 					}
 					break;
