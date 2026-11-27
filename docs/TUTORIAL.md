@@ -477,6 +477,8 @@ This creates a clean, consistent namespace where the agent always sees `/` as th
 
 [Model Context Protocol](https://modelcontextprotocol.io) (MCP) lets you plug external tools and data sources into madz declaratively. Register servers under a root-level `mcp` key in `config.yaml`, and madz discovers their tools at startup and registers them alongside the built-in tools.
 
+The shipped `config.yaml` ships an empty `mcp: {}` section, so no MCP servers are registered by default.
+
 ```yaml
 mcp:
   docs:
@@ -487,6 +489,19 @@ mcp:
     command: npx
     args: ["-y", "@modelcontextprotocol/server-filesystem", "/path"]
 ```
+
+**Environment variables:** You can also configure MCP servers entirely via env vars, without editing `config.yaml`. Each field maps to `MCP_<SERVER>_<FIELD>` in UPPER_SNAKE form:
+
+| Config path            | Env var                        |
+| ---------------------- | ------------------------------ |
+| `mcp.<name>.transport` | `MCP_<NAME>_TRANSPORT`         |
+| `mcp.<name>.url`       | `MCP_<NAME>_URL`               |
+| `mcp.<name>.command`   | `MCP_<NAME>_COMMAND`           |
+| `mcp.<name>.args`      | `MCP_<NAME>_ARGS_0`, `_1`, ... |
+| `mcp.<name>.env.<KEY>` | `MCP_<NAME>_ENV_<KEY>`         |
+| `mcp.<name>.agents`    | `MCP_<NAME>_AGENTS`            |
+
+The `env` record materializes as a flat `string -> string` map, and `agents` is a comma-separated list (e.g. `MCP_DOCS_AGENTS=search,research`).
 
 **Transports:**
 
