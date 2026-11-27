@@ -146,6 +146,36 @@ mcp:
     url: https://example.com/mcp
 ```
 
+The shipped `config.yaml` ships an empty `mcp: {}` section, so no MCP servers are registered by default. Configure servers either here or via environment variables (below).
+
+#### Environment variables
+
+MCP servers can be configured entirely via environment variables, without editing `config.yaml`. Each server is a named record, and its fields map to `MCP_<SERVER>_<FIELD>` in UPPER_SNAKE form:
+
+| Config path                    | Env var                        |
+| ------------------------------ | ------------------------------ |
+| `mcp.<name>.transport`         | `MCP_<NAME>_TRANSPORT`         |
+| `mcp.<name>.url`               | `MCP_<NAME>_URL`               |
+| `mcp.<name>.command`           | `MCP_<NAME>_COMMAND`           |
+| `mcp.<name>.args`              | `MCP_<NAME>_ARGS_0`, `_1`, ... |
+| `mcp.<name>.env.<KEY>`         | `MCP_<NAME>_ENV_<KEY>`         |
+| `mcp.<name>.agents`            | `MCP_<NAME>_AGENTS`            |
+
+For example, to register a remote Streamable HTTP server and a local stdio server:
+
+```bash
+export MCP_DOCS_TRANSPORT=http
+export MCP_DOCS_URL=https://docs.langchain.com/mcp
+export MCP_LOCALFS_TRANSPORT=stdio
+export MCP_LOCALFS_COMMAND=npx
+export MCP_LOCALFS_ARGS_0=-y
+export MCP_LOCALFS_ARGS_1=@modelcontextprotocol/server-filesystem
+export MCP_LOCALFS_ARGS_2=/path
+export MCP_LOCALFS_ENV_API_KEY=secret
+```
+
+The `env` record materializes as a flat `string -> string` map — `MCP_<NAME>_ENV_<KEY>` sets `mcp.<name>.env.<KEY>`, not a nested object. The `agents` value is a comma-separated list (e.g. `MCP_DOCS_AGENTS=search,research`).
+
 #### Transports
 
 | Transport | Fields                    | Description                                                 |

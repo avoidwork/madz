@@ -517,6 +517,47 @@ describe("syncEnv", () => {
 		const result = syncEnv(raw, ["tui"]);
 		assert.strictEqual(result, raw);
 	});
+
+	it("materializes mcp http server from MCP_* env vars", () => {
+		process.env.MCP_DOCS_TRANSPORT = "http";
+		process.env.MCP_DOCS_URL = "https://example.com/mcp";
+		const raw = {};
+		syncEnv(raw, ["mcp"]);
+		assert.strictEqual(raw.mcp.docs.transport, "http");
+		assert.strictEqual(raw.mcp.docs.url, "https://example.com/mcp");
+	});
+
+	it("materializes mcp stdio server from MCP_* env vars", () => {
+		process.env.MCP_LOCALFS_TRANSPORT = "stdio";
+		process.env.MCP_LOCALFS_COMMAND = "npx";
+		const raw = {};
+		syncEnv(raw, ["mcp"]);
+		assert.strictEqual(raw.mcp.localfs.transport, "stdio");
+		assert.strictEqual(raw.mcp.localfs.command, "npx");
+	});
+
+	it("materializes mcp stdio env vars as a flat record", () => {
+		// Regression test: MCP_<SERVER>_ENV_<KEY> must materialize as a flat
+		// string -> string record, not a nested object.
+		process.env.MCP_LOCALFS_TRANSPORT = "stdio";
+		process.env.MCP_LOCALFS_COMMAND = "npx";
+		process.env.MCP_LOCALFS_ENV_API_KEY = "secret";
+		const raw = {};
+		syncEnv(raw, ["mcp"]);
+		assert.deepStrictEqual(raw.mcp.localfs.env, { API_KEY: "secret" });
+	});
+
+	it("materialized mcp config passes ConfigSchema validation", () => {
+		process.env.MCP_LOCALFS_TRANSPORT = "stdio";
+		process.env.MCP_LOCALFS_COMMAND = "npx";
+		process.env.MCP_LOCALFS_ENV_API_KEY = "secret";
+		process.env.MCP_DOCS_TRANSPORT = "http";
+		process.env.MCP_DOCS_URL = "https://example.com/mcp";
+		const raw = {};
+		syncEnv(raw, ["mcp"]);
+		const result = ConfigSchema.safeParse(raw);
+		assert.strictEqual(result.success, true);
+	});
 });
 
 describe("_setResolvedConfig — sandbox path normalization", () => {

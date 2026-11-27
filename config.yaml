@@ -87,6 +87,7 @@ memory:
   screenshotsDir: memory/screenshots/
   sessionsDir: memory/sessions/
   toolsDir: memory/tools/
+mcp: {} # MCP servers, configured via MCP_<SERVER>_<FIELD> env vars (see docs/FEATURES.md)
 nosql:
   mongodb:
     connectionString: "" # MONGODB_CONNECTION_STRING

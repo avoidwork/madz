@@ -61,6 +61,31 @@ describe("McpSchema", () => {
 			});
 			assert.strictEqual(result.success, false);
 		});
+
+		test("should reject stdio with nested env object", () => {
+			// Regression test: stdio `env` must be a flat string -> string record.
+			// A nested object (e.g. from a buggy env-var materialization) is rejected.
+			const result = McpSchema.safeParse({
+				"local-fs": {
+					transport: "stdio",
+					command: "npx",
+					env: { api: { key: "secret" } },
+				},
+			});
+			assert.strictEqual(result.success, false);
+		});
+
+		test("should accept stdio with flat env record", () => {
+			const result = McpSchema.safeParse({
+				"local-fs": {
+					transport: "stdio",
+					command: "npx",
+					env: { API_KEY: "secret" },
+				},
+			});
+			assert.strictEqual(result.success, true);
+			assert.deepStrictEqual(result.data["local-fs"].env, { API_KEY: "secret" });
+		});
 	});
 
 	describe("http transport", () => {
