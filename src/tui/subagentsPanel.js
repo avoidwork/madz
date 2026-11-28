@@ -56,11 +56,18 @@ export const SubagentsPanel = forwardRef(function SubagentsPanel(
 		}));
 	}, [subagentStore]);
 
-	// Escape returns to conversation view
+	// Escape returns to conversation view; arrow/page keys scroll the panel.
+	// Line keys scroll by one line; page keys scroll by the viewport height.
+	// This mirrors the routeNavKey semantics in selectMode.js.
 	useInput(
 		(_input, key) => {
 			if (key.escape) {
 				onViewChange?.("conversation");
+				return;
+			}
+			const route = routeSubagentScrollKey(key, scrollRef.current?.getViewportHeight?.() || 1);
+			if (route) {
+				scrollRef.current?.scrollBy?.(route.delta);
 			}
 		},
 		{ isActive },
@@ -161,6 +168,22 @@ export const SubagentsPanel = forwardRef(function SubagentsPanel(
 		),
 	);
 });
+
+/**
+ * Route a navigation key to a scroll delta for the subagents panel.
+ * Line keys (up/down arrow) scroll by one line; page keys (PageUp/PageDown)
+ * scroll by the viewport height. Returns null for keys that do not scroll.
+ * @param {Object} key - Key flags from Ink's useInput
+ * @param {number} [viewportHeight=1] - The current viewport height in rows
+ * @returns {{delta: number}|null} The signed scroll delta, or null
+ */
+export function routeSubagentScrollKey(key = {}, viewportHeight = 1) {
+	if (key.pageUp) return { delta: -viewportHeight };
+	if (key.pageDown) return { delta: viewportHeight };
+	if (key.upArrow) return { delta: -1 };
+	if (key.downArrow) return { delta: 1 };
+	return null;
+}
 
 /**
  * Estimate the rendered height of a subagent entry in rows, used by the

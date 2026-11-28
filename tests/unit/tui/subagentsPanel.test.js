@@ -7,7 +7,11 @@ import {
 	updateSubagentStore,
 	namespaceKey,
 } from "../../../src/tui/subagentStore.js";
-import { SubagentsPanel, estimateSubagentHeight } from "../../../src/tui/subagentsPanel.js";
+import {
+	SubagentsPanel,
+	estimateSubagentHeight,
+	routeSubagentScrollKey,
+} from "../../../src/tui/subagentsPanel.js";
 
 describe("namespaceKey", () => {
 	it("joins a populated namespace into a stable key", () => {
@@ -509,6 +513,35 @@ describe("estimateSubagentHeight", () => {
 			segments: [{ type: "message", content: "x".repeat(200) }],
 		});
 		assert.ok(long >= short);
+	});
+});
+
+describe("routeSubagentScrollKey", () => {
+	it("routes up arrow to a -1 line delta", () => {
+		assert.deepStrictEqual(routeSubagentScrollKey({ upArrow: true }), { delta: -1 });
+	});
+
+	it("routes down arrow to a +1 line delta", () => {
+		assert.deepStrictEqual(routeSubagentScrollKey({ downArrow: true }), { delta: 1 });
+	});
+
+	it("routes page up to a negative viewport-height delta", () => {
+		assert.deepStrictEqual(routeSubagentScrollKey({ pageUp: true }, 10), { delta: -10 });
+	});
+
+	it("routes page down to a positive viewport-height delta", () => {
+		assert.deepStrictEqual(routeSubagentScrollKey({ pageDown: true }, 10), { delta: 10 });
+	});
+
+	it("defaults the viewport height to 1 for page keys", () => {
+		assert.deepStrictEqual(routeSubagentScrollKey({ pageUp: true }), { delta: -1 });
+		assert.deepStrictEqual(routeSubagentScrollKey({ pageDown: true }), { delta: 1 });
+	});
+
+	it("returns null for non-scroll keys", () => {
+		assert.strictEqual(routeSubagentScrollKey({ escape: true }), null);
+		assert.strictEqual(routeSubagentScrollKey({}), null);
+		assert.strictEqual(routeSubagentScrollKey(), null);
 	});
 });
 

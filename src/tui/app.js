@@ -612,6 +612,12 @@ function App({
 	// on the conversation view with the file picker closed.
 	useMouseScroll(
 		(delta) => {
+			if (currentView === PANELS.SUBAGENTS) {
+				subagentsPanelRef.current?.scrollBy(
+					scaleScrollDelta(delta, config?.tui?.mouseScrollLines || 1),
+				);
+				return;
+			}
 			if (currentView !== PANELS.CONVERSATION) return;
 			if (inputAreaRef.current?.isPickerOpen?.()) return;
 			conversationAreaRef.current?.scrollBy(
