@@ -160,8 +160,8 @@ MCP servers can be configured entirely via environment variables, without editin
 | `mcp.<name>.args`              | `MCP_<NAME>_ARGS_0`, `_1`, ... |
 | `mcp.<name>.env.<KEY>`         | `MCP_<NAME>_ENV_<KEY>`         |
 | `mcp.<name>.agents`            | `MCP_<NAME>_AGENTS`            |
-| `mcp.<name>.authProvider.flow` | `MCP_<NAME>_AUTHPROVIDER_FLOW` |
-| `mcp.<name>.authProvider.callbackPort` | `MCP_<NAME>_AUTHPROVIDER_CALLBACKPORT` |
+| `mcp.<name>.authProvider.flow` | `MCP_<NAME>_AUTH_PROVIDER_FLOW` |
+| `mcp.<name>.authProvider.callbackPort` | `MCP_<NAME>_AUTH_PROVIDER_CALLBACK_PORT` |
 
 For example, to register a remote Streamable HTTP server and a local stdio server:
 
