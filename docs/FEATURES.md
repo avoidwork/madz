@@ -160,6 +160,8 @@ MCP servers can be configured entirely via environment variables, without editin
 | `mcp.<name>.args`              | `MCP_<NAME>_ARGS_0`, `_1`, ... |
 | `mcp.<name>.env.<KEY>`         | `MCP_<NAME>_ENV_<KEY>`         |
 | `mcp.<name>.agents`            | `MCP_<NAME>_AGENTS`            |
+| `mcp.<name>.authProvider.flow` | `MCP_<NAME>_AUTHPROVIDER_FLOW` |
+| `mcp.<name>.authProvider.callbackPort` | `MCP_<NAME>_AUTHPROVIDER_CALLBACKPORT` |
 
 For example, to register a remote Streamable HTTP server and a local stdio server:
 
@@ -203,6 +205,26 @@ mcp:
 ```
 
 Credentials should come from environment variables (e.g. `${BASE44_TOKEN}`), never be committed to `config.yaml`. The `stdio` transport does not accept these fields.
+
+##### Built-in OAuth2 flows
+
+The built-in `authProvider` supports two OAuth2 flows, selected by the `flow` field:
+
+- **`flow: "browser"`** — the OAuth2 authorization-code + PKCE flow. madz runs an ephemeral HTTP callback server bound to `0.0.0.0` on the configured `callbackPort` (default `3000`), exposes a `redirectUrl` pointing at `http://localhost:<port>/callback`, surfaces the authorization URL to the user via a clarification prompt, and exchanges the captured code for tokens. This flow bridges a containerized madz process to a host OS browser: the user completes authorization in their browser and the container captures the resulting code. The container port must be published to the host (e.g. `-p 3000:3000` or the docker-compose `ports:` mapping) so the host browser's redirect can reach the callback server.
+- **`flow: "device"`** — the OAuth 2.0 Device Authorization Grant (RFC 8628). madz requests a device code, surfaces the `verification_uri` + `user_code`, and polls the token endpoint until the user approves. This flow needs no host browser and no redirect URI, so it works even when the container port is not published.
+
+```yaml
+mcp:
+  protected:
+    transport: http
+    url: https://example.com/mcp
+    authProvider:
+      flow: "browser"
+      callbackPort: 3000
+      scopes: ["app:mcp", "offline"]
+```
+
+When `flow` is omitted, the provider falls back to the non-interactive `@langchain/auth` hosted flow. The `callbackPort` is only used by the `browser` flow; when set to `0`, the OS assigns a free port.
 
 #### Classifying tools
 
