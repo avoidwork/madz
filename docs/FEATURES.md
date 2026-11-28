@@ -159,9 +159,10 @@ MCP servers can be configured entirely via environment variables, without editin
 | `mcp.<name>.command`           | `MCP_<NAME>_COMMAND`           |
 | `mcp.<name>.args`              | `MCP_<NAME>_ARGS_0`, `_1`, ... |
 | `mcp.<name>.env.<KEY>`         | `MCP_<NAME>_ENV_<KEY>`         |
-| `mcp.<name>.agents`            | `MCP_<NAME>_AGENTS`            |
+| `mcp.<name>.agents`            | `MCP_<NAME>_AGENTS_0`, `_1`, ... |
 | `mcp.<name>.authProvider.flow` | `MCP_<NAME>_AUTH_PROVIDER_FLOW` |
 | `mcp.<name>.authProvider.callbackPort` | `MCP_<NAME>_AUTH_PROVIDER_CALLBACK_PORT` |
+| `mcp.<name>.authProvider.scopes` | `MCP_<NAME>_AUTH_PROVIDER_SCOPES_0`, `_1`, ... |
 
 For example, to register a remote Streamable HTTP server and a local stdio server:
 
@@ -176,7 +177,7 @@ export MCP_LOCALFS_ARGS_2=/path
 export MCP_LOCALFS_ENV_API_KEY=secret
 ```
 
-The `env` record materializes as a flat `string -> string` map — `MCP_<NAME>_ENV_<KEY>` sets `mcp.<name>.env.<KEY>`, not a nested object. The `agents` value is a comma-separated list (e.g. `MCP_DOCS_AGENTS=search,research`).
+The `env` record materializes as a flat `string -> string` map — `MCP_<NAME>_ENV_<KEY>` sets `mcp.<name>.env.<KEY>`, not a nested object. The `agents` and `authProvider.scopes` values are arrays, so each element is set with an indexed env var (e.g. `MCP_DOCS_AGENTS_0=search`, `MCP_DOCS_AGENTS_1=research`).
 
 #### Transports
 
