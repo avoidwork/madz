@@ -2,7 +2,9 @@
 
 ## Purpose
 TBD - created by archiving change mouse-wheel-scroll-conversation-panel. Update Purpose after archive.
+
 ## Requirements
+
 ### Requirement: Mouse-wheel scrolling drives the ScrollView scroll API
 The conversation panel SHALL support mouse-wheel scrolling by parsing SGR mouse sequences and driving the custom `ScrollView`'s `scrollBy` API. Wheel-up scrolls up by `mouseScrollLines` lines; wheel-down scrolls down by `mouseScrollLines` lines. The `mouseScrollLines` value SHALL default to 1 when not configured.
 
@@ -30,15 +32,23 @@ The `useMouseScroll` hook SHALL enable terminal mouse reporting (`\x1b[?1000h` /
 - **THEN** the terminal mouse reporting disable sequences (`\x1b[?1000l` / `\x1b[?1006l` / `\x1b[?1002l`) are written to stdout and the stdin listener is removed
 
 ### Requirement: Mouse events are only handled in the conversation view
-The mouse-scroll hook SHALL only invoke scroll actions when the conversation view is active and the file picker is closed, matching the existing keyboard scroll behavior.
+
+The mouse-scroll hook SHALL only invoke scroll actions when the conversation view is active and the file picker is closed, or when the subagents panel is the active view, matching the existing keyboard scroll behavior. When the subagents panel is active, the wheel scroll SHALL route to the subagents panel's scroll API.
 
 #### Scenario: Mouse events ignored outside conversation view
+
 - **WHEN** a mouse wheel event arrives while not in the conversation view
 - **THEN** no scroll action is invoked
 
 #### Scenario: Mouse events ignored when file picker is open
+
 - **WHEN** a mouse wheel event arrives while the file picker is open
 - **THEN** no scroll action is invoked
+
+#### Scenario: Wheel scrolls the subagents panel
+
+- **WHEN** the subagents panel is the active view and the user scrolls the mouse wheel
+- **THEN** the subagents panel scrolls by the configured number of lines
 
 ### Requirement: Mouse scrolling integrates with scroll-up suppression
 When the user scrolls up via mouse, the `isUserScrolledUpRef` in `messageList.js` SHALL be set to `true` so auto-scroll on new messages is suppressed until the user returns to the bottom.
@@ -50,4 +60,3 @@ When the user scrolls up via mouse, the `isUserScrolledUpRef` in `messageList.js
 #### Scenario: Returning to bottom resumes auto-scroll
 - **WHEN** the user scrolls back to the bottom via mouse
 - **THEN** `isUserScrolledUpRef` is set to `false`, resuming auto-scroll on new messages
-
