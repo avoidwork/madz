@@ -87,7 +87,7 @@ memory:
   screenshotsDir: memory/screenshots/
   sessionsDir: memory/sessions/
   toolsDir: memory/tools/
-mcp: {} # MCP servers, configured via MCP_<SERVER>_<FIELD> env vars (see docs/FEATURES.md)
+mcp: {} # MCP servers, configured via MCP_<SERVER>_<FIELD> env vars (see docs/FEATURES.md). OAuth2 authProvider supports `flow` (browser|device) and `callbackPort` for the browser flow's container/host bridge.
 nosql:
   mongodb:
     connectionString: "" # MONGODB_CONNECTION_STRING

@@ -165,6 +165,7 @@ Add a bind mount pointing at the directory on your host that holds your reposito
 docker run -d \
   --name madz \
   -p 2222:22 \
+  -p 3000:3000 \
   -v ./memory:/app/memory \
   -v madz-checkpoints:/app/memory/checkpoints \
   -v ./skills:/app/skills \

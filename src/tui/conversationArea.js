@@ -14,6 +14,7 @@ import { sanitizeLine } from "./sanitize.js";
 import { isCancelledToolEvent } from "../shared/cancelledToolMessage.js";
 import { ConversationPanel } from "./conversationPanel.js";
 import { CommandParser } from "./commandParser.js";
+import { readResponseStore } from "../tools/mcp/authProvider.js";
 import { createSession } from "../session/factory.js";
 import { setConfigValue } from "../config/loader.js";
 import { isAvailable, getGcCalls } from "../memory/gc.js";
@@ -1082,6 +1083,30 @@ const ConversationArea = forwardRef(function ConversationArea(
 	 */
 	const resumeClarify = (answer) =>
 		runTurn((handler, signal) => resumeProvider(answer, handler, signal));
+
+	// Silent poller for the MCP OAuth browser flow. When the callback server
+	// captures an authorization code, it writes to the response store. This
+	// poller watches the store and resumes the paused agent with the code via
+	// `resumeProvider` — a silent resume, no user keystroke. It gives up after
+	// a timeout and resumes with a failure signal so the agent does not hang at
+	// the interrupt forever.
+	const oauthPollRef = useRef(null);
+	useEffect(() => {
+		const poll = () => {
+			const entry = readResponseStore();
+			if (!entry) return;
+			oauthPollRef.current = null;
+			if (entry.code) {
+				resumeClarify(entry.code);
+			} else {
+				resumeClarify(entry.error || "timeout");
+			}
+		};
+		oauthPollRef.current = setInterval(poll, 500);
+		return () => {
+			if (oauthPollRef.current) clearInterval(oauthPollRef.current);
+		};
+	}, []);
 
 	/**
 	 * Finalize streaming message.

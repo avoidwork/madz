@@ -638,9 +638,13 @@ export async function buildToolConfig(options) {
 				const { agents: _agents, ...connection } = serverConfig;
 				// Construct the built-in OAuth client provider from the typed
 				// `authProvider` config so an OAuth2-protected remote MCP server
-				// can be configured without hand-writing a provider object.
+				// can be configured without hand-writing a provider object. The
+				// MCP server URL is passed through so the provider can discover
+				// metadata from it.
 				if (connection.authProvider) {
-					connection.authProvider = createAuthProvider(connection.authProvider);
+					connection.authProvider = createAuthProvider(connection.authProvider, {
+						serverUrl: connection.url,
+					});
 				}
 				adapterServers[serverName] = connection;
 			}
