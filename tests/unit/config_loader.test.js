@@ -558,6 +558,33 @@ describe("syncEnv", () => {
 		const result = ConfigSchema.safeParse(raw);
 		assert.strictEqual(result.success, true);
 	});
+
+	it("materializes authProvider sub-fields from env vars", () => {
+		process.env.MCP_BASE44_TRANSPORT = "http";
+		process.env.MCP_BASE44_URL = "https://madz.base44.app/api/mcp";
+		process.env.MCP_BASE44_AUTH_PROVIDER_CLIENT_ID = "my-client";
+		process.env.MCP_BASE44_AUTH_PROVIDER_AUTHORIZATION_SERVER = "https://app.base44.com";
+		process.env.MCP_BASE44_AUTH_PROVIDER_SCOPES_0 = "app:mcp";
+		process.env.MCP_BASE44_AUTH_PROVIDER_SCOPES_1 = "offline";
+		const raw = {};
+		syncEnv(raw, ["mcp"]);
+		assert.strictEqual(raw.mcp.base44.authProvider.clientId, "my-client");
+		assert.strictEqual(raw.mcp.base44.authProvider.authorizationServer, "https://app.base44.com");
+		assert.deepStrictEqual(raw.mcp.base44.authProvider.scopes, ["app:mcp", "offline"]);
+	});
+
+	it("materialized authProvider config passes ConfigSchema validation", () => {
+		process.env.MCP_BASE44_TRANSPORT = "http";
+		process.env.MCP_BASE44_URL = "https://madz.base44.app/api/mcp";
+		process.env.MCP_BASE44_AUTH_PROVIDER_CLIENT_ID = "my-client";
+		process.env.MCP_BASE44_AUTH_PROVIDER_AUTHORIZATION_SERVER = "https://app.base44.com";
+		process.env.MCP_BASE44_AUTH_PROVIDER_SCOPES_0 = "app:mcp";
+		process.env.MCP_BASE44_AUTH_PROVIDER_SCOPES_1 = "offline";
+		const raw = {};
+		syncEnv(raw, ["mcp"]);
+		const result = ConfigSchema.safeParse(raw);
+		assert.strictEqual(result.success, true);
+	});
 });
 
 describe("_setResolvedConfig — sandbox path normalization", () => {

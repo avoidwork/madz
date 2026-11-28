@@ -396,7 +396,24 @@ export function syncEnv(raw, knownSections = KNOWN_SECTIONS) {
 						const templates = subPathTemplates.get(pattern.envPrefix);
 						if (templates && templates.has(subEnvName)) {
 							dotPath = pattern.dotPrefix + "." + dynamicKey + "." + templates.get(subEnvName);
-						} else {
+						} else if (templates) {
+							// Indexed array sub-path (e.g. AUTH_PROVIDER_SCOPES_0):
+							// strip a trailing numeric segment and look up the base
+							// template, then append the index to materialize the
+							// array element.
+							const indexedSubMatch = subEnvName.match(/^(.*)_(\d+)$/);
+							if (indexedSubMatch && templates.has(indexedSubMatch[1])) {
+								dotPath =
+									pattern.dotPrefix +
+									"." +
+									dynamicKey +
+									"." +
+									templates.get(indexedSubMatch[1]) +
+									"." +
+									indexedSubMatch[2];
+							}
+						}
+						if (!dotPath) {
 							// Check if the first remaining part is a nested record field
 							// (e.g. stdio `env`). If so, the remaining parts form a flat
 							// key under that field, not a nested path.
