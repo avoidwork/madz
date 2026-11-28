@@ -5,7 +5,7 @@ import { z } from "zod";
  *
  * This is a typed object (not `z.unknown()`) so the config loader's
  * `buildReverseMap`/`syncEnv` can recurse into it and materialize
- * `MCP_<SERVER>_AUTHPROVIDER_*` environment variables. It is passed through
+ * `MCP_<SERVER>_AUTH_PROVIDER_*` environment variables. It is passed through
  * to `@langchain/mcp-adapters` as the `authProvider` on `http`/`sse` servers.
  *
  * The fields configure the built-in OAuth client provider backed by

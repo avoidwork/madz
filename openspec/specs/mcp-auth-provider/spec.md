@@ -26,23 +26,23 @@ The system SHALL ship a built-in OAuth client provider implementation for MCP se
 - **THEN** it exchanges the code for tokens via `prepareTokenRequest`
 
 ### Requirement: authProvider sub-fields are materializable from env vars
-The system SHALL materialize `MCP_<SERVER>_AUTHPROVIDER_<FIELD>` environment variables into the `mcp.<server>.authProvider.<field>` config path, so an OAuth2-protected MCP server's provider settings can be configured via environment variables.
+The system SHALL materialize `MCP_<SERVER>_AUTH_PROVIDER_<FIELD>` environment variables into the `mcp.<server>.authProvider.<field>` config path, so an OAuth2-protected MCP server's provider settings can be configured via environment variables.
 
 #### Scenario: authProvider sub-fields materialize from env vars
-- **WHEN** `MCP_<SERVER>_AUTHPROVIDER_CLIENTID=...` and `MCP_<SERVER>_AUTHPROVIDER_AUTHORIZATIONSERVER=...` are set
+- **WHEN** `MCP_<SERVER>_AUTH_PROVIDER_CLIENTID=...` and `MCP_<SERVER>_AUTH_PROVIDER_AUTHORIZATIONSERVER=...` are set
 - **THEN** the config contains the corresponding `mcp.<server>.authProvider.<field>` values
 
 #### Scenario: authProvider scopes array materializes from env vars
-- **WHEN** `MCP_<SERVER>_AUTHPROVIDER_SCOPES_0=app:mcp` and `MCP_<SERVER>_AUTHPROVIDER_SCOPES_1=offline` are set
+- **WHEN** `MCP_<SERVER>_AUTH_PROVIDER_SCOPES_0=app:mcp` and `MCP_<SERVER>_AUTH_PROVIDER_SCOPES_1=offline` are set
 - **THEN** the config contains `mcp.<server>.authProvider.scopes` as an array of the materialized values
 
 ### Requirement: authProvider callback port and flow selection configurable
-The system SHALL allow the callback port and flow selection for the MCP OAuth provider to be configured, and SHALL materialize the corresponding `MCP_<SERVER>_AUTHPROVIDER_<FIELD>` environment variables into the `mcp.<server>.authProvider.<field>` config path.
+The system SHALL allow the callback port and flow selection for the MCP OAuth provider to be configured, and SHALL materialize the corresponding `MCP_<SERVER>_AUTH_PROVIDER_<FIELD>` environment variables into the `mcp.<server>.authProvider.<field>` config path.
 
 #### Scenario: Callback port configurable
 - **WHEN** the callback port is configured on the MCP server's `authProvider`
 - **THEN** the provider uses that port for the callback server
 
 #### Scenario: Callback port materializes from env var
-- **WHEN** `MCP_<SERVER>_AUTHPROVIDER_CALLBACKPORT=...` is set
+- **WHEN** `MCP_<SERVER>_AUTH_PROVIDER_CALLBACK_PORT=...` is set
 - **THEN** the config contains the corresponding `mcp.<server>.authProvider.callbackPort` value
