@@ -9,13 +9,13 @@
 ℹ   compaction.js                |  97.69 |    73.21 |  100.00 | 86-87 140 142-143
 ℹ   contextBackend.js            | 100.00 |   100.00 |  100.00 | 
 ℹ   coreBackend.js               | 100.00 |   100.00 |  100.00 | 
-ℹ   deepAgents.js                |  94.94 |    71.68 |   78.95 | 167-168 192 208-210 340-347 376-377 382-383 490-492 584-588 596-600
+ℹ   deepAgents.js                |  94.94 |    72.97 |   78.95 | 167-168 192 208-210 340-347 376-377 382-383 490-492 584-588 596-600
 ℹ   effectiveMessages.js         | 100.00 |   100.00 |  100.00 | 
 ℹ   evictionCeiling.js           | 100.00 |   100.00 |  100.00 | 
 ℹ   skillsMiddleware.js          | 100.00 |    87.50 |  100.00 | 
 ℹ  config                        |        |          |         | 
 ℹ   config.js                    | 100.00 |   100.00 |  100.00 | 
-ℹ   loader.js                    |  95.94 |    90.00 |   91.67 | 97-98 106-107 391-392 464-474 544 546 673-677 687-690
+ℹ   loader.js                    |  95.76 |    89.63 |   91.67 | 97-98 106-107 373-374 391-392 481-491 561 563 690-694 704-707
 ℹ   parse.js                     | 100.00 |   100.00 |  100.00 | 
 ℹ   patch.js                     | 100.00 |   100.00 |  100.00 | 
 ℹ   schemas                      |        |          |         | 
@@ -94,7 +94,7 @@
 ℹ   logger.js                    |  80.17 |    67.92 |  100.00 | 98-109 134-143 148 150-152 175-177 187-191 214-222 228-233 250 284-285 287-289 308-310 318-320 328-330 338-340 348-350
 ℹ  skills                        |        |          |         | 
 ℹ   agentMapper.js               |  93.75 |    75.00 |  100.00 | 14-15
-ℹ   discoverer.js                |  97.89 |    94.94 |  100.00 | 132-134 197-199
+ℹ   discoverer.js                |  97.89 |    95.00 |  100.00 | 132-134 197-199
 ℹ   registry.js                  |  95.90 |    81.97 |   94.74 | 125-126 205-207 236-243
 ℹ   types.js                     | 100.00 |   100.00 |  100.00 | 
 ℹ   validator.js                 | 100.00 |   100.00 |  100.00 | 
@@ -191,16 +191,18 @@
 ℹ    xlsxParser.js               |  82.21 |    83.33 |   88.89 | 47-48 93-112 130-137 150-156
 ℹ    zipExtractor.js             |  82.32 |    77.78 |   66.67 | 62-63 104-107 124-142 149-152
 ℹ   git                          |        |          |         | 
-ℹ    index.js                    |  88.52 |    64.79 |   83.80 | 324-326 379-380 393-396 481-483 515-516 567 658-659 664-672 718-720 751-752 784-786 850-853 869-872 895-901 935 937-941 943-946 958-962 1005-1009 1013 1018-1020 1048-1049 1059 1073-1079 1081-1084 1092-1098 1121-1126 1128-1134 1136-1145 1147-1150 1157-1161 1171-1178 1226-1227 1229-1234 1326-1327 1349-1350 1358-1359 1366-1367 1369-1375 1397 1401-1403 1408-1411 1463-1470 1474-1482 1485-1488 1490-1493
+ℹ    index.js                    |  88.52 |    64.56 |   83.80 | 324-326 379-380 393-396 481-483 515-516 567 658-659 664-672 718-720 751-752 784-786 850-853 869-872 895-901 935 937-941 943-946 958-962 1005-1009 1013 1018-1020 1048-1049 1059 1073-1079 1081-1084 1092-1098 1121-1126 1128-1134 1136-1145 1147-1150 1157-1161 1171-1178 1226-1227 1229-1234 1326-1327 1349-1350 1358-1359 1366-1367 1369-1375 1397 1401-1403 1408-1411 1463-1470 1474-1482 1485-1488 1490-1493
 ℹ   graphql                      |        |          |         | 
 ℹ    index.js                    |  97.85 |    98.13 |   93.75 | 57-68
 ℹ   image                        |        |          |         | 
 ℹ    index.js                    |  94.17 |    80.70 |   84.62 | 134-135 158-159 189-190 192-193 203-204 210-211 221-222 238-239 246-247 253-254 276-277 279-280 290-291 297-298 305-306
-ℹ   index.js                     |  98.24 |    97.25 |   61.54 | 527-530 545-548 647-648 670-671
+ℹ   index.js                     |  98.55 |    98.20 |   76.92 | 528-531 546-549 677-678
 ℹ   jira                         |        |          |         | 
 ℹ    index.js                    |  99.73 |    90.79 |   88.89 | 158
 ℹ   json                         |        |          |         | 
 ℹ    index.js                    |  99.63 |    96.51 |  100.00 | 238
+ℹ   mcp                          |        |          |         | 
+ℹ    authProvider.js             |  97.09 |    80.00 |  100.00 | 49-53
 ℹ   memory                       |        |          |         | 
 ℹ    index.js                    |  95.82 |    84.62 |   92.86 | 69-70 112-113 194-198 308-309 317-319
 ℹ   nosql                        |        |          |         | 
@@ -231,7 +233,7 @@
 ℹ   reflection                   |        |          |         | 
 ℹ    index.js                    |  94.98 |    83.02 |   90.00 | 56-60 125-126 142-143 197-198
 ℹ   sampling                     |        |          |         | 
-ℹ    index.js                    |  99.52 |    83.33 |  100.00 | 27
+ℹ    index.js                    |  99.52 |    85.71 |  100.00 | 27
 ℹ   session                      |        |          |         | 
 ℹ    index.js                    |  95.76 |    70.69 |  100.00 | 72-73 99-100 116-117 155-156 177-178
 ℹ   skills                       |        |          |         | 
@@ -256,7 +258,7 @@
 ℹ   web                          |        |          |         | 
 ℹ    index.js                    |  95.55 |    69.92 |   60.00 | 36-37 51-52 55-57 98-100 314-316 385-387 454-455 457-458 460-461
 ℹ   webhook                      |        |          |         | 
-ℹ    index.js                    |  97.99 |    96.43 |  100.00 | 21-25
+ℹ    index.js                    | 100.00 |    98.25 |  100.00 | 
 ℹ   yaml                         |        |          |         | 
 ℹ    index.js                    | 100.00 |    94.38 |  100.00 | 
 ℹ  tui                           |        |          |         | 
@@ -304,82 +306,6 @@
 ℹ   loadAgents.js                |  74.29 |    78.57 |   50.00 | 25-26 41 56-70
 ℹ   project.js                   | 100.00 |   100.00 |  100.00 | 
 ℹ --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-ℹ all files                      |  92.05 |    86.11 |   87.85 | 
+ℹ all files                      |  92.09 |    86.13 |   88.00 | 
 ℹ --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ℹ end of coverage report
-
-✖ failing tests:
-
-test at tests/integration/mcpTools.test.js:50:2
-✖ discovers and registers tools from the MCP server (4.379709ms)
-  AssertionError [ERR_ASSERTION]: should register the 'add' tool
-      at TestContext.<anonymous> (file:///app/projects/madz.worktrees/ab6bc028fc95e939/tests/integration/mcpTools.test.js:52:10)
-      at Test.runInAsyncScope (node:async_hooks:226:14)
-      at Test.run (node:internal/test_runner/test:1402:25)
-      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
-      at async Promise.all (index 0)
-      at async Suite.run (node:internal/test_runner/test:1905:7)
-      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
-    generatedMessage: false,
-    code: 'ERR_ASSERTION',
-    actual: false,
-    expected: true,
-    operator: '==',
-    diff: 'simple'
-  }
-
-test at tests/integration/mcpTools.test.js:56:2
-✖ appends MCP tools to the built-in tool list (0.370458ms)
-  AssertionError [ERR_ASSERTION]: should have at least the two MCP tools
-      at TestContext.<anonymous> (file:///app/projects/madz.worktrees/ab6bc028fc95e939/tests/integration/mcpTools.test.js:61:10)
-      at Test.runInAsyncScope (node:async_hooks:226:14)
-      at Test.run (node:internal/test_runner/test:1402:25)
-      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7) {
-    generatedMessage: false,
-    code: 'ERR_ASSERTION',
-    actual: false,
-    expected: true,
-    operator: '==',
-    diff: 'simple'
-  }
-
-test at tests/integration/mcpTools.test.js:64:2
-✖ classifies MCP tools by the per-server agents list (0.722042ms)
-  AssertionError [ERR_ASSERTION]: add tool should be classified for coding + search
-  + actual - expected
-  
-  + undefined
-  - [
-  -   'coding',
-  -   'search'
-  - ]
-  
-      at TestContext.<anonymous> (file:///app/projects/madz.worktrees/ab6bc028fc95e939/tests/integration/mcpTools.test.js:65:10)
-      at Test.runInAsyncScope (node:async_hooks:226:14)
-      at Test.run (node:internal/test_runner/test:1402:25)
-      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7) {
-    generatedMessage: false,
-    code: 'ERR_ASSERTION',
-    actual: undefined,
-    expected: [ 'coding', 'search' ],
-    operator: 'deepStrictEqual',
-    diff: 'simple'
-  }
-
-test at tests/integration/mcpTools.test.js:82:2
-✖ returns executable LangChain tools (0.261916ms)
-  AssertionError [ERR_ASSERTION]: add tool should be present
-      at TestContext.<anonymous> (file:///app/projects/madz.worktrees/ab6bc028fc95e939/tests/integration/mcpTools.test.js:84:10)
-      at Test.runInAsyncScope (node:async_hooks:226:14)
-      at Test.run (node:internal/test_runner/test:1402:25)
-      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7) {
-    generatedMessage: false,
-    code: 'ERR_ASSERTION',
-    actual: undefined,
-    expected: true,
-    operator: '==',
-    diff: 'simple'
-  }

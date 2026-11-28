@@ -43,6 +43,7 @@ import { decision } from "./decision/index.js";
 import { poppy, poppyImpl } from "./poppy/index.js";
 import { tool } from "@langchain/core/tools";
 import { MCPAdapter } from "@langchain/mcp-adapters";
+import { createAuthProvider } from "./mcp/authProvider.js";
 import { logger } from "../shared/logger.js";
 
 /**
@@ -635,6 +636,12 @@ export async function buildToolConfig(options) {
 			const adapterServers = {};
 			for (const [serverName, serverConfig] of Object.entries(mcpServers)) {
 				const { agents: _agents, ...connection } = serverConfig;
+				// Construct the built-in OAuth client provider from the typed
+				// `authProvider` config so an OAuth2-protected remote MCP server
+				// can be configured without hand-writing a provider object.
+				if (connection.authProvider) {
+					connection.authProvider = createAuthProvider(connection.authProvider);
+				}
 				adapterServers[serverName] = connection;
 			}
 
