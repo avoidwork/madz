@@ -178,6 +178,8 @@ export class LangChainOAuthClientProvider {
 	 * The server captures `code` + `state` from the redirect query string,
 	 * validates `state` against the provider-generated value, and writes the
 	 * result to the response store. It enforces a timeout on the callback port.
+	 * It binds to `0.0.0.0` so the host browser's redirect can reach the
+	 * container through the published port mapping.
 	 * @returns {Promise<void>} Resolves once the server is listening.
 	 */
 	async _startCallbackServer() {
@@ -226,7 +228,10 @@ export class LangChainOAuthClientProvider {
 
 		await new Promise((resolve, reject) => {
 			server.once("error", reject);
-			server.listen(this._callbackPort, "127.0.0.1", resolve);
+			// Bind to all interfaces so the host browser's redirect can reach the
+			// container through the published port mapping. Binding to loopback
+			// would make the callback unreachable from the host.
+			server.listen(this._callbackPort, "0.0.0.0", resolve);
 		});
 
 		this._callbackServer = server;
