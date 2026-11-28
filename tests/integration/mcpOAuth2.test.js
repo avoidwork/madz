@@ -20,9 +20,9 @@ describe("MCP OAuth2 auth fields (integration)", () => {
 		try {
 			const config = {
 				mcp: {
-					base44: {
+					docs: {
 						transport: "http",
-						url: "https://base44.com/mcp",
+						url: "https://example.com/mcp",
 						headers: { Authorization: "Bearer token" },
 						authProvider: {
 							clientId: "my-client",
@@ -39,10 +39,10 @@ describe("MCP OAuth2 auth fields (integration)", () => {
 			});
 
 			const servers = tools.mcpAdapter.config.servers;
-			assert.deepStrictEqual(servers.base44.headers, {
+			assert.deepStrictEqual(servers.docs.headers, {
 				Authorization: "Bearer token",
 			});
-			assert.ok(servers.base44.authProvider instanceof LangChainOAuthClientProvider);
+			assert.ok(servers.docs.authProvider instanceof LangChainOAuthClientProvider);
 
 			await tools.mcpAdapter.close();
 		} finally {
@@ -56,9 +56,9 @@ describe("MCP OAuth2 auth fields (integration)", () => {
 		try {
 			const config = {
 				mcp: {
-					base44: {
+					docs: {
 						transport: "sse",
-						url: "https://base44.com/mcp",
+						url: "https://example.com/mcp",
 						headers: { Authorization: "Bearer token" },
 						authProvider: {
 							clientId: "my-client",
@@ -75,10 +75,10 @@ describe("MCP OAuth2 auth fields (integration)", () => {
 			});
 
 			const servers = tools.mcpAdapter.config.servers;
-			assert.deepStrictEqual(servers.base44.headers, {
+			assert.deepStrictEqual(servers.docs.headers, {
 				Authorization: "Bearer token",
 			});
-			assert.ok(servers.base44.authProvider instanceof LangChainOAuthClientProvider);
+			assert.ok(servers.docs.authProvider instanceof LangChainOAuthClientProvider);
 
 			await tools.mcpAdapter.close();
 		} finally {
