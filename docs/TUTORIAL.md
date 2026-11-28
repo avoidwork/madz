@@ -42,7 +42,7 @@ The Docker container **is** the deployment model — for home use and profession
 ```bash
 mkdir -p ./memory ./skills
 echo 'OPENAI_API_KEY=sk-proj-xxxxxxxxxxxxxxxx' > .env
-docker run -d --name madz -p 2222:22 -v ./memory:/app/memory -v madz-checkpoints:/app/memory/checkpoints -v ./skills:/app/skills --env-file .env avoidwork/madz:latest
+docker run -d --name madz -p 2222:22 -p 3000:3000 -v ./memory:/app/memory -v madz-checkpoints:/app/memory/checkpoints -v ./skills:/app/skills --env-file .env avoidwork/madz:latest
 docker ps   # confirm the container is Up
 ssh -p 2222 madz@localhost
 ```

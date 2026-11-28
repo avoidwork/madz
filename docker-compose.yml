@@ -9,6 +9,7 @@ services:
       - TZ=America/Toronto
     ports:
       - "2222:22"
+      - "3000:3000"
     volumes:
       - ./memory:/app/memory
       - ./skills:/app/skills
