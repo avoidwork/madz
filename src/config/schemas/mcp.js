@@ -27,6 +27,8 @@ export const AuthProviderSchema = z
 		scopes: z.array(z.string()).optional(),
 		usesPkce: z.boolean().optional(),
 		codeChallengeMethod: z.string().optional(),
+		callbackPort: z.number().int().positive().optional(),
+		flow: z.enum(["browser", "device"]).optional(),
 	})
 	.strict();
 
